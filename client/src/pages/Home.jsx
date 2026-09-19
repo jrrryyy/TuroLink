@@ -9,9 +9,11 @@ import {
   Link,
   useNavigate,
 } from "react-router-dom";
+import "../styles/landing.css";
 
 const Home = () => {
   const navigate = useNavigate();
+
 
   return (
     <div className="landing-page">
@@ -75,12 +77,7 @@ const Home = () => {
               <ArrowRight size={18} />
             </button>
 
-            <button
-              className="btn btn-outline"
-              onClick={() => navigate("/login")}
-            >
-              Student Login
-            </button>
+           
           </div>
         </section>
 

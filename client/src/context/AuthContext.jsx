@@ -15,6 +15,10 @@ export const AuthProvider = ({ children }) => {
 
   const token = localStorage.getItem("turolinkToken");
 
+  // ==========================================
+  // LOAD CURRENT USER
+  // ==========================================
+
   useEffect(() => {
     const loadUser = async () => {
       const savedToken =
@@ -30,6 +34,11 @@ export const AuthProvider = ({ children }) => {
 
         setUser(response.data);
       } catch (error) {
+        console.error(
+          "Unable to load current user:",
+          error
+        );
+
         localStorage.removeItem("turolinkToken");
         setUser(null);
       } finally {
@@ -39,6 +48,11 @@ export const AuthProvider = ({ children }) => {
 
     loadUser();
   }, []);
+
+  // ==========================================
+  // LOGIN
+  // Student + Teacher
+  // ==========================================
 
   const login = async (email, password) => {
     const response = await api.post("/auth/login", {
@@ -55,6 +69,10 @@ export const AuthProvider = ({ children }) => {
 
     return response.data;
   };
+
+  // ==========================================
+  // STUDENT REGISTER
+  // ==========================================
 
   const register = async ({
     name,
@@ -79,10 +97,38 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
+  // ==========================================
+  // TEACHER REGISTER
+  // ==========================================
+
+  const registerTeacher = async (formData) => {
+    const response = await api.post(
+      "/teacher/register",
+      formData
+    );
+
+    localStorage.setItem(
+      "turolinkToken",
+      response.data.token
+    );
+
+    setUser(response.data.user);
+
+    return response.data;
+  };
+
+  // ==========================================
+  // LOGOUT
+  // ==========================================
+
   const logout = () => {
     localStorage.removeItem("turolinkToken");
     setUser(null);
   };
+
+  // ==========================================
+  // PROVIDER
+  // ==========================================
 
   return (
     <AuthContext.Provider
@@ -91,8 +137,10 @@ export const AuthProvider = ({ children }) => {
         token,
         loading,
         isAuthenticated: Boolean(user),
+
         login,
         register,
+        registerTeacher,
         logout,
       }}
     >

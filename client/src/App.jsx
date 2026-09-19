@@ -8,6 +8,8 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import StudentDashboard from "./pages/StudentDashboard";
+import TeacherRegister from "./pages/TeacherRegister";
+import TeacherDashboard from "./pages/TeacherDashboard";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -62,6 +64,19 @@ function App() {
           <GuestRoute>
             <Register />
           </GuestRoute>
+        }
+      />
+      <Route
+        path="/teacher/register"
+        element={<TeacherRegister />}
+      />
+
+      <Route
+        path="/teacher/dashboard"
+        element={
+          <ProtectedRoute>
+            <TeacherDashboard />
+          </ProtectedRoute>
         }
       />
 

@@ -5,10 +5,12 @@ const cors = require("cors");
 
 const connectDB = require("./config/db");
 
+const teacherRoutes = require("./routes/teacherRoutes");
 const authRoutes = require("./routes/authRoutes");
 const studentRoutes = require("./routes/studentRoutes");
 
 const app = express();
+const path = require("path");
 
 connectDB();
 
@@ -19,6 +21,11 @@ app.use(
   })
 );
 
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"))
+);
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -27,6 +34,7 @@ app.get("/", (req, res) => {
   });
 });
 
+app.use("/api/teacher", teacherRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/student", studentRoutes);
 

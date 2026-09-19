@@ -12,6 +12,7 @@ import {
 } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
+import "../styles/auth.css";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -287,12 +288,16 @@ const Register = () => {
             </button>
           </form>
 
-          <div className="auth-footer-card">
-            Have an account?
+          <div className="auth-footer-card signup-choice-card">
 
-            <Link to="/login">
-              Sign In
-            </Link>
+            <div className="signup-choice-buttons">
+              <Link
+                to="/teacher/register"
+                className="signup-choice-btn teacher"
+              >
+                Sign Up as Teacher
+              </Link>
+            </div>
           </div>
         </div>
       </section>

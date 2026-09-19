@@ -13,6 +13,7 @@ import {
 } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
+import "../styles/auth.css";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -49,13 +50,32 @@ const Login = () => {
     try {
       setLoading(true);
 
-      await login(email, password);
+      // Login returns:
+      // {
+      //   token: "...",
+      //   user: {...}
+      // }
+      const result = await login(
+        email,
+        password
+      );
 
+      // Check if ProtectedRoute supplied
+      // a redirect destination.
       const redirect =
-        searchParams.get("redirect") ||
-        "/dashboard";
+        searchParams.get("redirect");
 
-      navigate(redirect);
+      if (redirect) {
+        navigate(redirect);
+        return;
+      }
+
+      // ROLE-BASED REDIRECT
+      if (result.user.role === "teacher") {
+        navigate("/teacher/dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error) {
       setError(
         error.response?.data?.message ||
@@ -80,7 +100,7 @@ const Login = () => {
           <p>
             Welcome back.
             <br />
-            Keep learning.
+            Keep learning. Keep teaching.
           </p>
         </div>
 
@@ -100,8 +120,8 @@ const Login = () => {
             <h2>Log In</h2>
 
             <p>
-              Sign in to access your student
-              dashboard.
+              Sign in to access your TuroLink
+              account.
             </p>
           </div>
 
@@ -123,7 +143,9 @@ const Login = () => {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(event) =>
-                  setEmail(event.target.value)
+                  setEmail(
+                    event.target.value
+                  )
                 }
               />
             </label>
@@ -154,6 +176,11 @@ const Login = () => {
                       !showPassword
                     )
                   }
+                  aria-label={
+                    showPassword
+                      ? "Hide password"
+                      : "Show password"
+                  }
                 >
                   {showPassword ? (
                     <EyeOff size={19} />
@@ -175,12 +202,24 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="auth-footer-card">
-            Don't have an account?
+          <div className="auth-footer-card signup-choice-card">
+            <span>Don't have an account yet?</span>
 
-            <Link to="/register">
-              Sign Up
-            </Link>
+            <div className="signup-choice-buttons">
+              <Link
+                to="/register"
+                className="signup-choice-btn"
+              >
+                Sign Up as Student
+              </Link>
+
+              <Link
+                to="/teacher/register"
+                className="signup-choice-btn teacher"
+              >
+                Sign Up as Teacher
+              </Link>
+            </div>
           </div>
         </div>
       </section>
