@@ -5,36 +5,39 @@ import {
   useState,
 } from "react";
 
-import api, {
-  setAuthToken,
-} from "../services/api";
+import api from "../services/api";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(
-    localStorage.getItem("token")
-  );
+  const [loading, setLoading] = useState(true);
 
-  const isAuthenticated = !!token && !!user;
+  const token = localStorage.getItem("turolinkToken");
 
   useEffect(() => {
-    const initializeAuth = async () => {
-      if (!token) return;
+    const loadUser = async () => {
+      const savedToken =
+        localStorage.getItem("turolinkToken");
+
+      if (!savedToken) {
+        setLoading(false);
+        return;
+      }
 
       try {
-        setAuthToken(token);
-
         const response = await api.get("/auth/me");
 
-        setUser(response.data.user);
+        setUser(response.data);
       } catch (error) {
-        logout();
+        localStorage.removeItem("turolinkToken");
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
     };
 
-    initializeAuth();
+    loadUser();
   }, []);
 
   const login = async (email, password) => {
@@ -43,25 +46,42 @@ export const AuthProvider = ({ children }) => {
       password,
     });
 
-    const { user, token } = response.data;
+    localStorage.setItem(
+      "turolinkToken",
+      response.data.token
+    );
 
-    localStorage.setItem("token", token);
+    setUser(response.data.user);
 
-    setToken(token);
-    setUser(user);
+    return response.data;
+  };
 
-    setAuthToken(token);
+  const register = async ({
+    name,
+    email,
+    phone,
+    password,
+  }) => {
+    const response = await api.post("/auth/register", {
+      name,
+      email,
+      phone,
+      password,
+    });
 
-    return user;
+    localStorage.setItem(
+      "turolinkToken",
+      response.data.token
+    );
+
+    setUser(response.data.user);
+
+    return response.data;
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-
-    setToken(null);
+    localStorage.removeItem("turolinkToken");
     setUser(null);
-
-    setAuthToken(null);
   };
 
   return (
@@ -69,9 +89,11 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         token,
+        loading,
+        isAuthenticated: Boolean(user),
         login,
+        register,
         logout,
-        isAuthenticated,
       }}
     >
       {children}
@@ -79,5 +101,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-export const useAuth = () =>
-  useContext(AuthContext);
+export const useAuth = () => {
+  return useContext(AuthContext);
+};

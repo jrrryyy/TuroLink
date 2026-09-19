@@ -1,34 +1,89 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-
-import Navbar from "./components/Navbar";
-import ProtectedRoute from "./components/ProtectedRoute";
+import {
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
 import Home from "./pages/Home";
-import FindTutors from "./pages/FindTutors";
-import TutorProfile from "./pages/TutorProfile";
 import Login from "./pages/Login";
-import Messages from "./pages/Messages";
-import EnrolledSubjects from "./pages/EnrolledSubjects";
+import Register from "./pages/Register";
+import StudentDashboard from "./pages/StudentDashboard";
+
+import ProtectedRoute from "./components/ProtectedRoute";
+
+import { useAuth } from "./context/AuthContext";
+
+const GuestRoute = ({ children }) => {
+  const {
+    isAuthenticated,
+    loading,
+  } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="page-loader">
+        Loading TuroLink...
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return (
+      <Navigate
+        to="/dashboard"
+        replace
+      />
+    );
+  }
+
+  return children;
+};
 
 function App() {
   return (
-    <BrowserRouter>
-      <Navbar />
+    <Routes>
+      <Route
+        path="/"
+        element={<Home />}
+      />
 
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/tutors" element={<FindTutors />} />
-        <Route path="/tutors/:id" element={<TutorProfile />} />
-        <Route path="/login" element={<Login />} />
+      <Route
+        path="/login"
+        element={
+          <GuestRoute>
+            <Login />
+          </GuestRoute>
+        }
+      />
 
-        {/* Protected Routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/enrolled-subjects" element={<EnrolledSubjects />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+      <Route
+        path="/register"
+        element={
+          <GuestRoute>
+            <Register />
+          </GuestRoute>
+        }
+      />
+
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to="/"
+            replace
+          />
+        }
+      />
+    </Routes>
   );
 }
 

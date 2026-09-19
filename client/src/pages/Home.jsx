@@ -1,109 +1,185 @@
-import { Link } from "react-router-dom";
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  Users,
+} from "lucide-react";
+
+import {
+  Link,
+  useNavigate,
+} from "react-router-dom";
 
 const Home = () => {
+  const navigate = useNavigate();
+
   return (
-    <main>
-
-      {/* Hero */}
-      <section className="bg-indigo-50">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 py-20 md:grid-cols-2">
-
-          <div>
-            <p className="mb-3 font-semibold text-indigo-600">
-              LEARN • CONNECT • GROW
-            </p>
-
-            <h1 className="text-4xl font-bold leading-tight text-gray-900 md:text-6xl">
-              Find the right tutor
-              <span className="text-indigo-600">
-                {" "}for you.
-              </span>
-            </h1>
-
-            <p className="mt-6 max-w-xl text-lg text-gray-600">
-              TuroLink connects students with tutors
-              who can help them understand subjects,
-              improve their skills, and reach their goals.
-            </p>
-
-            <div className="mt-8 flex gap-4">
-              <Link
-                to="/tutors"
-                className="rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-700"
-              >
-                Find a Tutor
-              </Link>
-
-              <Link
-                to="/tutors"
-                className="rounded-xl border border-indigo-600 px-6 py-3 font-semibold text-indigo-600"
-              >
-                Explore Subjects
-              </Link>
-            </div>
+    <div className="landing-page">
+      <nav className="landing-nav">
+        <Link to="/" className="brand">
+          <div className="brand-circle">
+            TuroLink
           </div>
+        </Link>
 
-          {/* Placeholder Illustration */}
-          <div className="flex h-96 items-center justify-center rounded-3xl bg-white shadow-sm">
-            <div className="text-center">
-              <div className="text-8xl">
-                👨‍🏫
-              </div>
-
-              <p className="mt-4 text-gray-500">
-                Tutor illustration
-              </p>
-            </div>
-          </div>
-
+        <div className="landing-links">
+          <a href="#about">About</a>
+          <a href="#how-it-works">How it Works</a>
+          <a href="#faq">FAQ</a>
         </div>
-      </section>
 
-      {/* Features */}
-      <section className="mx-auto max-w-7xl px-6 py-16">
-        <h2 className="text-center text-3xl font-bold">
-          Why use TuroLink?
-        </h2>
+        <div className="nav-actions">
+          <Link
+            to="/login"
+            className="btn btn-outline btn-small"
+          >
+            Log in
+          </Link>
 
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
+          <Link
+            to="/register"
+            className="btn btn-primary btn-small"
+          >
+            Sign Up
+          </Link>
+        </div>
+      </nav>
 
-          {[
-            [
-              "🔎",
-              "Find Tutors",
-              "Search tutors based on subjects and categories.",
-            ],
-            [
-              "📚",
-              "Learn Better",
-              "Connect with tutors who can help you improve.",
-            ],
-            [
-              "💬",
-              "Stay Connected",
-              "Message tutors and manage your learning.",
-            ],
-          ].map(([icon, title, description]) => (
-            <div
-              key={title}
-              className="rounded-2xl border bg-white p-6 text-center shadow-sm"
+      <main className="hero">
+        <section className="hero-content">
+          <span className="eyebrow">
+            Peer learning in Dagupan City
+          </span>
+
+          <h1>
+            Find the right tutor,
+            <br />
+            right here in
+            <br />
+            Dagupan City.
+          </h1>
+
+          <p>
+            A web-based peer tutoring platform
+            connecting learners with tutors and
+            teachers — affordable, local, and built
+            for SDG 4: Quality Education.
+          </p>
+
+          <div className="hero-buttons">
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate("/register")}
             >
-              <div className="text-4xl">{icon}</div>
+              Continue as Student
+              <ArrowRight size={18} />
+            </button>
 
-              <h3 className="mt-4 text-xl font-bold">
-                {title}
-              </h3>
+            <button
+              className="btn btn-outline"
+              onClick={() => navigate("/login")}
+            >
+              Student Login
+            </button>
+          </div>
+        </section>
 
-              <p className="mt-2 text-gray-500">
-                {description}
-              </p>
-            </div>
-          ))}
+        <section
+          className="hero-art"
+          aria-label="TuroLink graphic"
+        >
+          <div className="circle circle-sage"></div>
+          <div className="circle circle-green"></div>
+          <div className="circle circle-white"></div>
 
+          <div className="floating-card floating-card-one">
+            <BookOpen size={20} />
+            Learn
+          </div>
+
+          <div className="floating-card floating-card-two">
+            <Users size={20} />
+            Connect
+          </div>
+        </section>
+      </main>
+
+      <section id="about" className="info-section">
+        <div>
+          <span className="section-label">
+            ABOUT TUROLINK
+          </span>
+
+          <h2>
+            Learning becomes easier when help is
+            within reach.
+          </h2>
+        </div>
+
+        <p>
+          TuroLink gives students a simple place to
+          access their learning dashboard, monitor
+          courses and keep track of tutoring
+          sessions.
+        </p>
+      </section>
+
+      <section
+        id="how-it-works"
+        className="how-section"
+      >
+        <span className="section-label">
+          HOW IT WORKS
+        </span>
+
+        <h2>Three simple steps.</h2>
+
+        <div className="step-grid">
+          <article className="step-card">
+            <span>01</span>
+            <CheckCircle2 size={30} />
+            <h3>Create an account</h3>
+            <p>
+              Sign up as a student using your basic
+              information.
+            </p>
+          </article>
+
+          <article className="step-card">
+            <span>02</span>
+            <BookOpen size={30} />
+            <h3>Access your courses</h3>
+            <p>
+              See your enrolled subjects and upcoming
+              learning sessions.
+            </p>
+          </article>
+
+          <article className="step-card">
+            <span>03</span>
+            <Users size={30} />
+            <h3>Track your learning</h3>
+            <p>
+              Use your dashboard to follow your
+              progress and schedule.
+            </p>
+          </article>
         </div>
       </section>
 
-    </main>
+      <section id="faq" className="faq-section">
+        <span className="section-label">FAQ</span>
+
+        <h2>Built for students.</h2>
+
+        <p>
+          TuroLink is currently focused on the
+          student experience. Create an account,
+          log in and access your personal learning
+          dashboard.
+        </p>
+      </section>
+    </div>
   );
 };
 

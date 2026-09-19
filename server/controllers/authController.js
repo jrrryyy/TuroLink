@@ -1,6 +1,6 @@
+const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const User = require("../models/User");
 
 const generateToken = (id) => {
   return jwt.sign(
@@ -12,22 +12,30 @@ const generateToken = (id) => {
   );
 };
 
-// REGISTER
+// POST /api/auth/register
 const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, phone, password } = req.body;
 
-    if (!name || !email || !password) {
+    if (!name || !email || !phone || !password) {
       return res.status(400).json({
-        message: "Please fill in all required fields.",
+        message: "Please complete all fields.",
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    if (password.length < 6) {
+      return res.status(400).json({
+        message: "Password must contain at least 6 characters.",
+      });
+    }
+
+    const existingUser = await User.findOne({
+      email: email.toLowerCase(),
+    });
 
     if (existingUser) {
       return res.status(400).json({
-        message: "Email is already registered.",
+        message: "An account with this email already exists.",
       });
     }
 
@@ -35,36 +43,47 @@ const register = async (req, res) => {
 
     const user = await User.create({
       name,
-      email,
+      email: email.toLowerCase(),
+      phone,
       password: hashedPassword,
-      role: role || "student",
+      role: "student",
     });
 
     const token = generateToken(user._id);
 
     res.status(201).json({
+      token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
-        profilePicture: user.profilePicture,
       },
-      token,
     });
   } catch (error) {
+    console.error("Register error:", error);
+
     res.status(500).json({
-      message: error.message,
+      message: "Unable to create account.",
     });
   }
 };
 
-// LOGIN
+// POST /api/auth/login
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required.",
+      });
+    }
+
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+    });
 
     if (!user) {
       return res.status(401).json({
@@ -72,12 +91,12 @@ const login = async (req, res) => {
       });
     }
 
-    const passwordMatch = await bcrypt.compare(
+    const passwordMatches = await bcrypt.compare(
       password,
       user.password
     );
 
-    if (!passwordMatch) {
+    if (!passwordMatches) {
       return res.status(401).json({
         message: "Invalid email or password.",
       });
@@ -86,27 +105,39 @@ const login = async (req, res) => {
     const token = generateToken(user._id);
 
     res.json({
+      token,
       user: {
         id: user._id,
         name: user.name,
         email: user.email,
+        phone: user.phone,
         role: user.role,
-        profilePicture: user.profilePicture,
       },
-      token,
     });
   } catch (error) {
+    console.error("Login error:", error);
+
     res.status(500).json({
-      message: error.message,
+      message: "Unable to log in.",
     });
   }
 };
 
-// CURRENT USER
+// GET /api/auth/me
 const getMe = async (req, res) => {
-  res.json({
-    user: req.user,
-  });
+  try {
+    res.json({
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      phone: req.user.phone,
+      role: req.user.role,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Unable to get user.",
+    });
+  }
 };
 
 module.exports = {

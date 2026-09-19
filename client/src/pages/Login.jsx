@@ -1,119 +1,190 @@
 import { useState } from "react";
+
+import {
+  Eye,
+  EyeOff,
+  ArrowLeft,
+} from "lucide-react";
+
 import {
   Link,
-  useLocation,
   useNavigate,
+  useSearchParams,
 } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
 
 const Login = () => {
+  const navigate = useNavigate();
+
+  const [searchParams] = useSearchParams();
+
   const { login } = useAuth();
 
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  const params = new URLSearchParams(
-    location.search
-  );
-
-  const redirect =
-    params.get("redirect") || "/";
-
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [password, setPassword] =
+    useState("");
+
+  const [showPassword, setShowPassword] =
+    useState(false);
 
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const [loading, setLoading] =
+    useState(false);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    setError("");
+
+    if (!email || !password) {
+      setError(
+        "Please enter your email and password."
+      );
+
+      return;
+    }
 
     try {
-      setError("");
+      setLoading(true);
 
       await login(email, password);
 
-      navigate(redirect, {
-        replace: true,
-      });
+      const redirect =
+        searchParams.get("redirect") ||
+        "/dashboard";
+
+      navigate(redirect);
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "Login failed."
+          "Unable to log in."
       );
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <main className="flex min-h-[80vh] items-center justify-center bg-gray-50 px-6">
+    <div className="auth-layout">
+      <section className="auth-brand-panel">
+        <Link to="/" className="auth-back">
+          <ArrowLeft size={18} />
+          Back
+        </Link>
 
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow">
+        <div className="auth-brand-content">
+          <h1>TuroLink</h1>
 
-        <h1 className="text-3xl font-bold">
-          Welcome back
-        </h1>
+          <p>
+            Welcome back.
+            <br />
+            Keep learning.
+          </p>
+        </div>
 
-        <p className="mt-2 text-gray-500">
-          Sign in to continue using TuroLink.
-        </p>
+        <div className="auth-decoration">
+          <div className="auth-circle-one"></div>
+          <div className="auth-circle-two"></div>
+        </div>
+      </section>
 
-        {error && (
-          <div className="mt-5 rounded-lg bg-red-50 p-3 text-sm text-red-600">
-            {error}
+      <section className="auth-form-panel">
+        <div className="auth-form-container login-container">
+          <div className="auth-heading">
+            <span className="section-label">
+              WELCOME BACK
+            </span>
+
+            <h2>Log In</h2>
+
+            <p>
+              Sign in to access your student
+              dashboard.
+            </p>
           </div>
-        )}
 
-        <form
-          onSubmit={handleSubmit}
-          className="mt-6 space-y-4"
-        >
+          {error && (
+            <div className="form-error">
+              {error}
+            </div>
+          )}
 
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) =>
-              setEmail(e.target.value)
-            }
-            className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
-            required
-          />
-
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) =>
-              setPassword(e.target.value)
-            }
-            className="w-full rounded-xl border px-4 py-3 outline-none focus:border-indigo-500"
-            required
-          />
-
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white"
+          <form
+            onSubmit={handleSubmit}
+            className="auth-form"
           >
-            Login
-          </button>
+            <label>
+              Email Address
 
-        </form>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(event) =>
+                  setEmail(event.target.value)
+                }
+              />
+            </label>
 
-        <p className="mt-6 text-center text-sm text-gray-500">
-          Don't have an account?{" "}
-          <Link
-            to={`/register?redirect=${encodeURIComponent(
-              redirect
-            )}`}
-            className="font-semibold text-indigo-600"
-          >
-            Create one
-          </Link>
-        </p>
+            <label>
+              Password
 
-      </div>
+              <div className="password-field">
+                <input
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(event) =>
+                    setPassword(
+                      event.target.value
+                    )
+                  }
+                />
 
-    </main>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPassword(
+                      !showPassword
+                    )
+                  }
+                >
+                  {showPassword ? (
+                    <EyeOff size={19} />
+                  ) : (
+                    <Eye size={19} />
+                  )}
+                </button>
+              </div>
+            </label>
+
+            <button
+              type="submit"
+              className="btn btn-primary auth-submit"
+              disabled={loading}
+            >
+              {loading
+                ? "Logging In..."
+                : "Log In"}
+            </button>
+          </form>
+
+          <div className="auth-footer-card">
+            Don't have an account?
+
+            <Link to="/register">
+              Sign Up
+            </Link>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 };
 
