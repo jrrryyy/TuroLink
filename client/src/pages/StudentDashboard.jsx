@@ -216,6 +216,7 @@ const StudentDashboard = () => {
             <X />
           </button>
         </div>
+        
 
         <nav className="sidebar-nav">
           <button
@@ -227,11 +228,11 @@ const StudentDashboard = () => {
           </button>
 
           <button
-            type="button"
             className="sidebar-item"
+            onClick={() => navigate("/student/my-subjects")}
           >
             <BookOpen size={20} />
-            My Courses
+            My Subjects
           </button>
 
           <button
@@ -241,6 +242,7 @@ const StudentDashboard = () => {
             <CalendarDays size={20} />
             Schedules
           </button>
+
 
           <button
             type="button"

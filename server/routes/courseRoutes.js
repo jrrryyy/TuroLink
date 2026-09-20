@@ -1,0 +1,19 @@
+const express = require("express");
+
+const {
+  getMyCourses,
+  enrollCourse,
+  updateCourse,
+} = require("../controllers/courseController");
+
+const { protect } = require("../middleware/authMiddleware");
+
+const router = express.Router();
+
+router.get("/my-courses", protect, getMyCourses);
+
+router.post("/enroll", protect, enrollCourse);
+
+router.put("/:id", protect, updateCourse);
+
+module.exports = router;

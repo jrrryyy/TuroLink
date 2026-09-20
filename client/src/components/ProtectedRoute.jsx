@@ -1,17 +1,15 @@
-import {
-  Navigate,
-  useLocation,
-} from "react-router-dom";
-
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({
+  children,
+  allowedRole,
+}) => {
   const {
     isAuthenticated,
+    user,
     loading,
   } = useAuth();
-
-  const location = useLocation();
 
   if (loading) {
     return (
@@ -21,12 +19,44 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (!isAuthenticated) {
+  // Not logged in
+  if (!isAuthenticated || !user) {
     return (
       <Navigate
-        to={`/login?redirect=${encodeURIComponent(
-          location.pathname
-        )}`}
+        to="/login"
+        replace
+      />
+    );
+  }
+
+  // Wrong role
+  if (
+    allowedRole &&
+    user.role !== allowedRole
+  ) {
+    // Teacher trying to access student page
+    if (user.role === "teacher") {
+      return (
+        <Navigate
+          to="/teacher/dashboard"
+          replace
+        />
+      );
+    }
+
+    // Student trying to access teacher page
+    if (user.role === "student") {
+      return (
+        <Navigate
+          to="/dashboard"
+          replace
+        />
+      );
+    }
+
+    return (
+      <Navigate
+        to="/"
         replace
       />
     );

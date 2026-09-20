@@ -106,7 +106,13 @@ const TeacherDashboard = () => {
             Dashboard
           </button>
 
-          <button className="teacher-nav-item">
+          <button
+            type="button"
+            className="teacher-nav-item"
+            onClick={() =>
+              navigate("/teacher/my-subjects")
+            }
+          >
             <BookOpen size={20} />
             My Subjects
           </button>

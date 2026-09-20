@@ -7,17 +7,27 @@ import {
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentMySubjects from "./pages/StudentMySubjects";
+
 import TeacherRegister from "./pages/TeacherRegister";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import TeacherMySubjects from "./pages/TeacherMySubjects";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
 import { useAuth } from "./context/AuthContext";
 
+
+// ============================================
+// GUEST ROUTE
+// ============================================
+
 const GuestRoute = ({ children }) => {
   const {
     isAuthenticated,
+    user,
     loading,
   } = useAuth();
 
@@ -29,7 +39,16 @@ const GuestRoute = ({ children }) => {
     );
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && user) {
+    if (user.role === "teacher") {
+      return (
+        <Navigate
+          to="/teacher/dashboard"
+          replace
+        />
+      );
+    }
+
     return (
       <Navigate
         to="/dashboard"
@@ -41,13 +60,24 @@ const GuestRoute = ({ children }) => {
   return children;
 };
 
+
+// ============================================
+// APP
+// ============================================
+
 function App() {
   return (
     <Routes>
+
+      {/* =====================================
+          PUBLIC
+      ====================================== */}
+
       <Route
         path="/"
         element={<Home />}
       />
+
 
       <Route
         path="/login"
@@ -58,6 +88,7 @@ function App() {
         }
       />
 
+
       <Route
         path="/register"
         element={
@@ -66,28 +97,77 @@ function App() {
           </GuestRoute>
         }
       />
+
+
       <Route
         path="/teacher/register"
-        element={<TeacherRegister />}
+        element={
+          <GuestRoute>
+            <TeacherRegister />
+          </GuestRoute>
+        }
       />
+
+
+      {/* =====================================
+          STUDENT ONLY
+      ====================================== */}
+
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute
+            allowedRole="student"
+          >
+            <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+
+      <Route
+        path="/student/my-subjects"
+        element={
+          <ProtectedRoute
+            allowedRole="student"
+          >
+            <StudentMySubjects />
+          </ProtectedRoute>
+        }
+      />
+
+
+      {/* =====================================
+          TEACHER ONLY
+      ====================================== */}
 
       <Route
         path="/teacher/dashboard"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute
+            allowedRole="teacher"
+          >
             <TeacherDashboard />
           </ProtectedRoute>
         }
       />
 
+
       <Route
-        path="/dashboard"
+        path="/teacher/my-subjects"
         element={
-          <ProtectedRoute>
-            <StudentDashboard />
+          <ProtectedRoute
+            allowedRole="teacher"
+          >
+            <TeacherMySubjects />
           </ProtectedRoute>
         }
       />
+
+
+      {/* =====================================
+          UNKNOWN ROUTE
+      ====================================== */}
 
       <Route
         path="*"
@@ -98,6 +178,7 @@ function App() {
           />
         }
       />
+
     </Routes>
   );
 }

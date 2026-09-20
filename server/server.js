@@ -8,6 +8,8 @@ const connectDB = require("./config/db");
 const teacherRoutes = require("./routes/teacherRoutes");
 const authRoutes = require("./routes/authRoutes");
 const studentRoutes = require("./routes/studentRoutes");
+const courseRoutes = require("./routes/courseRoutes");
+const subjectRoutes = require("./routes/subjectRoutes");
 
 const app = express();
 const path = require("path");
@@ -34,9 +36,21 @@ app.get("/", (req, res) => {
   });
 });
 
+app.use(
+  "/uploads",
+  express.static(
+    path.join(
+      __dirname,
+      "uploads"
+    )
+  )
+);
 app.use("/api/teacher", teacherRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/student", studentRoutes);
+app.use("/api/courses", courseRoutes);
+app.use("/api/subjects",subjectRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 
