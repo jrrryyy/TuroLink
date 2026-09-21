@@ -1,3 +1,4 @@
+const { requireTeacher } = require("../middleware/teacherMiddleware");
 const express = require("express");
 
 const {
@@ -24,6 +25,7 @@ router.post(
 router.get(
   "/dashboard-data",
   protect,
+  requireTeacher,
   getTeacherDashboard
 );
 

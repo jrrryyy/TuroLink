@@ -6,20 +6,13 @@ import {
 
 import {
   BookOpen,
-  CalendarDays,
   Edit3,
-  LayoutDashboard,
-  Menu,
-  MessageSquare,
-  Moon,
-  Search,
-  Settings,
-  Sun,
-  UserSearch,
   X,
 } from "lucide-react";
 
-import { useNavigate } from "react-router-dom";
+
+import DashboardLayout from "../components/DashboardLayout";
+import { useTheme } from "../context/ThemeContext";
 
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -27,7 +20,7 @@ import { useAuth } from "../context/AuthContext";
 import "../styles/student-my-subjects.css";
 
 const StudentMySubjects = () => {
-  const navigate = useNavigate();
+
 
   const { user } = useAuth();
 
@@ -36,11 +29,9 @@ const StudentMySubjects = () => {
   const [loading, setLoading] =
     useState(true);
 
-  const [darkMode, setDarkMode] =
-    useState(false);
+  const { darkMode } = useTheme();
 
-  const [sidebarOpen, setSidebarOpen] =
-    useState(false);
+
 
   const [searchTerm, setSearchTerm] =
     useState("");
@@ -218,9 +209,9 @@ const StudentMySubjects = () => {
 
   if (loading) {
     return (
-      <div className="student-subjects-loader">
-        Loading your subjects...
-      </div>
+      <DashboardLayout role="student" userName={user?.name}>
+        <div className="dashboard-page-loading" role="status">Loading subjects...</div>
+      </DashboardLayout>
     );
   }
 
@@ -230,225 +221,9 @@ const StudentMySubjects = () => {
   // ==========================================
 
   return (
-    <div
-      className={
-        darkMode
-          ? "student-subjects-page student-subjects-dark"
-          : "student-subjects-page"
-      }
-    >
-
-      {/* =====================================
-          SIDEBAR
-      ====================================== */}
-
-      <aside
-        className={
-          sidebarOpen
-            ? "student-subjects-sidebar sidebar-open"
-            : "student-subjects-sidebar"
-        }
-      >
-
-        <button
-          type="button"
-          className="student-subjects-sidebar-close"
-          onClick={() =>
-            setSidebarOpen(false)
-          }
-          aria-label="Close sidebar"
-        >
-          <X size={21} />
-        </button>
-
-
-        <nav className="student-subjects-nav">
-
-          <button
-            type="button"
-            className="student-subjects-nav-item"
-            onClick={() =>
-              navigate("/dashboard")
-            }
-          >
-            <LayoutDashboard size={20} />
-
-            Dashboard
-          </button>
-
-
-          <button
-            type="button"
-            className="student-subjects-nav-item active"
-          >
-            <BookOpen size={20} />
-
-            My Subjects
-          </button>
-
-
-          <button
-            type="button"
-            className="student-subjects-nav-item"
-          >
-            <MessageSquare size={20} />
-
-            Messages
-          </button>
-
-
-          <button
-            type="button"
-            className="student-subjects-nav-item"
-          >
-            <CalendarDays size={20} />
-
-            Schedules
-          </button>
-
-
-          <button
-            type="button"
-            className="student-subjects-nav-item"
-          >
-            <UserSearch size={20} />
-
-            Find Tutors
-          </button>
-
-        </nav>
-      </aside>
-
-
-      {/* =====================================
-          BODY
-      ====================================== */}
-
-      <div className="student-subjects-body">
-
-        {/* ===================================
-            TOP HEADER
-        ==================================== */}
-
-        <header className="student-subjects-header">
-
-          <button
-            type="button"
-            className="student-subjects-mobile-menu"
-            onClick={() =>
-              setSidebarOpen(true)
-            }
-            aria-label="Open sidebar"
-          >
-            <Menu size={23} />
-          </button>
-
-
-          {/* LOGO */}
-
-          <div className="student-subjects-brand">
-            <div className="student-subjects-logo">
-              logo
-            </div>
-
-            <strong>
-              TuroLink
-            </strong>
-          </div>
-
-
-          {/* SEARCH */}
-
-          <div className="student-subjects-search">
-            <Search size={17} />
-
-            <input
-              type="text"
-              placeholder="Search Subjects..."
-              value={searchTerm}
-              onChange={(event) =>
-                setSearchTerm(
-                  event.target.value
-                )
-              }
-            />
-          </div>
-
-
-          {/* RIGHT HEADER */}
-
-          <div className="student-subjects-profile-area">
-
-            {/* DARK MODE */}
-
-            <div className="student-subjects-theme-control">
-
-              <Sun size={16} />
-
-              <button
-                type="button"
-                className={
-                  darkMode
-                    ? "student-subjects-theme-switch enabled"
-                    : "student-subjects-theme-switch"
-                }
-                onClick={() =>
-                  setDarkMode(
-                    (previous) => !previous
-                  )
-                }
-                aria-label="Toggle dark mode"
-              >
-                <span></span>
-              </button>
-
-              <Moon size={16} />
-
-            </div>
-
-
-            {/* SETTINGS */}
-
-            <button
-              type="button"
-              className="student-subjects-settings"
-              aria-label="Settings"
-            >
-              <Settings size={21} />
-            </button>
-
-
-            {/* PROFILE */}
-
-            <div className="student-subjects-avatar">
-              {user?.name
-                ?.charAt(0)
-                ?.toUpperCase() || "S"}
-            </div>
-
-
-            <div className="student-subjects-profile-copy">
-
-              <strong>
-                {user?.name || "Student"}
-              </strong>
-
-              <span>
-                Learner
-              </span>
-
-            </div>
-
-          </div>
-
-        </header>
-
-
-        {/* ===================================
-            SUBJECTS
-        ==================================== */}
-
-        <main className="student-subjects-main">
+    <DashboardLayout role="student" userName={user?.name} searchPlaceholder="Search Subjects..." searchValue={searchTerm} onSearchChange={setSearchTerm}>
+      <div className={darkMode ? "student-subjects-page student-subjects-dark" : "student-subjects-page"}>
+        <section className="student-subjects-main">
 
           {error && !editingSubject && (
             <div className="student-subjects-error">
@@ -571,8 +346,7 @@ const StudentMySubjects = () => {
             </div>
           )}
 
-        </main>
-      </div>
+        </section>
 
 
       {/* =====================================
@@ -738,7 +512,8 @@ const StudentMySubjects = () => {
         </div>
       )}
 
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

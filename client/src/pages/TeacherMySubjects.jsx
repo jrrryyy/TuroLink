@@ -6,28 +6,23 @@ import {
 
 import {
   BookOpen,
-  CalendarDays,
   CheckCircle2,
   ChevronDown,
-  ClipboardList,
   ExternalLink,
   FileText,
-  LayoutDashboard,
   Link as LinkIcon,
   MessageCircle,
-  Moon,
   Paperclip,
   Plus,
-  Search,
-  Settings,
-  Sun,
   Trash2,
   X,
 } from "lucide-react";
 
-import {
-  useNavigate,
-} from "react-router-dom";
+
+import { useTheme } from "../context/ThemeContext";
+import TeacherClasswork from "../components/TeacherClasswork";
+import DashboardLayout from "../components/DashboardLayout";
+import { useSearchParams } from "react-router-dom";
 
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -36,9 +31,10 @@ import "../styles/teacher-my-subjects.css";
 
 
 const TeacherMySubjects = () => {
-  const navigate = useNavigate();
+
 
   const { user } = useAuth();
+  const { darkMode } = useTheme();
 
   const fileInputRef =
     useRef(null);
@@ -58,10 +54,11 @@ const TeacherMySubjects = () => {
     setLoading,
   ] = useState(true);
 
-  const [
-    darkMode,
-    setDarkMode,
-  ] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchTerm = searchParams.get("q") || "";
+  const filteredSubjects = subjects.filter((subject) =>
+    [subject.code, subject.title, subject.description].some((value) => value?.toLowerCase().includes(searchTerm.trim().toLowerCase()))
+  );
 
   const [
     selectedSubject,
@@ -217,7 +214,12 @@ const TeacherMySubjects = () => {
 
 
   useEffect(() => {
-    loadSubjects();
+    let active = true;
+    api.get("/subjects/my-subjects")
+      .then((response) => { if (active) setSubjects(response.data); })
+      .catch((error) => { if (active) setError(error.response?.data?.message || "Unable to load subjects."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
 
@@ -1077,205 +1079,17 @@ const TeacherMySubjects = () => {
 
   if (loading) {
     return (
-      <div className="teacher-subject-loader">
-        Loading subjects...
-      </div>
+      <DashboardLayout role="teacher" userName={user?.name}>
+        <div className="dashboard-page-loading" role="status">Loading subjects...</div>
+      </DashboardLayout>
     );
   }
 
 
   return (
-    <div
-      className={
-        darkMode
-          ? "teacher-subject-page teacher-subject-dark"
-          : "teacher-subject-page"
-      }
-    >
-
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
-      <header className="teacher-subject-header">
-
-        <div className="teacher-subject-brand">
-
-          <div className="teacher-subject-logo">
-            logo
-          </div>
-
-          <strong>
-            TuroLink
-          </strong>
-
-        </div>
-
-
-        <div className="teacher-subject-search">
-
-          <Search
-            size={17}
-          />
-
-          <input
-            type="text"
-            placeholder="Search Subjects..."
-          />
-
-        </div>
-
-
-        <div className="teacher-subject-header-right">
-
-          <div className="teacher-subject-theme">
-
-            <Sun
-              size={16}
-            />
-
-            <button
-              type="button"
-              className={
-                darkMode
-                  ? "teacher-subject-theme-switch enabled"
-                  : "teacher-subject-theme-switch"
-              }
-              onClick={() =>
-                setDarkMode(
-                  (previous) =>
-                    !previous
-                )
-              }
-              aria-label="Toggle dark mode"
-            >
-              <span></span>
-            </button>
-
-            <Moon
-              size={16}
-            />
-
-          </div>
-
-
-          <button
-            type="button"
-            className="teacher-subject-settings"
-            aria-label="Settings"
-          >
-            <Settings
-              size={21}
-            />
-          </button>
-
-
-          <div className="teacher-subject-avatar">
-
-            {user?.name
-              ?.charAt(0)
-              ?.toUpperCase() ||
-              "T"}
-
-          </div>
-
-
-          <div className="teacher-subject-profile">
-
-            <strong>
-              {user?.name ||
-                "Teacher"}
-            </strong>
-
-            <span>
-              Teacher
-            </span>
-
-          </div>
-
-        </div>
-
-      </header>
-
-
-      {/* =================================================
-          SIDEBAR
-      ================================================= */}
-
-      <aside className="teacher-subject-sidebar">
-
-        <nav>
-
-          <button
-            type="button"
-            onClick={() =>
-              navigate(
-                "/teacher/dashboard"
-              )
-            }
-          >
-            <LayoutDashboard
-              size={19}
-            />
-
-            Dashboard
-          </button>
-
-
-          <button
-            type="button"
-            className="active"
-          >
-            <BookOpen
-              size={19}
-            />
-
-            My Subjects
-          </button>
-
-
-          <button
-            type="button"
-          >
-            <MessageCircle
-              size={19}
-            />
-
-            Messages
-          </button>
-
-
-          <button
-            type="button"
-          >
-            <CalendarDays
-              size={19}
-            />
-
-            Schedules
-          </button>
-
-
-          <button
-            type="button"
-          >
-            <ClipboardList
-              size={19}
-            />
-
-            Request
-          </button>
-
-        </nav>
-
-      </aside>
-
-
-      {/* =================================================
-          MAIN
-      ================================================= */}
-
-      <main className="teacher-subject-content">
+    <DashboardLayout role="teacher" userName={user?.name} searchPlaceholder="Search Subjects..." searchValue={searchTerm} onSearchChange={(value) => { setSearchParams(value ? { q: value } : {}, { replace: true }); setSelectedSubject(null); }}>
+      <div className={darkMode ? "teacher-subject-page teacher-subject-dark" : "teacher-subject-page"}>
+        <section className="teacher-subject-content">
 
         {error && (
           <div className="teacher-subject-error">
@@ -1337,7 +1151,7 @@ const TeacherMySubjects = () => {
 
             <div className="teacher-subject-list">
 
-              {subjects.length ===
+              {filteredSubjects.length ===
               0 ? (
                 <div className="teacher-subject-empty">
 
@@ -1346,7 +1160,7 @@ const TeacherMySubjects = () => {
                   />
 
                   <h2>
-                    No subjects yet
+                    {searchTerm ? "No matching subjects" : "No subjects yet"}
                   </h2>
 
                   <p>
@@ -1357,7 +1171,7 @@ const TeacherMySubjects = () => {
 
                 </div>
               ) : (
-                subjects.map(
+                filteredSubjects.map(
                   (subject) => (
                     <div
                       key={
@@ -1585,7 +1399,7 @@ const TeacherMySubjects = () => {
                   )
                 }
               >
-                Materials
+                Classwork
               </button>
 
             </div>
@@ -2088,34 +1902,13 @@ const TeacherMySubjects = () => {
                 MATERIALS
             ============================================= */}
 
-            {activeTab ===
-              "materials" && (
-              <div className="teacher-materials">
-
-                <div className="teacher-subject-empty">
-
-                  <BookOpen
-                    size={32}
-                  />
-
-                  <h2>
-                    Materials
-                  </h2>
-
-                  <p>
-                    Subject materials
-                    will appear here.
-                  </p>
-
-                </div>
-
-              </div>
+            {activeTab === "materials" && (
+              <TeacherClasswork key={selectedSubject._id} subject={selectedSubject} teacherName={user?.name} />
             )}
-
           </>
         )}
 
-      </main>
+      </section>
 
 
       {/* =================================================
@@ -2367,7 +2160,8 @@ const TeacherMySubjects = () => {
         </div>
       )}
 
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 

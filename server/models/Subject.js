@@ -68,25 +68,22 @@ const announcementSchema =
 // MATERIAL SCHEMA
 // ============================================
 
-const materialSchema =
-  new mongoose.Schema(
-    {
-      title: {
-        type: String,
-        required: true,
-        trim: true,
-      },
-
-      fileUrl: {
-        type: String,
-        default: "",
-      },
-    },
-    {
-      timestamps: true,
-    }
-  );
-
+const materialSchema = new mongoose.Schema({
+  title: { type: String, required: true, trim: true },
+  type: { type: String, enum: ['assignment', 'quiz'], default: 'assignment' },
+  instructions: { type: String, default: '' },
+  points: { type: Number, default: null, min: 0, max: 1000 },
+  dueAt: { type: Date, default: null },
+  status: { type: String, enum: ['draft', 'scheduled', 'posted', 'archived'], default: 'posted' },
+  scheduledAt: { type: Date, default: null },
+  postedAt: { type: Date, default: null },
+  link: { type: String, default: '' },
+  fileUrl: { type: String, default: '' },
+  attachmentKey: { type: String, default: '' },
+  attachmentName: { type: String, default: '' },
+  attachmentType: { type: String, default: '' },
+  attachmentSize: { type: Number, default: 0 },
+}, { timestamps: true });
 
 // ============================================
 // SUBJECT SCHEMA

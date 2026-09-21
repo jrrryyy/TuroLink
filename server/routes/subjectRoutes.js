@@ -1,3 +1,4 @@
+const { requireTeacher } = require("../middleware/teacherMiddleware");
 const express =
   require("express");
 
@@ -36,6 +37,7 @@ const router =
 router.get(
   "/my-subjects",
   protect,
+  requireTeacher,
   getTeacherSubjects
 );
 
@@ -47,6 +49,7 @@ router.get(
 router.post(
   "/",
   protect,
+  requireTeacher,
   createSubject
 );
 
@@ -58,6 +61,7 @@ router.post(
 router.get(
   "/:id",
   protect,
+  requireTeacher,
   getSubject
 );
 
@@ -69,6 +73,7 @@ router.get(
 router.put(
   "/:id",
   protect,
+  requireTeacher,
   updateSubject
 );
 
@@ -80,6 +85,7 @@ router.put(
 router.delete(
   "/:id",
   protect,
+  requireTeacher,
   deleteSubject
 );
 
@@ -91,6 +97,7 @@ router.delete(
 router.post(
   "/:id/announcements",
   protect,
+  requireTeacher,
   announcementUpload.single(
     "attachment"
   ),
@@ -105,6 +112,7 @@ router.post(
 router.delete(
   "/:id/announcements/:announcementId",
   protect,
+  requireTeacher,
   deleteAnnouncement
 );
 
@@ -112,4 +120,17 @@ router.delete(
 // IMPORTANT:
 // module.exports MUST be last.
 
+const multer = require('multer');
+const materials = require('../controllers/materialController');
+const materialUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, files: 1 } });
+const uploadMaterial = (req, res, next) => materialUpload.single('attachment')(req, res, (error) => {
+  if (error) return res.status(400).json({ message: error.code === 'LIMIT_FILE_SIZE' ? 'Attachments must be 10 MB or smaller.' : 'Unable to upload attachment.' });
+  next();
+});
+router.get('/:id/materials', protect, requireTeacher, materials.listMaterials);
+router.post('/:id/materials', protect, requireTeacher, uploadMaterial, materials.saveMaterial);
+router.put('/:id/materials/:materialId', protect, requireTeacher, uploadMaterial, materials.saveMaterial);
+router.patch('/:id/materials/:materialId', protect, requireTeacher, materials.changeMaterialStatus);
+router.delete('/:id/materials/:materialId', protect, requireTeacher, materials.deleteMaterial);
+router.get('/:id/materials/:materialId/attachment', protect, requireTeacher, materials.downloadAttachment);
 module.exports = router;

@@ -1,0 +1,78 @@
+/* Student dashboard: cream canvas, forest green accents, rounded cards. */
+.student-dashboard-content { padding: 24px 32px 40px; display: grid; gap: 24px; max-width: 1600px; margin: 0 auto; color: var(--layout-text); }
+.student-welcome { padding: 42px; min-height: 235px; border-radius: 30px; background: #335035; color: #fff; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
+.student-eyebrow { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1.7px; line-height: 1.5; }
+.student-welcome .student-eyebrow { color: #e7eddf; }
+.student-welcome h1 { margin: 20px 0 14px; font-family: "DM Serif Display", serif; font-weight: 400; font-size: clamp(32px, 3.5vw, 58px); line-height: 1.12; overflow-wrap: anywhere; }
+.student-welcome p { margin: 0; font-size: 16px; line-height: 1.6; color: #d5dfce; }
+.student-welcome-symbol { width: 140px; height: 140px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; background: #95aa7e; color: #fff; }
+.student-panel { border-radius: 25px; background: var(--layout-card); padding: 28px; min-width: 0; }
+.student-panel h2, .student-session-dialog h2 { margin: 10px 0 0; font-family: "DM Serif Display", serif; font-size: 27px; font-weight: 400; line-height: 1.2; }
+.student-panel p { margin: 10px 0 0; color: var(--layout-muted); font-size: 13px; line-height: 1.6; }
+.student-next-class { display: flex; align-items: center; justify-content: space-between; gap: 24px; min-height: 145px; }
+.student-primary-button { border: 0; border-radius: 999px; padding: 16px 26px; background: #335035; color: #fff; font-size: 14px; font-weight: 600; white-space: nowrap; }
+.student-primary-button:hover { background: #263d28; }
+.student-overview-grid { display: grid; grid-template-columns: 1.2fr 1fr; align-items: start; gap: 24px; }
+.student-enrolled { min-height: 560px; display: flex; flex-direction: column; }
+.student-panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.student-panel-heading a { color: var(--layout-green); padding: 6px; }
+.student-course-list { display: grid; gap: 24px; margin: 32px 0; }
+.student-course-row { display: flex; align-items: center; gap: 14px; border-radius: 12px; }
+.student-course-row:hover { background: var(--layout-hover); }
+.student-course-initial { width: 48px; height: 48px; flex-shrink: 0; display: grid; place-items: center; border-radius: 14px; background: var(--layout-bg); color: var(--layout-green); font-weight: 700; font-size: 18px; }
+.student-course-info { flex: 1; min-width: 0; }
+.student-course-title { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.student-course-title h3 { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.student-course-title > span { color: var(--layout-muted); font-size: 13px; }
+.student-course-info p { margin: 4px 0 0; }
+.student-course-info progress { display: block; appearance: none; width: 100%; height: 7px; margin-top: 10px; border: 0; overflow: hidden; border-radius: 8px; background: var(--layout-bg); }
+.student-course-info progress::-webkit-progress-bar { background: var(--layout-bg); border-radius: 8px; }
+.student-course-info progress::-webkit-progress-value { background: var(--layout-green); border-radius: 8px; }
+.student-course-info progress::-moz-progress-bar { background: var(--layout-green); border-radius: 8px; }
+.student-all-subjects { margin-top: auto; padding-top: 24px; font-size: 13px; font-weight: 600; color: var(--layout-green); display: flex; justify-content: space-between; }
+.student-activity-column { display: grid; gap: 24px; min-width: 0; }
+.student-history-chart { display: flex; gap: 14px; height: 205px; padding-top: 35px; margin-top: 14px; }
+.student-history-column { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.student-history-track { width: min(100%, 36px); flex: 1; display: flex; align-items: flex-end; }
+.student-history-bar { width: 100%; background: var(--layout-green); border-radius: 10px 10px 5px 5px; position: relative; min-height: 2px; }
+.student-history-bar > span { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--layout-muted); white-space: nowrap; }
+.student-history-month { font-size: 10px; color: var(--layout-muted); }
+.student-calendar-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.student-calendar-heading h2 { margin: 0; font-family: inherit; font-size: 14px; font-weight: 600; }
+.student-calendar-heading > div { display: flex; gap: 4px; }
+.student-calendar button, .student-session-dialog button { border: 0; background: var(--layout-hover); color: var(--layout-text); border-radius: 8px; padding: 6px; display: inline-flex; align-items: center; }
+.student-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; margin-top: 18px; text-align: center; font-size: 12px; }
+.student-calendar-grid > span { display: grid; place-items: center; min-height: 30px; border-radius: 8px; }
+.student-calendar-weekday { font-size: 9px; color: var(--layout-muted); }
+.student-calendar-grid .student-calendar-today { background: var(--layout-green); color: var(--layout-card); font-weight: 700; }
+.student-calendar-footer { display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--layout-border); margin-top: 14px; padding-top: 14px; font-size: 11px; color: var(--layout-muted); }
+.student-calendar-footer button { margin-left: auto; font-size: 11px; }
+.student-empty { padding: 40px 12px; text-align: center; color: var(--layout-muted); }
+.student-empty h3 { color: var(--layout-text); font-size: 16px; }
+.student-enrolled .student-empty { margin: auto 0; }
+.student-session-dialog { width: min(480px, calc(100% - 32px)); max-height: 80vh; padding: 28px; border: 1px solid var(--layout-border); border-radius: 24px; background: var(--layout-card); color: var(--layout-text); }
+.student-session-dialog::backdrop { background: rgb(0 0 0 / 45%); }
+.student-session-dialog h2 { margin: 0; }
+.student-session-item { padding: 18px 0; border-bottom: 1px solid var(--layout-border); }
+.student-session-item h3 { font-size: 17px; margin: 0 0 10px; }
+.student-session-item p { font-size: 14px; color: var(--layout-muted); margin: 6px 0; }
+.student-dashboard-content :is(a, button):focus-visible { outline: 3px solid var(--layout-green); outline-offset: 4px; }
+@media (max-width: 1100px) {
+  .student-welcome { padding: 32px; }
+  .student-welcome-symbol { width: 100px; height: 100px; }
+  .student-overview-grid { grid-template-columns: 1fr; }
+  .student-enrolled { min-height: 320px; }
+  .student-activity-column { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
+}
+@media (max-width: 760px) {
+  .student-dashboard-content { padding: 18px 16px 32px; gap: 18px; }
+  .student-welcome { padding: 28px 22px; min-height: 210px; border-radius: 22px; }
+  .student-welcome-symbol { display: none; }
+  .student-welcome p { font-size: 14px; }
+  .student-panel { padding: 22px; border-radius: 22px; }
+  .student-panel h2 { font-size: 24px; }
+  .student-activity-column { grid-template-columns: 1fr; gap: 18px; }
+  .student-next-class { align-items: flex-start; flex-direction: column; gap: 18px; }
+  .student-primary-button { padding: 13px 20px; }
+  .student-calendar-heading h2 { font-size: 14px; }
+}

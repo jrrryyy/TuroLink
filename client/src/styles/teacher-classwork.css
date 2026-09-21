@@ -1,0 +1,81 @@
+.teacher-classwork { color: var(--ts-text); display: grid; gap: 20px; padding-bottom: 32px; }
+.teacher-classwork button, .teacher-classwork input, .teacher-classwork select, .teacher-classwork textarea { font: inherit; }
+.classwork-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.classwork-toolbar h2 { font-size: 20px; margin: 0; color: var(--ts-green); }
+.classwork-create { position: relative; }
+.classwork-create summary { background: #335035; color: white; border-radius: 999px; padding: 11px 24px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; font-weight: 600; }
+.teacher-classwork summary { list-style: none; }
+.teacher-classwork summary::-webkit-details-marker { display: none; }
+.classwork-create > div, .classwork-item-menu > div { position: absolute; right: 0; top: calc(100% + 6px); background: var(--ts-card); border: 1px solid var(--ts-border); box-shadow: 0 5px 18px #0002; border-radius: 12px; padding: 6px; min-width: 175px; z-index: 20; }
+.classwork-create button, .classwork-item-menu button { border: 0; background: transparent; color: var(--ts-text); padding: 10px; display: flex; gap: 8px; align-items: center; width: 100%; text-align: left; border-radius: 6px; font-size: 13px; }
+.classwork-create button:hover, .classwork-item-menu button:hover { background: var(--ts-hover); }
+.classwork-success, .classwork-error { padding: 14px 18px; border-radius: 10px; display: flex; gap: 10px; align-items: center; font-size: 13px; }
+.classwork-success { background: var(--ts-success); color: var(--ts-success-text); }
+.classwork-error { background: #ffe5e5; color: #8b2020; }
+.classwork-saved { background: var(--ts-success); color: var(--ts-success-text); border-radius: 12px; padding: 0 18px; }
+.classwork-saved > summary { display: flex; align-items: center; gap: 10px; padding: 15px 0; font-weight: 600; cursor: pointer; font-size: 13px; }
+.classwork-saved > summary svg { margin-left: auto; transition: transform .2s; }
+.classwork-saved[open] > summary svg { transform: rotate(180deg); }
+.classwork-saved > summary span { font-size: 11px; opacity: .7; }
+.classwork-saved > section { padding-bottom: 16px; }
+.classwork-saved > section > h3 { margin: 8px 0 14px; font-size: 13px; }
+.classwork-muted { font-size: 12px; opacity: .8; }
+.classwork-editor, .classwork-card { border: 1px solid var(--ts-border); border-radius: 20px; background: var(--ts-card); box-shadow: 0 3px 5px #0001; padding: 24px; min-width: 0; }
+.classwork-editor { background: var(--ts-bg); }
+.classwork-editor fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.classwork-editor-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.classwork-editor-heading h2 { margin: 0; font-size: 23px; color: var(--ts-green); }
+.classwork-editor-heading button { background: transparent; color: var(--ts-text); border: 0; }
+.classwork-editor-options { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1.4fr; gap: 12px; margin-bottom: 18px; }
+.classwork-editor label { display: flex; flex-direction: column; gap: 7px; font-size: 11px; font-weight: 600; color: var(--ts-green); min-width: 0; }
+.classwork-editor :is(input:not([type=file]), select, textarea) { display: block; width: 100%; border: 1px solid var(--ts-border); border-radius: 9px; padding: 11px 12px; background: var(--ts-input); color: var(--ts-text); font-size: 13px; min-width: 0; }
+.classwork-editor textarea { resize: vertical; min-height: 190px; line-height: 1.6; }
+.classwork-field { margin-bottom: 16px; }
+.classwork-attachment-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.classwork-attachment-controls > span { font-size: 11px; color: var(--ts-muted); }
+.classwork-attachment-controls button, .classwork-attachment-controls .classwork-upload { position: relative; display: inline-flex; flex-direction: row; align-items: center; gap: 7px; color: var(--ts-text); background: var(--ts-card); border: 1px solid var(--ts-border); padding: 10px; border-radius: 9px; font-size: 12px; cursor: pointer; overflow: hidden; }
+.classwork-upload input { position: absolute; opacity: 0; inset: 0; width: 100%; cursor: pointer; }
+.classwork-upload:focus-within { outline: 2px solid var(--ts-green); outline-offset: 3px; }
+.classwork-selected-file { display: flex; gap: 8px; align-items: center; font-size: 12px; margin: 12px 0; overflow-wrap: anywhere; }
+.classwork-selected-file button { margin-left: auto; border: 0; background: transparent; color: var(--ts-green); text-decoration: underline; }
+.classwork-editor-footer { margin-top: 24px; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.classwork-editor-footer > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.classwork-editor-footer button { padding: 11px 16px; border-radius: 999px; background: var(--ts-card); border: 1px solid var(--ts-border); color: var(--ts-text); font-size: 13px; }
+.classwork-editor-footer .classwork-primary { background: #335035; color: white; }
+.classwork-posts { display: grid; gap: 18px; }
+.classwork-saved .classwork-card { margin-bottom: 14px; }
+.classwork-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.classwork-author { display: flex; align-items: center; gap: 10px; color: var(--ts-green); font-size: 12px; }
+.classwork-author > span { width: 32px; height: 32px; background: var(--ts-hover); border-radius: 50%; display: grid; place-items: center; font-weight: 700; }
+.classwork-status { font-size: 10px; text-transform: capitalize; background: var(--ts-hover); padding: 4px 8px; border-radius: 999px; }
+.classwork-item-menu { position: relative; margin-left: auto; }
+.classwork-item-menu summary { cursor: pointer; color: var(--ts-muted); padding: 4px; }
+.classwork-card-title { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.classwork-card-title h3 { margin: 0; font-size: 16px; overflow-wrap: anywhere; }
+.classwork-card-title h3 span { font-weight: 500; }
+.classwork-card-title > span { font-size: 11px; color: var(--ts-muted); white-space: nowrap; }
+.classwork-meta { margin: 7px 0; font-size: 11px; color: var(--ts-muted); }
+.classwork-instructions { border-top: 1px solid var(--ts-border); padding-top: 14px; margin: 14px 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.7; }
+.classwork-attachments { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.classwork-attachments :is(a,button) { display: inline-flex; align-items: center; gap: 8px; background: var(--ts-input); color: var(--ts-text); padding: 10px; border: 1px solid var(--ts-border); border-radius: 8px; font-size: 12px; overflow-wrap: anywhere; max-width: 100%; }
+.classwork-attachments small { color: var(--ts-muted); font-size: 10px; }
+.classwork-empty { text-align: center; padding: 45px 16px; color: var(--ts-muted); }
+.classwork-empty h3 { font-size: 17px; color: var(--ts-text); }
+.classwork-empty p { font-size: 13px; }
+.classwork-delete-dialog { width: min(400px, calc(100% - 32px)); padding: 28px; border: 1px solid var(--ts-border); border-radius: 18px; background: var(--ts-success); color: var(--ts-success-text); text-align: center; }
+.classwork-delete-dialog::backdrop { background: #0006; }
+.classwork-delete-dialog h2 { font-size: 17px; }
+.classwork-delete-dialog p { font-size: 13px; overflow-wrap: anywhere; }
+.classwork-delete-dialog > div { display: flex; justify-content: space-between; gap: 20px; margin-top: 24px; }
+.classwork-delete-dialog button { border: 0; border-radius: 999px; background: #335035; color: white; padding: 10px 24px; }
+.classwork-delete-dialog .classwork-danger { background: #d63039; }
+.teacher-classwork :is(button, summary, input, select, textarea, a):focus-visible { outline: 2px solid var(--ts-green); outline-offset: 3px; }
+.teacher-classwork button:disabled { cursor: wait; opacity: .6; }
+@media (max-width: 1050px) { .classwork-editor-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) {
+  .classwork-editor, .classwork-card { padding: 17px; }
+  .classwork-editor-options { grid-template-columns: 1fr; }
+  .classwork-card-title { flex-direction: column; gap: 7px; }
+  .classwork-editor-footer > label { width: 100%; }
+  .classwork-saved { padding: 0 12px; }
+}

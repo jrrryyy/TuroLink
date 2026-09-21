@@ -57,3 +57,11 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+// Publish scheduled classwork every 30 seconds; reads also catch up after downtime.
+const { publishDueMaterials } = require('./controllers/materialController');
+const materialPublisher = setInterval(() => {
+  if (require('mongoose').connection.readyState === 1) {
+    publishDueMaterials().catch((error) => console.error('Classwork scheduler:', error.name));
+  }
+}, 30000);
+materialPublisher.unref();
