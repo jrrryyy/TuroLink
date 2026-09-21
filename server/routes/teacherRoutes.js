@@ -1,3 +1,4 @@
+const { validation, uploadValidation } = require("../middleware/validationMiddleware");
 const { requireTeacher } = require("../middleware/teacherMiddleware");
 const express = require("express");
 
@@ -18,7 +19,8 @@ const router = express.Router();
 
 router.post(
   "/register",
-  upload.single("verificationDocument"),
+  uploadValidation(upload.single("verificationDocument"), "verificationDocument"),
+  validation("teacher"),
   registerTeacher
 );
 

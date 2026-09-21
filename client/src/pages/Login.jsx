@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { validateLogin, normalizeEmail } from "../../../shared/validation.mjs";
+import FieldError from "../components/FieldError";
+import "../styles/validation.css";
+import { useRef, useState } from "react";
 
 import {
   Eye,
@@ -17,6 +20,8 @@ import "../styles/auth.css";
 
 const Login = () => {
   const navigate = useNavigate();
+  const submitting = useRef(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const [searchParams] = useSearchParams();
 
@@ -37,15 +42,16 @@ const Login = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (submitting.current) return;
     setError("");
-
-    if (!email || !password) {
-      setError(
-        "Please enter your email and password."
-      );
-
+    const errors = validateLogin({ email, password });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      
+      event.currentTarget.querySelector('[name="' + Object.keys(errors)[0] + '"]')?.focus();
       return;
     }
+    submitting.current = true;
 
     try {
       setLoading(true);
@@ -56,7 +62,7 @@ const Login = () => {
       //   user: {...}
       // }
       const result = await login(
-        email,
+        normalizeEmail(email),
         password
       );
 
@@ -65,7 +71,7 @@ const Login = () => {
       const redirect =
         searchParams.get("redirect");
 
-      if (redirect) {
+      if (redirect && redirect.startsWith("/") && !redirect.startsWith("//") && !redirect.includes("\\")) {
         navigate(redirect);
         return;
       }
@@ -77,11 +83,15 @@ const Login = () => {
         navigate("/dashboard");
       }
     } catch (error) {
+      setFieldErrors(error.response?.data?.errors || {});
+      
       setError(
         error.response?.data?.message ||
+          (!error.response ? "Cannot connect to the server. Please check your connection and try again." : "") ||
           "Unable to log in."
       );
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
@@ -126,12 +136,12 @@ const Login = () => {
           </div>
 
           {error && (
-            <div className="form-error">
+            <div role="alert" className="form-error">
               {error}
             </div>
           )}
 
-          <form
+          <form noValidate
             onSubmit={handleSubmit}
             className="auth-form"
           >
@@ -141,13 +151,12 @@ const Login = () => {
               <input
                 type="email"
                 placeholder="you@example.com"
+                name="email" aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? "email-error" : undefined}
+                autoComplete="email"
                 value={email}
-                onChange={(event) =>
-                  setEmail(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => { setEmail(event.target.value); setFieldErrors((previous) => ({ ...previous, email: undefined })); setError(""); }}
               />
+            <FieldError errors={fieldErrors} name="email" />
             </label>
 
             <label>
@@ -161,12 +170,10 @@ const Login = () => {
                       : "password"
                   }
                   placeholder="Enter your password"
+                  name="password" aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? "password-error" : undefined}
+                  autoComplete="current-password"
                   value={password}
-                  onChange={(event) =>
-                    setPassword(
-                      event.target.value
-                    )
-                  }
+                  onChange={(event) => { setPassword(event.target.value); setFieldErrors((previous) => ({ ...previous, password: undefined })); setError(""); }}
                 />
 
                 <button
@@ -189,6 +196,7 @@ const Login = () => {
                   )}
                 </button>
               </div>
+            <FieldError errors={fieldErrors} name="password" />
             </label>
 
             <button

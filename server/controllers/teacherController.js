@@ -20,6 +20,7 @@ const generateToken = (id) => {
 // ==========================================
 
 const registerTeacher = async (req, res) => {
+  let createdTeacher;
   try {
     const {
       name,
@@ -50,10 +51,14 @@ const registerTeacher = async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({
-        message:
-          "An account with this email already exists.",
+      return res.status(409).json({
+        message: "An account with this email already exists.",
+        errors: { email: "An account with this email already exists." },
       });
+    }
+
+    if (await User.exists({ phone })) {
+      return res.status(409).json({ message: "This mobile number is already registered.", errors: { phone: "This mobile number is already registered. Use a different number." } });
     }
 
     const hashedPassword = await bcrypt.hash(
@@ -61,7 +66,7 @@ const registerTeacher = async (req, res) => {
       10
     );
 
-    const teacher = await User.create({
+    const teacher = createdTeacher = await User.create({
       name,
       email: email.toLowerCase(),
       phone,
@@ -109,6 +114,15 @@ const registerTeacher = async (req, res) => {
       teacherProfile,
     });
   } catch (error) {
+    if (createdTeacher) {
+      await TeacherProfile.deleteOne({ user: createdTeacher._id });
+      await User.deleteOne({ _id: createdTeacher._id });
+    }
+    if (error.code === 11000) {
+      const field = error.keyPattern?.phoneKey || error.keyPattern?.phone ? 'phone' : 'email';
+      const message = field === 'phone' ? 'This mobile number is already registered. Use a different number.' : 'An account with this email already exists.';
+      return res.status(409).json({ message, errors: { [field]: message } });
+    }
     console.error(
       "Teacher registration error:",
       error

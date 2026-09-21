@@ -34,9 +34,14 @@ const register = async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({
+      return res.status(409).json({
         message: "An account with this email already exists.",
+        errors: { email: "An account with this email already exists." },
       });
+    }
+
+    if (await User.exists({ phone })) {
+      return res.status(409).json({ message: "This mobile number is already registered.", errors: { phone: "This mobile number is already registered. Use a different number." } });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -62,6 +67,11 @@ const register = async (req, res) => {
       },
     });
   } catch (error) {
+    if (error.code === 11000) {
+      const field = error.keyPattern?.phoneKey || error.keyPattern?.phone ? 'phone' : 'email';
+      const message = field === 'phone' ? 'This mobile number is already registered. Use a different number.' : 'An account with this email already exists.';
+      return res.status(409).json({ message, errors: { [field]: message } });
+    }
     console.error("Register error:", error);
 
     res.status(500).json({

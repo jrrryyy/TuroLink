@@ -1,3 +1,6 @@
+import { validateSubject, validateAnnouncement as announcementErrors } from "../../../shared/validation.mjs";
+import FieldError from "../components/FieldError";
+import "../styles/validation.css";
 import {
   useEffect,
   useRef,
@@ -34,6 +37,9 @@ const TeacherMySubjects = () => {
 
 
   const { user } = useAuth();
+  const [subjectErrors, setSubjectErrors] = useState({});
+  const subjectSubmitting = useRef(false);
+  const [subjectSaving, setSubjectSaving] = useState(false);
   const { darkMode } = useTheme();
 
   const fileInputRef =
@@ -312,16 +318,12 @@ const TeacherMySubjects = () => {
     async (event) => {
       event.preventDefault();
 
-      if (
-        !subjectForm.code.trim() ||
-        !subjectForm.title.trim()
-      ) {
-        setError(
-          "Subject code and subject name are required."
-        );
-
-        return;
-      }
+      if (subjectSubmitting.current) return;
+      const errors = validateSubject(subjectForm);
+      setSubjectErrors(errors);
+      if (Object.keys(errors).length) return;
+      subjectSubmitting.current = true;
+      setSubjectSaving(true);
 
       try {
         setError("");
@@ -360,6 +362,7 @@ const TeacherMySubjects = () => {
 
         await loadSubjects();
       } catch (error) {
+        setSubjectErrors(error.response?.data?.errors || {});
         console.error(
           "Add subject error:",
           error
@@ -370,7 +373,7 @@ const TeacherMySubjects = () => {
             ?.message ||
             "Unable to add subject."
         );
-      }
+      } finally { subjectSubmitting.current = false; setSubjectSaving(false); }
     };
 
 
@@ -649,54 +652,11 @@ const TeacherMySubjects = () => {
   // VALIDATE ANNOUNCEMENT
   // =====================================================
 
-  const validateAnnouncement =
-    () => {
-      const content =
-        announcementContent.trim();
-
-      const link =
-        announcementLink.trim();
-
-      if (
-        !content &&
-        !announcementFile &&
-        !link
-      ) {
-        setError(
-          "Please type an announcement, attach a file, or add a link."
-        );
-
-        return false;
-      }
-
-      if (link) {
-        try {
-          const url =
-            new URL(link);
-
-          if (
-            url.protocol !==
-              "http:" &&
-            url.protocol !==
-              "https:"
-          ) {
-            setError(
-              "The attached link must start with http:// or https://."
-            );
-
-            return false;
-          }
-        } catch {
-          setError(
-            "Please enter a valid link."
-          );
-
-          return false;
-        }
-      }
-
-      return true;
-    };
+  const validateAnnouncement = () => {
+    const errors = announcementErrors({ content: announcementContent, link: announcementLink }, announcementFile);
+    if (Object.keys(errors).length) { setError(Object.values(errors)[0]); return false; }
+    return true;
+  };
 
 
   // =====================================================
@@ -1925,7 +1885,7 @@ const TeacherMySubjects = () => {
           }
         >
 
-          <form
+          <form noValidate
             className="teacher-subject-modal"
             onSubmit={
               handleAddSubject
@@ -1975,7 +1935,7 @@ const TeacherMySubjects = () => {
 
               <input
                 type="text"
-                name="code"
+                name="code" aria-invalid={Boolean(subjectErrors.code)} aria-describedby={subjectErrors.code ? "code-error" : undefined}
                 placeholder="ITE 314"
                 value={
                   subjectForm.code
@@ -1986,7 +1946,7 @@ const TeacherMySubjects = () => {
                 required
               />
 
-            </label>
+            <FieldError errors={subjectErrors} name="code" /></label>
 
 
             <label>
@@ -1995,7 +1955,7 @@ const TeacherMySubjects = () => {
 
               <input
                 type="text"
-                name="title"
+                name="title" aria-invalid={Boolean(subjectErrors.title)} aria-describedby={subjectErrors.title ? "title-error" : undefined}
                 placeholder="Advanced Database"
                 value={
                   subjectForm.title
@@ -2006,7 +1966,7 @@ const TeacherMySubjects = () => {
                 required
               />
 
-            </label>
+            <FieldError errors={subjectErrors} name="title" /></label>
 
 
             <label>
@@ -2014,7 +1974,7 @@ const TeacherMySubjects = () => {
               Description
 
               <textarea
-                name="description"
+                name="description" aria-invalid={Boolean(subjectErrors.description)} aria-describedby={subjectErrors.description ? "description-error" : undefined}
                 rows="4"
                 placeholder="Subject description..."
                 value={
@@ -2025,7 +1985,7 @@ const TeacherMySubjects = () => {
                 }
               />
 
-            </label>
+            <FieldError errors={subjectErrors} name="description" /></label>
 
 
             <div className="teacher-subject-modal-buttons">
@@ -2044,7 +2004,7 @@ const TeacherMySubjects = () => {
 
 
               <button
-                type="submit"
+                type="submit" disabled={subjectSaving}
                 className="save"
               >
                 Add Subject

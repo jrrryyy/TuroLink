@@ -1,3 +1,5 @@
+import FieldError from "./FieldError";
+import "../styles/validation.css";
 import { useEffect, useRef, useState } from 'react';
 import { BookOpen, CheckCircle2, ChevronDown, FileText, Link as LinkIcon, MoreVertical, Plus, Upload, X } from 'lucide-react';
 import api from '../services/api';
@@ -16,6 +18,7 @@ export default function TeacherClasswork({ subject, teacherName }) {
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [success, setSuccess] = useState('');
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -46,6 +49,7 @@ export default function TeacherClasswork({ subject, teacherName }) {
   };
 
   const openEditor = (type, item = null) => {
+    setFieldErrors({});
     setEditing(item || { _id: null });
     setForm(item ? { type: item.type || 'assignment', title: item.title, instructions: item.instructions || '', points: item.points == null ? '' : String(item.points), dueAt: localDate(item.dueAt), scheduledAt: localDate(item.scheduledAt), link: item.link || '' } : emptyForm(type));
     setFile(null); setRemoveAttachment(false); setShowLink(Boolean(item?.link)); setError(''); setSuccess('');
@@ -58,9 +62,10 @@ export default function TeacherClasswork({ subject, teacherName }) {
     if (busy) return;
     const status = event.nativeEvent.submitter?.value || 'posted';
     if (status === 'scheduled' && (!form.scheduledAt || new Date(form.scheduledAt) <= new Date())) {
+      setFieldErrors({ scheduledAt: 'Choose a future posting date and time.' });
       setError('Choose a future posting date and time before scheduling.'); return;
     }
-    setBusy(true); setError(''); setSuccess('');
+    setBusy(true); setError(''); setSuccess(''); setFieldErrors({});
     try {
       const body = new FormData();
       for (const [key, value] of Object.entries(form)) {
@@ -73,7 +78,7 @@ export default function TeacherClasswork({ subject, teacherName }) {
       setEditing(null);
       setSuccess(`${labelFor(form.type)} ${status === 'draft' ? 'saved as a draft' : status === 'scheduled' ? 'scheduled' : 'posted'} successfully.`);
       await refresh();
-    } catch (err) { setError(err.response?.data?.message || 'Unable to save classwork. Your changes are still in the editor.'); }
+    } catch (err) { setFieldErrors(err.response?.data?.errors || {}); setError(err.response?.data?.message || 'Unable to save classwork. Your changes are still in the editor.'); }
     finally { setBusy(false); }
   };
 
@@ -156,20 +161,20 @@ export default function TeacherClasswork({ subject, teacherName }) {
         <div className="classwork-editor-options">
           <label>To<input value={`${subject.code}: ${subject.title}`} readOnly /></label>
           <label>Students<select aria-label="Recipients" defaultValue="all"><option value="all">All Students</option></select></label>
-          <label>Points<select aria-label="Points" name="points" value={['', '100'].includes(form.points) ? form.points : 'custom'} onChange={(event) => setForm((previous) => ({ ...previous, points: event.target.value === 'custom' ? '50' : event.target.value }))}><option value="100">100 Points</option><option value="">Ungraded</option><option value="custom">Custom points</option></select></label>
-          {!['', '100'].includes(form.points) && <label>Custom points<input type="number" min="0" max="1000" name="points" value={form.points} onChange={updateForm} /></label>}
-          <label>Due date &amp; time<input type="datetime-local" name="dueAt" value={form.dueAt} onChange={updateForm} /></label>
+          <label>Points<select aria-label="Points" name="points" aria-invalid={Boolean(fieldErrors.points)} aria-describedby={fieldErrors.points ? "classwork-points-error" : undefined} value={['', '100'].includes(form.points) ? form.points : 'custom'} onChange={(event) => setForm((previous) => ({ ...previous, points: event.target.value === 'custom' ? '50' : event.target.value }))}><option value="100">100 Points</option><option value="">Ungraded</option><option value="custom">Custom points</option></select><span id="classwork-points-error"><FieldError errors={fieldErrors} name="points" /></span></label>
+          {!['', '100'].includes(form.points) && <label>Custom points<input type="number" min="0" max="1000" name="points" aria-invalid={Boolean(fieldErrors.points)} aria-describedby={fieldErrors.points ? "classwork-points-error" : undefined} value={form.points} onChange={updateForm} /></label>}
+          <label>Due date &amp; time<input type="datetime-local" name="dueAt" aria-invalid={Boolean(fieldErrors.dueAt)} aria-describedby={fieldErrors.dueAt ? "classwork-dueAt-error" : undefined} value={form.dueAt} onChange={updateForm} /><span id="classwork-dueAt-error"><FieldError errors={fieldErrors} name="dueAt" /></span></label>
         </div>
-        <label className="classwork-field">Title<input name="title" placeholder="Title" required maxLength={200} value={form.title} onChange={updateForm} /></label>
-        <label className="classwork-field">Instructions<textarea name="instructions" placeholder="Type instructions..." rows={7} maxLength={20000} value={form.instructions} onChange={updateForm} /></label>
+        <label className="classwork-field">Title<input name="title" aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "classwork-title-error" : undefined} placeholder="Title" required maxLength={200} value={form.title} onChange={updateForm} /><span id="classwork-title-error"><FieldError errors={fieldErrors} name="title" /></span></label>
+        <label className="classwork-field">Instructions<textarea name="instructions" aria-invalid={Boolean(fieldErrors.instructions)} aria-describedby={fieldErrors.instructions ? "classwork-instructions-error" : undefined} placeholder="Type instructions..." rows={7} maxLength={20000} value={form.instructions} onChange={updateForm} /><span id="classwork-instructions-error"><FieldError errors={fieldErrors} name="instructions" /></span></label>
         <div className="classwork-attachment-controls"><label className="classwork-upload"><Upload size={19} />Attach file<input type="file" accept=".pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" onChange={(event) => {
           const selected = event.target.files?.[0];
           if (selected?.size > 10 * 1024 * 1024) { setError('Attachments must be 10 MB or smaller.'); event.target.value = ''; return; }
           setFile(selected || null); setError('');
         }} /></label><button type="button" onClick={() => setShowLink((show) => !show)}><LinkIcon size={19} />Add link</button><span>Up to 10 MB</span></div>
         {(file || (!removeAttachment && editing.attachmentName)) && <div className="classwork-selected-file"><FileText size={16} /><span>{file?.name || editing.attachmentName}</span><button type="button" onClick={() => { setFile(null); setRemoveAttachment(true); editorRef.current.querySelector('input[type="file"]').value = ''; }}>Remove</button></div>}
-        {showLink && <label className="classwork-field">Attachment link<input type="url" name="link" placeholder="https://..." value={form.link} onChange={updateForm} /></label>}
-        <div className="classwork-editor-footer"><label>Schedule posting (optional)<input type="datetime-local" name="scheduledAt" value={form.scheduledAt} onChange={updateForm} /></label><div>
+        {showLink && <label className="classwork-field">Attachment link<input type="url" name="link" aria-invalid={Boolean(fieldErrors.link)} aria-describedby={fieldErrors.link ? "classwork-link-error" : undefined} placeholder="https://..." value={form.link} onChange={updateForm} /><span id="classwork-link-error"><FieldError errors={fieldErrors} name="link" /></span></label>}
+        <div className="classwork-editor-footer"><label>Schedule posting (optional)<input type="datetime-local" name="scheduledAt" aria-invalid={Boolean(fieldErrors.scheduledAt)} aria-describedby={fieldErrors.scheduledAt ? "classwork-scheduledAt-error" : undefined} value={form.scheduledAt} onChange={updateForm} /><span id="classwork-scheduledAt-error"><FieldError errors={fieldErrors} name="scheduledAt" /></span></label><div>
           <button type="button" onClick={() => setEditing(null)}>Cancel</button>
           <button type="submit" value="draft">Save Draft</button>
           <button type="submit" value="scheduled">Schedule</button>

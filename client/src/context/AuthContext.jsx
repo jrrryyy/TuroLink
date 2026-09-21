@@ -79,12 +79,16 @@ export const AuthProvider = ({ children }) => {
     email,
     phone,
     password,
+    confirmPassword,
+    terms,
   }) => {
     const response = await api.post("/auth/register", {
       name,
       email,
       phone,
       password,
+      confirmPassword,
+      terms,
     });
 
     localStorage.setItem(

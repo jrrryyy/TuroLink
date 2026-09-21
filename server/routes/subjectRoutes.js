@@ -1,3 +1,4 @@
+const { validation, uploadValidation } = require("../middleware/validationMiddleware");
 const { requireTeacher } = require("../middleware/teacherMiddleware");
 const express =
   require("express");
@@ -50,6 +51,7 @@ router.post(
   "/",
   protect,
   requireTeacher,
+  validation("subject"),
   createSubject
 );
 
@@ -74,6 +76,7 @@ router.put(
   "/:id",
   protect,
   requireTeacher,
+  validation("subject"),
   updateSubject
 );
 
@@ -98,9 +101,8 @@ router.post(
   "/:id/announcements",
   protect,
   requireTeacher,
-  announcementUpload.single(
-    "attachment"
-  ),
+  uploadValidation(announcementUpload.single("attachment"), "attachment"),
+  validation("announcement"),
   createAnnouncement
 );
 

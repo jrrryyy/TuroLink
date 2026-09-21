@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { validateRegistration } from "../../../shared/validation.mjs";
+import FieldError from "../components/FieldError";
+import "../styles/validation.css";
+import { useRef, useState } from "react";
 
 import {
   Eye,
@@ -16,6 +19,8 @@ import "../styles/auth.css";
 
 const Register = () => {
   const navigate = useNavigate();
+  const submitting = useRef(false);
+  const [fieldErrors, setFieldErrors] = useState({});
 
   const { register } = useAuth();
 
@@ -41,6 +46,8 @@ const Register = () => {
     useState(false);
 
   const handleChange = (event) => {
+    setFieldErrors((previous) => ({ ...previous, [event.target.name]: undefined }));
+    setError("");
     setForm({
       ...form,
       [event.target.name]: event.target.value,
@@ -50,37 +57,16 @@ const Register = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (submitting.current) return;
     setError("");
-
-    if (
-      !form.name ||
-      !form.email ||
-      !form.phone ||
-      !form.password ||
-      !form.confirmPassword
-    ) {
-      setError("Please complete all fields.");
+    const errors = validateRegistration({ ...form, terms });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      
+      event.currentTarget.querySelector('[name="' + Object.keys(errors)[0] + '"]')?.focus();
       return;
     }
-
-    if (form.password.length < 6) {
-      setError(
-        "Password must contain at least 6 characters."
-      );
-      return;
-    }
-
-    if (form.password !== form.confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    if (!terms) {
-      setError(
-        "Please accept the Terms and Conditions."
-      );
-      return;
-    }
+    submitting.current = true;
 
     try {
       setLoading(true);
@@ -90,15 +76,21 @@ const Register = () => {
         email: form.email,
         phone: form.phone,
         password: form.password,
+        confirmPassword: form.confirmPassword,
+        terms,
       });
 
       navigate("/dashboard");
     } catch (error) {
+      setFieldErrors(error.response?.data?.errors || {});
+      
       setError(
         error.response?.data?.message ||
+          (!error.response ? "Cannot connect to the server. Please check your connection and try again." : "") ||
           "Unable to create account."
       );
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
@@ -151,12 +143,12 @@ const Register = () => {
           </div>
 
           {error && (
-            <div className="form-error">
+            <div role="alert" className="form-error">
               {error}
             </div>
           )}
 
-          <form
+          <form noValidate
             onSubmit={handleSubmit}
             className="auth-form"
           >
@@ -165,11 +157,12 @@ const Register = () => {
 
               <input
                 type="text"
-                name="name"
+                name="name" aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "name-error" : undefined}
                 placeholder="Enter your full name"
                 value={form.name}
                 onChange={handleChange}
               />
+            <FieldError errors={fieldErrors} name="name" />
             </label>
 
             <label>
@@ -177,11 +170,12 @@ const Register = () => {
 
               <input
                 type="email"
-                name="email"
+                name="email" aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? "email-error" : undefined}
                 placeholder="you@example.com"
                 value={form.email}
                 onChange={handleChange}
               />
+            <FieldError errors={fieldErrors} name="email" />
             </label>
 
             <label>
@@ -189,11 +183,12 @@ const Register = () => {
 
               <input
                 type="tel"
-                name="phone"
+                name="phone" aria-invalid={Boolean(fieldErrors.phone)} aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
                 placeholder="09XXXXXXXXX"
                 value={form.phone}
                 onChange={handleChange}
               />
+            <FieldError errors={fieldErrors} name="phone" />
             </label>
 
             <label>
@@ -206,7 +201,7 @@ const Register = () => {
                       ? "text"
                       : "password"
                   }
-                  name="password"
+                  name="password" aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? "password-error" : undefined}
                   placeholder="Minimum 6 characters"
                   value={form.password}
                   onChange={handleChange}
@@ -214,6 +209,7 @@ const Register = () => {
 
                 <button
                   type="button"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                   onClick={() =>
                     setShowPassword(
                       !showPassword
@@ -227,6 +223,7 @@ const Register = () => {
                   )}
                 </button>
               </div>
+            <FieldError errors={fieldErrors} name="password" />
             </label>
 
             <label>
@@ -239,7 +236,7 @@ const Register = () => {
                       ? "text"
                       : "password"
                   }
-                  name="confirmPassword"
+                  name="confirmPassword" aria-invalid={Boolean(fieldErrors.confirmPassword)} aria-describedby={fieldErrors.confirmPassword ? "confirmPassword-error" : undefined}
                   placeholder="Repeat your password"
                   value={form.confirmPassword}
                   onChange={handleChange}
@@ -247,6 +244,7 @@ const Register = () => {
 
                 <button
                   type="button"
+                  aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
                   onClick={() =>
                     setShowConfirm(
                       !showConfirm
@@ -260,21 +258,25 @@ const Register = () => {
                   )}
                 </button>
               </div>
+            <FieldError errors={fieldErrors} name="confirmPassword" />
             </label>
 
             <label className="terms-box">
               <input
                 type="checkbox"
+                name="terms" aria-invalid={Boolean(fieldErrors.terms)} aria-describedby={fieldErrors.terms ? "terms-error" : undefined}
                 checked={terms}
-                onChange={(event) =>
-                  setTerms(event.target.checked)
-                }
+                onChange={(event) => {
+                  setTerms(event.target.checked);
+                  setFieldErrors((previous) => ({ ...previous, terms: undefined }));
+                }}
               />
 
               <span>
                 I agree to the Terms and Conditions
                 and Privacy Policy.
               </span>
+            <FieldError errors={fieldErrors} name="terms" />
             </label>
 
             <button

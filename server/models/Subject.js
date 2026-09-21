@@ -10,7 +10,7 @@ const announcementSchema =
     {
       content: {
         type: String,
-        required: true,
+        default: "",
         trim: true,
       },
 

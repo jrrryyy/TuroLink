@@ -11,7 +11,7 @@ const allowedTypes = new Set([
   'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 ]);
-const badRequest = (message) => Object.assign(new Error(message), { status: 400 });
+const badRequest = (message, field) => Object.assign(new Error(message), { status: 400, ...(field ? { errors: { [field]: message } } : {}) });
 
 // Also called before reads, so scheduled posts appear even after a server restart.
 async function publishDueMaterials() {
@@ -39,30 +39,30 @@ function materialById(subject, id) {
 function dateValue(value, label) {
   if (!value) return null;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) throw badRequest(`Invalid ${label}.`);
+  if (Number.isNaN(date.getTime())) throw badRequest(`Invalid ${label}.`, label === 'due date' ? 'dueAt' : 'scheduledAt');
   return date;
 }
 
 function validatedFields(body) {
   const title = typeof body.title === 'string' ? body.title.trim() : '';
-  if (!title || title.length > 200) throw badRequest('Enter a title of up to 200 characters.');
+  if (!title || title.length > 200) throw badRequest('Enter a title of up to 200 characters.', 'title');
   if (!['assignment', 'quiz'].includes(body.type)) throw badRequest('Choose Assignment or Quiz Assignment.');
   if (!['draft', 'posted', 'scheduled'].includes(body.status)) throw badRequest('Invalid classwork status.');
   const instructions = typeof body.instructions === 'string' ? body.instructions.trim() : '';
-  if (instructions.length > 20000) throw badRequest('Instructions are too long.');
+  if (instructions.length > 20000) throw badRequest('Instructions are too long.', 'instructions');
   const points = body.points === '' || body.points === null || body.points === undefined ? null : Number(body.points);
-  if (points !== null && (!Number.isFinite(points) || points < 0 || points > 1000)) throw badRequest('Points must be between 0 and 1000, or Ungraded.');
+  if (points !== null && (!Number.isFinite(points) || points < 0 || points > 1000)) throw badRequest('Points must be between 0 and 1000, or Ungraded.', 'points');
   const dueAt = dateValue(body.dueAt, 'due date');
   const scheduledAt = body.status === 'scheduled' ? dateValue(body.scheduledAt, 'scheduled date') : null;
-  if (body.status === 'scheduled' && (!scheduledAt || scheduledAt <= new Date())) throw badRequest('Schedule a time in the future.');
-  if (scheduledAt && dueAt && dueAt <= scheduledAt) throw badRequest('The due date must be after the scheduled posting time.');
+  if (body.status === 'scheduled' && (!scheduledAt || scheduledAt <= new Date())) throw badRequest('Schedule a time in the future.', 'scheduledAt');
+  if (scheduledAt && dueAt && dueAt <= scheduledAt) throw badRequest('The due date must be after the scheduled posting time.', 'dueAt');
   let link = typeof body.link === 'string' ? body.link.trim() : '';
   if (link) {
     try {
       const url = new URL(link);
       if (!['http:', 'https:'].includes(url.protocol)) throw new Error();
       link = url.toString();
-    } catch { throw badRequest('Enter a valid http or https link.'); }
+    } catch { throw badRequest('Enter a valid http or https link.', 'link'); }
   }
   return { title, type: body.type, instructions, points, dueAt, scheduledAt, link, status: body.status, postedAt: body.status === 'posted' ? new Date() : null };
 }
@@ -78,7 +78,7 @@ const handler = (fn) => async (req, res) => {
   try { await fn(req, res); }
   catch (error) {
     if (!error.status) console.error('Classwork request failed:', error.name);
-    res.status(error.status || 500).json({ message: error.status ? error.message : 'Unable to save or load classwork. Please try again.' });
+    res.status(error.status || 500).json({ message: error.status ? error.message : 'Unable to save or load classwork. Please try again.', ...(error.errors ? { errors: error.errors } : {}) });
   }
 };
 

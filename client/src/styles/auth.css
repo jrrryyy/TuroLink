@@ -220,7 +220,7 @@
   font-weight: 600;
 }
 
-.auth-form input {
+.auth-form input:not([type="checkbox"]) {
   width: 100%;
   height: 50px;
 
@@ -570,3 +570,10 @@
     font-size: 40px;
   }
 }
+/* Consent controls must not inherit the text-field dimensions. */
+.auth-form > .terms-box { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: start; gap: 4px 10px; cursor: pointer; }
+.auth-form .terms-box input[type="checkbox"] { width: 18px; height: 18px; min-height: 0; margin: 2px 0 0; padding: 0; accent-color: #335035; cursor: pointer; }
+.auth-form .terms-box > span:not(.field-error) { line-height: 1.6; }
+.auth-form .terms-box .field-error { grid-column: 2; margin-top: 0; }
+.auth-form .auth-submit { display: flex; justify-content: center; align-items: center; min-height: 48px; padding: 12px 24px; line-height: 1.4; }
+.auth-form input[type="checkbox"]:focus-visible, .auth-form button:focus-visible { outline: 2px solid #335035; outline-offset: 3px; }

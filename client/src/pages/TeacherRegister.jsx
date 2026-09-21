@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { validateRegistration, documentError } from "../../../shared/validation.mjs";
+import FieldError from "../components/FieldError";
+import "../styles/validation.css";
+import { useRef, useState } from "react";
 import {
   Eye,
   EyeOff,
@@ -13,6 +16,8 @@ import "../styles/teacher.css";
 
 const TeacherRegister = () => {
   const navigate = useNavigate();
+  const submitting = useRef(false);
+  const [fieldErrors, setFieldErrors] = useState({});
   const { registerTeacher } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -43,6 +48,8 @@ const TeacherRegister = () => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+    setFieldErrors((previous) => ({ ...previous, [name]: undefined }));
+    setError("");
 
     setFormData((previous) => ({
       ...previous,
@@ -54,29 +61,10 @@ const TeacherRegister = () => {
     event.preventDefault();
     setError("");
 
-    if (
-      !formData.name ||
-      !formData.email ||
-      !formData.phone ||
-      !formData.password ||
-      !formData.confirmPassword
-    ) {
-      setError("Please complete all fields.");
-      return;
-    }
-
-    if (
-      formData.password !==
-      formData.confirmPassword
-    ) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError(
-        "Password must contain at least 6 characters."
-      );
+    const errors = validateRegistration(formData, { accountOnly: true });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      event.currentTarget.querySelector('[name="' + Object.keys(errors)[0] + '"]')?.focus();
       return;
     }
 
@@ -86,25 +74,16 @@ const TeacherRegister = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (submitting.current) return;
     setError("");
-
-    if (
-      !formData.degreeTitle ||
-      !formData.subjectToTeach ||
-      !formData.teachingBio
-    ) {
-      setError(
-        "Please complete your expertise information."
-      );
+    const errors = validateRegistration({ ...formData, terms, verificationConsent }, { teacher: true, file: document });
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      if (["name", "email", "phone", "password", "confirmPassword"].some((key) => errors[key])) setStep(1);
+      event.currentTarget.querySelector('[name="' + Object.keys(errors)[0] + '"]')?.focus();
       return;
     }
-
-    if (!terms || !verificationConsent) {
-      setError(
-        "Please accept the terms and verification agreement."
-      );
-      return;
-    }
+    submitting.current = true;
 
     try {
       setLoading(true);
@@ -115,6 +94,9 @@ const TeacherRegister = () => {
       data.append("email", formData.email);
       data.append("phone", formData.phone);
       data.append("password", formData.password);
+      data.append("confirmPassword", formData.confirmPassword);
+      data.append("terms", String(terms));
+      data.append("verificationConsent", String(verificationConsent));
 
       data.append(
         "degreeTitle",
@@ -138,22 +120,18 @@ const TeacherRegister = () => {
         );
       }
 
-      const response = await registerTeacher
-      (data); navigate("/teacher/dashboard"
-      );
-
-      localStorage.setItem(
-        "turolinkToken",
-        response.data.token
-      );
-
+      await registerTeacher(data);
       navigate("/teacher/dashboard");
     } catch (err) {
+      setFieldErrors(err.response?.data?.errors || {});
+      if (["name", "email", "phone", "password", "confirmPassword"].some((key) => err.response?.data?.errors?.[key])) setStep(1);
       setError(
         err.response?.data?.message ||
+          (!err.response ? "Cannot connect to the server. Please check your connection and try again." : "") ||
           "Unable to create teacher account."
       );
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };
@@ -213,7 +191,7 @@ const TeacherRegister = () => {
           </div>
 
           {error && (
-            <div className="teacher-error">
+            <div role="alert" className="teacher-error">
               {error}
             </div>
           )}
@@ -221,7 +199,7 @@ const TeacherRegister = () => {
           {/* STEP 1 */}
 
           {step === 1 && (
-            <form
+            <form noValidate
               className="teacher-form"
               onSubmit={handleNext}
             >
@@ -244,34 +222,37 @@ const TeacherRegister = () => {
                 Name
                 <input
                   type="text"
-                  name="name"
+                  name="name" aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "name-error" : undefined}
                   placeholder="Enter your full name"
                   value={formData.name}
                   onChange={handleChange}
                 />
-              </label>
+              <FieldError errors={fieldErrors} name="name" />
+            </label>
 
               <label>
                 Email Address
                 <input
                   type="email"
-                  name="email"
+                  name="email" aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? "email-error" : undefined}
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleChange}
                 />
-              </label>
+              <FieldError errors={fieldErrors} name="email" />
+            </label>
 
               <label>
                 Phone Number
                 <input
                   type="tel"
-                  name="phone"
+                  name="phone" aria-invalid={Boolean(fieldErrors.phone)} aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
                   placeholder="Enter your phone number"
                   value={formData.phone}
                   onChange={handleChange}
                 />
-              </label>
+              <FieldError errors={fieldErrors} name="phone" />
+            </label>
 
               <label>
                 Password
@@ -283,7 +264,7 @@ const TeacherRegister = () => {
                         ? "text"
                         : "password"
                     }
-                    name="password"
+                    name="password" aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? "password-error" : undefined}
                     placeholder="Create password"
                     value={formData.password}
                     onChange={handleChange}
@@ -304,7 +285,8 @@ const TeacherRegister = () => {
                     )}
                   </button>
                 </div>
-              </label>
+              <FieldError errors={fieldErrors} name="password" />
+            </label>
 
               <label>
                 Confirm Password
@@ -316,7 +298,7 @@ const TeacherRegister = () => {
                         ? "text"
                         : "password"
                     }
-                    name="confirmPassword"
+                    name="confirmPassword" aria-invalid={Boolean(fieldErrors.confirmPassword)} aria-describedby={fieldErrors.confirmPassword ? "confirmPassword-error" : undefined}
                     placeholder="Confirm password"
                     value={
                       formData.confirmPassword
@@ -339,7 +321,8 @@ const TeacherRegister = () => {
                     )}
                   </button>
                 </div>
-              </label>
+              <FieldError errors={fieldErrors} name="confirmPassword" />
+            </label>
 
               <button
                 className="teacher-primary-button"
@@ -353,7 +336,7 @@ const TeacherRegister = () => {
           {/* STEP 2 */}
 
           {step === 2 && (
-            <form
+            <form noValidate
               className="teacher-form"
               onSubmit={handleSubmit}
             >
@@ -376,40 +359,43 @@ const TeacherRegister = () => {
                 Degree Title
                 <input
                   type="text"
-                  name="degreeTitle"
+                  name="degreeTitle" aria-invalid={Boolean(fieldErrors.degreeTitle)} aria-describedby={fieldErrors.degreeTitle ? "degreeTitle-error" : undefined}
                   placeholder="ex. Bachelor of Science in Information Technology"
                   value={
                     formData.degreeTitle
                   }
                   onChange={handleChange}
                 />
-              </label>
+              <FieldError errors={fieldErrors} name="degreeTitle" />
+            </label>
 
               <label>
                 Subject to Teach
                 <input
                   type="text"
-                  name="subjectToTeach"
+                  name="subjectToTeach" aria-invalid={Boolean(fieldErrors.subjectToTeach)} aria-describedby={fieldErrors.subjectToTeach ? "subjectToTeach-error" : undefined}
                   placeholder="Enter Subject"
                   value={
                     formData.subjectToTeach
                   }
                   onChange={handleChange}
                 />
-              </label>
+              <FieldError errors={fieldErrors} name="subjectToTeach" />
+            </label>
 
               <label>
                 Brief Teaching Bio
 
                 <textarea
-                  name="teachingBio"
+                  name="teachingBio" aria-invalid={Boolean(fieldErrors.teachingBio)} aria-describedby={fieldErrors.teachingBio ? "teachingBio-error" : undefined}
                   placeholder="Enter brief teaching bio"
                   value={
                     formData.teachingBio
                   }
                   onChange={handleChange}
                 />
-              </label>
+              <FieldError errors={fieldErrors} name="teachingBio" />
+            </label>
 
               <div className="verification-card">
 
@@ -446,18 +432,20 @@ const TeacherRegister = () => {
 
                   <input
                     type="file"
+                    name="verificationDocument" aria-invalid={Boolean(fieldErrors.verificationDocument)} aria-describedby={fieldErrors.verificationDocument ? "verificationDocument-error" : undefined}
                     accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(event) =>
-                      setDocument(
-                        event.target.files[0]
-                      )
-                    }
+                    onChange={(event) => {
+                      const file = event.target.files[0];
+                      setDocument(file || null);
+                      setFieldErrors((previous) => ({ ...previous, verificationDocument: documentError(file) }));
+                    }}
                   />
 
                   <div className="teacher-upload-button">
                     Upload
                   </div>
-                </label>
+                <FieldError errors={fieldErrors} name="verificationDocument" />
+            </label>
               </div>
 
               <div className="teacher-terms">
@@ -465,31 +453,26 @@ const TeacherRegister = () => {
                 <label>
                   <input
                     type="checkbox"
+                    name="terms" aria-invalid={Boolean(fieldErrors.terms)} aria-describedby={fieldErrors.terms ? "terms-error" : undefined}
                     checked={terms}
-                    onChange={(event) =>
-                      setTerms(
-                        event.target.checked
-                      )
-                    }
+                    onChange={(event) => { setTerms(event.target.checked); setFieldErrors((previous) => ({ ...previous, terms: undefined })); }}
                   />
 
                   <span>
                     I agree to the TuroLink
                     Terms and Conditions.
                   </span>
-                </label>
+                <FieldError errors={fieldErrors} name="terms" />
+            </label>
 
                 <label>
                   <input
                     type="checkbox"
+                    name="verificationConsent" aria-invalid={Boolean(fieldErrors.verificationConsent)} aria-describedby={fieldErrors.verificationConsent ? "verificationConsent-error" : undefined}
                     checked={
                       verificationConsent
                     }
-                    onChange={(event) =>
-                      setVerificationConsent(
-                        event.target.checked
-                      )
-                    }
+                    onChange={(event) => { setVerificationConsent(event.target.checked); setFieldErrors((previous) => ({ ...previous, verificationConsent: undefined })); }}
                   />
 
                   <span>
@@ -497,7 +480,8 @@ const TeacherRegister = () => {
                     information and documents
                     submitted are valid.
                   </span>
-                </label>
+                <FieldError errors={fieldErrors} name="verificationConsent" />
+            </label>
 
               </div>
 

@@ -18,7 +18,7 @@ async function main() {
   try {
     await mongoose.connect(process.env.MONGO_URI, { dbName: "turolink_integration_checks", serverSelectionTimeoutMS: 8000 });
     for (const role of ["teacher", "teacher", "student"]) {
-      users.push(await User.create({ name: "API check", email: new mongoose.Types.ObjectId() + "@example.invalid", phone: "0000000000", password: "unused-test-account", role }));
+      users.push(await User.create({ name: "API check", email: new mongoose.Types.ObjectId() + "@example.invalid", phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), password: "unused-test-account", role }));
     }
     const app = express(); app.use(express.json()); app.use("/api/subjects", routes);
     server = app.listen(0, "127.0.0.1");

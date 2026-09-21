@@ -1,0 +1,4 @@
+.field-error { display: block; color: #a62626; font-size: 12px; line-height: 1.5; font-weight: 500; margin-top: 5px; }
+input[aria-invalid="true"], textarea[aria-invalid="true"], select[aria-invalid="true"] { border-color: #b12d2d !important; }
+.terms-box, .teacher-terms label { flex-wrap: wrap; }
+.terms-box .field-error, .teacher-terms .field-error { flex-basis: 100%; }

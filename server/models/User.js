@@ -52,6 +52,9 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Sparse so existing duplicate accounts remain usable until corrected.
+    phoneKey: { type: String, unique: true, sparse: true, select: false },
+
     password: {
       type: String,
       required: [true, "Password is required"],
@@ -106,5 +109,14 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Canonical key prevents concurrent registrations from claiming the same number.
+userSchema.pre('validate', async function () {
+  if (this.isNew || this.isModified('phone')) {
+    const { normalizePhone } = await import('../../shared/validation.mjs');
+    this.phone = normalizePhone(this.phone);
+    if (this.phone) this.phoneKey = this.phone;
+  }
+});
 
 module.exports = mongoose.model("User", userSchema);

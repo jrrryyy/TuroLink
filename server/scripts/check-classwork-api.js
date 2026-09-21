@@ -19,7 +19,7 @@ async function main() {
   let server, browser;
   try {
     await mongoose.connect(process.env.MONGO_URI, { dbName: 'turolink_integration_checks', serverSelectionTimeoutMS: 8000 });
-    for (const role of ['teacher', 'teacher', 'student']) users.push(await User.create({ name: 'Classwork Test Teacher', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '0000000000', password: 'unused-test-account', role }));
+    for (const role of ['teacher', 'teacher', 'student']) users.push(await User.create({ name: 'Classwork Test Teacher', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), password: 'unused-test-account', role }));
     const app = express(); app.use(express.json());
     app.get('/api/auth/me', protect, (req, res) => res.json(req.user));
     app.use('/api/subjects', require('../routes/subjectRoutes'));
