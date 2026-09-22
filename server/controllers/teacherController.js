@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 
 const User = require("../models/User");
 const TeacherProfile = require("../models/TeacherProfile");
+const { upcomingBookings } = require('../services/bookingSummary');
+const Booking = require('../models/Booking');
 
 const generateToken = (id) => {
   return jwt.sign(
@@ -157,6 +159,10 @@ const getTeacherDashboard = async (req, res) => {
       });
     }
 
+    const [rating] = await Booking.aggregate([
+      { $match: { teacher: req.user._id, 'review.rating': { $exists: true } } },
+      { $group: { _id: null, average: { $avg: '$review.rating' }, count: { $sum: 1 } } },
+    ]);
     res.json({
       teacher: {
         id: req.user._id,
@@ -177,15 +183,15 @@ const getTeacherDashboard = async (req, res) => {
           teacherProfile.subjects.length,
 
         averageRating:
-          teacherProfile.averageRating,
+          rating?.average || 0,
 
         totalRatings:
-          teacherProfile.totalRatings,
+          rating?.count || 0,
       },
 
       subjects: teacherProfile.subjects,
 
-      schedules: teacherProfile.schedules,
+      schedules: [...await upcomingBookings(req.user._id, 'teacher'), ...teacherProfile.schedules],
 
       requests: teacherProfile.requests,
 

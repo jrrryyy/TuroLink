@@ -52,6 +52,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/student", studentRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/subjects",subjectRoutes);
+app.use('/api/tutors', require('./routes/tutorRoutes'));
 
 
 const PORT = process.env.PORT || 5000;

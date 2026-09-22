@@ -1,3 +1,4 @@
+const { publicUser } = require("./accountController");
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -58,13 +59,7 @@ const register = async (req, res) => {
 
     res.status(201).json({
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-      },
+      user: publicUser(user),
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -116,13 +111,7 @@ const login = async (req, res) => {
 
     res.json({
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-      },
+      user: publicUser(user),
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -136,13 +125,7 @@ const login = async (req, res) => {
 // GET /api/auth/me
 const getMe = async (req, res) => {
   try {
-    res.json({
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-      phone: req.user.phone,
-      role: req.user.role,
-    });
+    res.json(publicUser(req.user));
   } catch (error) {
     res.status(500).json({
       message: "Unable to get user.",

@@ -1,3 +1,5 @@
+import AccountSettings from "./pages/AccountSettings";
+import { FindTutors, TutorDetails, TeacherAvailability, TutorSchedules } from './pages/Tutors';
 import {
   Navigate,
   Route,
@@ -68,6 +70,14 @@ const GuestRoute = ({ children }) => {
 function App() {
   return (
     <Routes>
+      <Route path="/student/find-tutors" element={<ProtectedRoute allowedRole="student"><FindTutors /></ProtectedRoute>} />
+      <Route path="/student/tutors/:id" element={<ProtectedRoute allowedRole="student"><TutorDetails /></ProtectedRoute>} />
+      <Route path="/student/schedules" element={<ProtectedRoute allowedRole="student"><TutorSchedules /></ProtectedRoute>} />
+      <Route path="/student/rate-tutors" element={<ProtectedRoute allowedRole="student"><TutorSchedules reviewsOnly /></ProtectedRoute>} />
+      <Route path="/teacher/schedules" element={<ProtectedRoute allowedRole="teacher"><TutorSchedules /></ProtectedRoute>} />
+      <Route path="/teacher/availability" element={<ProtectedRoute allowedRole="teacher"><TeacherAvailability /></ProtectedRoute>} />
+      <Route path="/student/settings" element={<ProtectedRoute allowedRole="student"><AccountSettings /></ProtectedRoute>} />
+      <Route path="/teacher/settings" element={<ProtectedRoute allowedRole="teacher"><AccountSettings /></ProtectedRoute>} />
 
       {/* =====================================
           PUBLIC

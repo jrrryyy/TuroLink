@@ -58,3 +58,19 @@ export function validateAnnouncement(input = {}, file) {
   }
   return errors;
 }
+
+export function validateProfile(input = {}) {
+  const errors = {};
+  const name = text(input.name);
+  if (!name || name.length > 100 || !/^[\p{L}\p{M} .?'\-]+$/u.test(name) || !/\p{L}/u.test(name)) errors.name = 'Enter a valid name of up to 100 characters.';
+  if (input.bio !== undefined && (typeof input.bio !== 'string' || input.bio.length > 2000)) errors.bio = 'Use up to 2,000 characters.';
+  if (!['', 'male', 'female', 'other', 'prefer-not-to-say'].includes(input.sex || '')) errors.sex = 'Choose a valid option.';
+  if (input.currentPassword || input.newPassword || input.confirmPassword) {
+    if (typeof input.currentPassword !== 'string' || !input.currentPassword) errors.currentPassword = 'Enter your current password.';
+    if (typeof input.newPassword !== 'string' || input.newPassword.length < 6) errors.newPassword = 'Use at least 6 characters.';
+    else if (new TextEncoder().encode(input.newPassword).length > 72) errors.newPassword = 'Use no more than 72 UTF-8 bytes.';
+    if (!input.confirmPassword || input.newPassword !== input.confirmPassword) errors.confirmPassword = 'Confirm your new password exactly.';
+    if (input.newPassword && input.newPassword === input.currentPassword) errors.newPassword = 'Choose a different password.';
+  }
+  return errors;
+}

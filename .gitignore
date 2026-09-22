@@ -22,3 +22,6 @@ yarn-error.log*
 Thumbs.db
 # Private classwork attachments
 server/storage/materials/
+
+# Uploaded profile pictures
+server/uploads/avatars/

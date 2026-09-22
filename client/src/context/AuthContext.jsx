@@ -146,6 +146,7 @@ export const AuthProvider = ({ children }) => {
         register,
         registerTeacher,
         logout,
+        updateUser: setUser,
       }}
     >
       {children}

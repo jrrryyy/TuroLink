@@ -42,6 +42,8 @@ const teacherProfileSchema = new mongoose.Schema(
       default: 0,
     },
 
+    hourlyRate: { type: Number, min: 1, max: 100000, default: null },
+
     averageRating: {
       type: Number,
       default: 0,

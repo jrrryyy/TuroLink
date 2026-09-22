@@ -55,6 +55,9 @@ const userSchema = new mongoose.Schema(
     // Sparse so existing duplicate accounts remain usable until corrected.
     phoneKey: { type: String, unique: true, sparse: true, select: false },
 
+    bio: { type: String, default: '', maxlength: 2000 },
+    sex: { type: String, enum: ['', 'male', 'female', 'other', 'prefer-not-to-say'], default: '' },
+    profilePicture: { type: String, default: '' },
     password: {
       type: String,
       required: [true, "Password is required"],

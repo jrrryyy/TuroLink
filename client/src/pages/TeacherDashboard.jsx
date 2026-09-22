@@ -200,7 +200,7 @@ const TeacherDashboard = () => {
           <section className="teacher-dashboard-card">
 
             <div className="teacher-card-title">
-              TODAY'S TEACHING
+              UPCOMING TEACHING
               SCHEDULE
             </div>
 
@@ -208,7 +208,7 @@ const TeacherDashboard = () => {
             0 ? (
               <div className="teacher-empty-state">
                 No classes
-                scheduled today.
+                scheduled yet.
               </div>
             ) : (
               schedules.map(

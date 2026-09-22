@@ -1,3 +1,4 @@
+const { upcomingBookings } = require('../services/bookingSummary');
 const getDashboardData = async (req, res) => {
   try {
     const user = req.user;
@@ -14,7 +15,7 @@ const getDashboardData = async (req, res) => {
 
       sessionHours: user.sessionHours,
 
-      upcomingClasses: user.upcomingClasses,
+      upcomingClasses: await upcomingBookings(user._id, 'student'),
     });
   } catch (error) {
     console.error("Dashboard error:", error);

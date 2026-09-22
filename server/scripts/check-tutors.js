@@ -1,0 +1,150 @@
+require('dotenv').config({ quiet: true });
+require('dns').setServers(['8.8.8.8', '8.8.4.4']);
+const assert = require('node:assert/strict');
+const mongoose = require('mongoose');
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const path = require('node:path');
+const User = require('../models/User');
+const Profile = require('../models/TeacherProfile');
+const Slot = require('../models/TutorSlot');
+const Booking = require('../models/Booking');
+async function main() {
+  const users = []; let server, browser;
+  try {
+    await mongoose.connect(process.env.MONGO_URI, { dbName: 'turolink_integration_checks', serverSelectionTimeoutMS: 8000 });
+    await Promise.all([User.init(), Profile.init(), Slot.init(), Booking.init()]);
+    for (const role of ['teacher', 'teacher', 'student', 'student']) users.push(await User.create({ name: role === 'teacher' ? 'Discovery Tutor' : 'Discovery Student', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), role, password: 'unused-test-hash' }));
+    const [teacher, otherTeacher, student, otherStudent] = users;
+    for (const t of [teacher, otherTeacher]) await Profile.create({ user: t._id, degreeTitle: 'Education', subjectToTeach: 'Discovery Mathematics', teachingBio: 'Learn mathematics with patient, clear explanations.' });
+    const app = express(); app.use(express.json()); app.use('/api/auth', require('../routes/authRoutes')); app.use('/api/tutors', require('../routes/tutorRoutes'));
+    app.use('/api/student', require('../routes/studentRoutes')); app.use('/api/teacher', require('../routes/teacherRoutes'));
+    server = app.listen(0, '127.0.0.1'); await new Promise((resolve) => server.once('listening', resolve));
+    const origin = 'http://127.0.0.1:' + server.address().port;
+    const token = (u) => jwt.sign({ id: u._id }, process.env.JWT_SECRET);
+    const call = async (u, route, method = 'GET', body) => {
+      const response = await fetch(origin + '/api/tutors' + route, { method, headers: { 'Content-Type': 'application/json', ...(u ? { Authorization: 'Bearer ' + token(u) } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+      return { status: response.status, body: await response.json() };
+    };
+    assert.equal((await call(null, '/')).status, 401);
+    assert.equal((await call(teacher, '/')).status, 403);
+    assert.equal((await call(student, '/availability')).status, 403);
+    assert.equal((await call(teacher, '/availability/rate', 'PUT', { hourlyRate: -1 })).status, 400);
+    const future = new Date(Math.ceil(Date.now() / 3600000) * 3600000 + 48 * 3600000).toISOString();
+    assert.equal((await call(teacher, '/availability', 'POST', { start: future })).status, 400);
+    for (const t of [teacher, otherTeacher]) assert.equal((await call(t, '/availability/rate', 'PUT', { hourlyRate: 450 })).status, 200);
+    assert.equal((await call(teacher, '/availability', 'POST', { start: '2000-01-01T10:00:00+08:00' })).status, 400);
+    assert.equal((await call(teacher, '/availability', 'POST', { start: '2030-01-01T10:30:00+08:00' })).status, 400);
+    const available = await call(teacher, '/availability', 'POST', { start: future }); assert.equal(available.status, 201);
+    assert.equal((await call(teacher, '/availability', 'POST', { start: future })).status, 409);
+    assert.equal((await call(otherTeacher, '/availability/' + available.body._id, 'DELETE')).status, 409);
+    const directory = await call(student, '/'); assert.equal(directory.status, 200);
+    const entry = directory.body.find((t) => t.id === teacher.id);
+    assert.equal(entry.hourlyRate, 450); assert.equal(entry.slots.length, 1); assert(!('email' in entry)); assert(!('verificationDocument' in entry));
+    assert.equal((await call(student, '/bookings', 'POST', { slotId: available.body._id, expectedPrice: 1 })).status, 409);
+    assert.equal((await Slot.findById(available.body._id)).booked, false);
+    const simultaneous = await Promise.all([student, otherStudent].map((u) => call(u, '/bookings', 'POST', { slotId: available.body._id, expectedPrice: 450 })));
+    assert.deepEqual(simultaneous.map((r) => r.status).sort(), [201, 409]);
+    const winner = simultaneous[0].status === 201 ? student : otherStudent;
+    const loser = winner.id === student.id ? otherStudent : student;
+    const booking = simultaneous.find((r) => r.status === 201).body.booking;
+    const otherSlot = await call(otherTeacher, '/availability', 'POST', { start: future });
+    assert.equal((await call(winner, '/bookings', 'POST', { slotId: otherSlot.body._id, expectedPrice: 450 })).status, 409);
+    assert.equal((await Slot.findById(otherSlot.body._id)).booked, false);
+    assert.equal((await call(teacher, '/availability/' + available.body._id, 'DELETE')).status, 409);
+    assert.equal((await call(teacher, '/bookings')).body.length, 1);
+    const studentDashboard = await fetch(origin + '/api/student/dashboard-data', { headers: { Authorization: 'Bearer ' + token(winner) } }).then((r) => r.json());
+    assert.equal(studentDashboard.upcomingClasses[0]._id, booking._id);
+    const teacherDashboard = await fetch(origin + '/api/teacher/dashboard-data', { headers: { Authorization: 'Bearer ' + token(teacher) } }).then((r) => r.json());
+    assert.equal(teacherDashboard.schedules[0]._id, booking._id);
+    assert.equal((await call(loser, '/bookings')).body.length, 0);
+    assert.equal((await call(winner, `/bookings/${booking._id}/review`, 'POST', { rating: 5, text: 'Helpful session.' })).status, 409);
+    await Booking.updateOne({ _id: booking._id }, { $set: { start: new Date(Date.now() - 7200000), end: new Date(Date.now() - 3600000) } });
+    assert.equal((await call(loser, `/bookings/${booking._id}/review`, 'POST', { rating: 5, text: 'Helpful session.' })).status, 409);
+    assert.equal((await call(winner, `/bookings/${booking._id}/review`, 'POST', { rating: 6, text: 'Invalid' })).status, 400);
+    assert.equal((await call(winner, `/bookings/${booking._id}/review`, 'POST', { rating: 5, text: 'Helpful session.' })).status, 201);
+    assert.equal((await call(winner, `/bookings/${booking._id}/review`, 'POST', { rating: 4, text: 'Again' })).status, 409);
+    const details = await call(student, '/' + teacher.id); assert.equal(details.body.averageRating, 5); assert.equal(details.body.totalRatings, 1); assert.equal(details.body.reviews[0].text, 'Helpful session.');
+    console.log('PASS: permissions, rate/slot validation, public profile privacy, atomic concurrent booking, student overlap rollback, schedule ownership, completed-only unique reviews and live ratings.');
+    if (process.argv.includes('--browser')) {
+      const { chromium } = require(path.join(process.env.TEMP, 'turolink-browser-check/node_modules/playwright'));
+      browser = await chromium.launch({ channel: 'msedge', headless: true });
+      const browserErrors = [];
+      const open = async (u, theme = 'light') => {
+        const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
+        await context.addInitScript(({ savedToken, theme }) => { localStorage.setItem('turolinkToken', savedToken); localStorage.setItem('turolink-theme', theme); }, { savedToken: token(u), theme });
+        const page = await context.newPage();
+        page.on('pageerror', (error) => browserErrors.push(error.name));
+        await page.route('**/api/**', async (route) => {
+          try { const url = new URL(route.request().url()); const response = await route.fetch({ url: origin + url.pathname + url.search }); await route.fulfill({ response }); }
+          catch (error) { if (!/already handled|disposed|closed/i.test(error.message)) browserErrors.push(error.name); }
+        });
+        return { page, context };
+      };
+      const t = await open(teacher);
+      await t.page.goto('http://localhost:5173/teacher/availability');
+      await t.page.getByRole('heading', { name: 'Teaching Availability' }).waitFor();
+      await t.page.getByLabel('Hourly rate (PHP)').fill('500'); await t.page.getByRole('button', { name: 'Save Rate' }).click();
+      await t.page.getByRole('status').filter({ hasText: 'Hourly rate saved' }).waitFor();
+      const date = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+      await t.page.getByLabel('Date', { exact: true }).fill(date); await t.page.getByLabel('Start time').selectOption('10');
+      await t.page.getByRole('button', { name: 'Add Slot' }).click();
+      await t.page.getByRole('status').filter({ hasText: 'Available slot added' }).waitFor();
+      const s = await open(student);
+      await s.page.goto('http://localhost:5173/student/find-tutors');
+      await s.page.getByRole('heading', { name: 'Find Tutors', exact: true }).waitFor();
+      await s.page.getByRole('link', { name: 'Book Now' }).first().waitFor();
+      await s.page.getByLabel('Search tutors by name or subject').fill('no matches xyz');
+      await s.page.getByText('No tutors match yet.', { exact: false }).waitFor();
+      await s.page.getByRole('button', { name: 'Clear filters' }).click();
+      await s.page.getByLabel('Subject', { exact: true }).selectOption('Discovery Mathematics');
+      await s.page.getByLabel('Rating', { exact: true }).selectOption('4.5');
+      assert.equal(await s.page.locator('.tutor-card').count(), 1);
+      await s.page.screenshot({ path: path.join(process.env.TEMP, 'find-tutors.png'), fullPage: true });
+      await s.page.getByRole('link', { name: 'Book Now' }).click();
+      await s.page.getByRole('heading', { name: 'Book a Session' }).waitFor();
+      for (let n = 0; n < 2 && !await s.page.getByRole('button', { name: date, exact: true }).count(); n++) await s.page.getByRole('button', { name: 'Next month' }).click();
+      await s.page.getByRole('button', { name: date, exact: true }).click();
+      await s.page.getByRole('button', { name: /10:00/ }).click();
+      await s.page.screenshot({ path: path.join(process.env.TEMP, 'tutor-booking.png'), fullPage: true });
+      await s.page.getByRole('button', { name: 'Confirm and Book Session' }).click();
+      await s.page.getByRole('status').filter({ hasText: 'Session booked!' }).waitFor();
+      await s.page.getByRole('link', { name: 'View schedules' }).click();
+      await s.page.getByText('Confirmed', { exact: true }).waitFor();
+      await s.page.reload(); await s.page.getByText('Confirmed', { exact: true }).waitFor();
+      await t.page.goto('http://localhost:5173/teacher/schedules'); await t.page.getByText('Confirmed', { exact: true }).waitFor();
+      await s.page.setViewportSize({ width: 390, height: 844 });
+      assert.equal(await s.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await s.page.getByRole('button', { name: 'Open sidebar', exact: true }).click();
+      await s.page.getByRole('button', { name: 'Find Tutor', exact: true }).click();
+      await s.page.getByRole('heading', { name: 'Find Tutors', exact: true }).waitFor();
+      assert.equal(await s.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      await s.page.unrouteAll({ behavior: 'ignoreErrors' }); await t.page.unrouteAll({ behavior: 'ignoreErrors' });
+      await s.context.close(); await t.context.close();
+      await Booking.create({ teacher: teacher._id, student: winner._id, slot: new mongoose.Types.ObjectId(), start: new Date(Date.now() - 14400000), end: new Date(Date.now() - 10800000), subject: 'Review browser test', price: 450 });
+      const dark = await open(winner, 'dark');
+      await dark.page.goto('http://localhost:5173/student/rate-tutors');
+      await dark.page.getByText('Helpful session.', { exact: false }).waitFor();
+      assert.equal(await dark.page.locator('.dark-dashboard-layout').count(), 1);
+      await dark.page.getByLabel('Your review').fill('A clear and helpful lesson.');
+      await dark.page.getByLabel('Rating', { exact: true }).selectOption('4');
+      await dark.page.getByRole('button', { name: 'Submit Review' }).click();
+      await dark.page.getByText('A clear and helpful lesson.', { exact: false }).waitFor();
+      await dark.page.reload(); await dark.page.getByText('A clear and helpful lesson.', { exact: false }).waitFor();
+      await dark.context.close();
+      assert.deepEqual(browserErrors, []);
+      console.log('PASS: teacher rate/availability UI, student search/filter/profile/calendar/booking, both schedules and reload, mobile navigation/overflow, dark review page.');
+    }
+  } finally {
+    if (browser) {
+      for (const context of browser.contexts()) for (const page of context.pages()) await page.unrouteAll({ behavior: 'ignoreErrors' });
+      await browser.close();
+    }
+    if (server) await new Promise((resolve) => server.close(resolve));
+    const ids = users.map((u) => u._id);
+    await Booking.deleteMany({ $or: [{ teacher: { $in: ids } }, { student: { $in: ids } }] });
+    await Slot.deleteMany({ teacher: { $in: ids } }); await Profile.deleteMany({ user: { $in: ids } }); await User.deleteMany({ _id: { $in: ids } });
+    await mongoose.disconnect();
+  }
+}
+main().catch((error) => { console.error('Tutor check failed:', error.name, error.message); process.exitCode = 1; });

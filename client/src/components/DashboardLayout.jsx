@@ -1,3 +1,4 @@
+import { profilePictureUrl } from "../services/profile";
 import {
   useEffect,
   useRef,
@@ -15,6 +16,7 @@ import {
   X,
   Moon,
   Search,
+  Star,
   Settings,
   Sun,
 } from "lucide-react";
@@ -153,8 +155,12 @@ const DashboardLayout = ({
             { label: "Dashboard", icon: LayoutDashboard, path: isTeacher ? "/teacher/dashboard" : "/dashboard" },
             { label: "My Subjects", icon: BookOpen, path: isTeacher ? "/teacher/my-subjects" : "/student/my-subjects" },
             { label: "Messages", icon: MessageCircle },
-            { label: "Schedules", icon: CalendarDays },
+            { label: "Schedules", icon: CalendarDays, path: isTeacher ? '/teacher/schedules' : '/student/schedules' },
             { label: "Request", icon: ClipboardList },
+            ...(isTeacher ? [{ label: 'Availability', icon: CalendarDays, path: '/teacher/availability' }] : [
+              { label: 'Find Tutor', icon: Search, path: '/student/find-tutors' },
+              { label: 'Rate Tutors', icon: Star, path: '/student/rate-tutors' },
+            ]),
           ].map(({ label, icon: Icon, path }) => (
             <button key={label} type="button"
               className={path && isActive(path) ? "dashboard-layout-nav-item active" : "dashboard-layout-nav-item"}
@@ -283,7 +289,7 @@ const DashboardLayout = ({
                   <button
                     type="button"
                     className="dashboard-settings-menu-item"
-                    onClick={() => { setShowSettings(false); setNavigationNotice("Account settings are not available yet."); }}
+                    onClick={() => { setShowSettings(false); goTo(isTeacher ? "/teacher/settings" : "/student/settings"); }}
                   >
                     <Settings
                       size={17}
@@ -320,7 +326,7 @@ const DashboardLayout = ({
             {/* PROFILE */}
 
             <div className="dashboard-layout-avatar">
-              {firstLetter}
+              {user?.profilePicture ? <img src={profilePictureUrl(user.profilePicture)} alt="" /> : firstLetter}
             </div>
 
             <div className="dashboard-layout-profile">
