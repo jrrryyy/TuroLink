@@ -6,7 +6,9 @@ const schema = new mongoose.Schema({
   start: { type: Date, required: true },
   end: { type: Date, required: true },
   subject: { type: String, required: true },
+  subjectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Subject' },
   price: { type: Number, required: true },
+  status: { type: String, enum: ['pending', 'confirmed'], default: 'confirmed' },
   review: {
     rating: { type: Number, min: 1, max: 5 },
     text: { type: String, maxlength: 1000 },

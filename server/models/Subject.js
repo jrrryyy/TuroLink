@@ -8,6 +8,12 @@ const mongoose = require("mongoose");
 const announcementSchema =
   new mongoose.Schema(
     {
+      likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+      comments: [{
+        author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+        text: { type: String, required: true, maxlength: 2000 },
+        createdAt: { type: Date, default: Date.now },
+      }],
       content: {
         type: String,
         default: "",

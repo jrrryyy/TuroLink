@@ -135,4 +135,5 @@ router.put('/:id/materials/:materialId', protect, requireTeacher, uploadMaterial
 router.patch('/:id/materials/:materialId', protect, requireTeacher, materials.changeMaterialStatus);
 router.delete('/:id/materials/:materialId', protect, requireTeacher, materials.deleteMaterial);
 router.get('/:id/materials/:materialId/attachment', protect, requireTeacher, materials.downloadAttachment);
+router.get('/:id/announcements/:announcementId/attachment', protect, requireTeacher, require('../controllers/studentSubjectController').attachment);
 module.exports = router;

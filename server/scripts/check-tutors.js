@@ -9,11 +9,12 @@ const User = require('../models/User');
 const Profile = require('../models/TeacherProfile');
 const Slot = require('../models/TutorSlot');
 const Booking = require('../models/Booking');
+const DeclinedRequest = require('../models/DeclinedRequest');
 async function main() {
   const users = []; let server, browser;
   try {
     await mongoose.connect(process.env.MONGO_URI, { dbName: 'turolink_integration_checks', serverSelectionTimeoutMS: 8000 });
-    await Promise.all([User.init(), Profile.init(), Slot.init(), Booking.init()]);
+    await Promise.all([User.init(), Profile.init(), Slot.init(), Booking.init(), DeclinedRequest.init()]);
     for (const role of ['teacher', 'teacher', 'student', 'student']) users.push(await User.create({ name: role === 'teacher' ? 'Discovery Tutor' : 'Discovery Student', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), role, password: 'unused-test-hash' }));
     const [teacher, otherTeacher, student, otherStudent] = users;
     for (const t of [teacher, otherTeacher]) await Profile.create({ user: t._id, degreeTitle: 'Education', subjectToTeach: 'Discovery Mathematics', teachingBio: 'Learn mathematics with patient, clear explanations.' });
@@ -53,6 +54,15 @@ async function main() {
     assert.equal((await Slot.findById(otherSlot.body._id)).booked, false);
     assert.equal((await call(teacher, '/availability/' + available.body._id, 'DELETE')).status, 409);
     assert.equal((await call(teacher, '/bookings')).body.length, 1);
+    assert.equal(booking.status, 'pending');
+    assert.equal((await call(teacher, '/requests')).body[0]._id, booking._id);
+    assert.equal((await call(student, '/requests')).status, 403);
+    assert.equal((await call(student, `/requests/${booking._id}`, 'PATCH', { action: 'accept' })).status, 403);
+    assert.equal((await call(otherTeacher, `/requests/${booking._id}`, 'PATCH', { action: 'accept' })).status, 409);
+    const pendingDashboard = await fetch(origin + '/api/student/dashboard-data', { headers: { Authorization: 'Bearer ' + token(winner) } }).then((r) => r.json());
+    assert.equal(pendingDashboard.upcomingClasses.length, 0);
+    assert.equal((await call(teacher, `/requests/${booking._id}`, 'PATCH', { action: 'accept' })).status, 200);
+    assert.equal((await call(teacher, `/requests/${booking._id}`, 'PATCH', { action: 'decline' })).status, 409);
     const studentDashboard = await fetch(origin + '/api/student/dashboard-data', { headers: { Authorization: 'Bearer ' + token(winner) } }).then((r) => r.json());
     assert.equal(studentDashboard.upcomingClasses[0]._id, booking._id);
     const teacherDashboard = await fetch(origin + '/api/teacher/dashboard-data', { headers: { Authorization: 'Bearer ' + token(teacher) } }).then((r) => r.json());
@@ -65,6 +75,19 @@ async function main() {
     assert.equal((await call(winner, `/bookings/${booking._id}/review`, 'POST', { rating: 5, text: 'Helpful session.' })).status, 201);
     assert.equal((await call(winner, `/bookings/${booking._id}/review`, 'POST', { rating: 4, text: 'Again' })).status, 409);
     const details = await call(student, '/' + teacher.id); assert.equal(details.body.averageRating, 5); assert.equal(details.body.totalRatings, 1); assert.equal(details.body.reviews[0].text, 'Helpful session.');
+    const toDecline = await call(loser, '/bookings', 'POST', { slotId: otherSlot.body._id, expectedPrice: 450 });
+    assert.equal(toDecline.status, 201);
+    assert.equal((await call(otherTeacher, `/requests/${toDecline.body.booking._id}`, 'PATCH', { action: 'decline' })).status, 200);
+    assert.equal((await Slot.findById(otherSlot.body._id)).booked, false);
+    assert.equal((await call(loser, '/bookings')).body.find((b) => b._id === toDecline.body.booking._id).status, 'declined');
+    assert.equal((await call(loser, `/bookings/${toDecline.body.booking._id}/review`, 'POST', { rating: 5, text: 'Invalid' })).status, 409);
+    const retried = await call(loser, '/bookings', 'POST', { slotId: otherSlot.body._id, expectedPrice: 450 });
+    assert.equal(retried.status, 201);
+    await Booking.updateOne({ _id: retried.body.booking._id }, { $set: { start: new Date(Date.now() - 7200000), end: new Date(Date.now() - 3600000) } });
+    assert.equal((await call(otherTeacher, `/requests/${retried.body.booking._id}`, 'PATCH', { action: 'accept' })).status, 409);
+    assert.equal((await call(loser, `/bookings/${retried.body.booking._id}/review`, 'POST', { rating: 5, text: 'Pending sessions cannot be rated' })).status, 409);
+    assert.equal((await call(otherTeacher, `/requests/${retried.body.booking._id}`, 'PATCH', { action: 'decline' })).status, 200);
+    console.log('PASS: pending requests, teacher-only decisions and ownership, confirmation before dashboard inclusion, declined history/slot release/rebooking, expired request and review restrictions.');
     console.log('PASS: permissions, rate/slot validation, public profile privacy, atomic concurrent booking, student overlap rollback, schedule ownership, completed-only unique reviews and live ratings.');
     if (process.argv.includes('--browser')) {
       const { chromium } = require(path.join(process.env.TEMP, 'turolink-browser-check/node_modules/playwright'));
@@ -107,15 +130,22 @@ async function main() {
       await s.page.getByRole('button', { name: date, exact: true }).click();
       await s.page.getByRole('button', { name: /10:00/ }).click();
       await s.page.screenshot({ path: path.join(process.env.TEMP, 'tutor-booking.png'), fullPage: true });
-      await s.page.getByRole('button', { name: 'Confirm and Book Session' }).click();
-      await s.page.getByRole('status').filter({ hasText: 'Session booked!' }).waitFor();
+      await s.page.getByRole('button', { name: 'Send Tutoring Request' }).click();
+      await s.page.getByRole('status').filter({ hasText: 'Request sent!' }).waitFor();
       await s.page.getByRole('link', { name: 'View schedules' }).click();
+      await s.page.getByRole('button', { name: 'Requests', exact: true }).click();
+      await s.page.getByText('Pending approval', { exact: true }).waitFor();
+      await t.page.goto('http://localhost:5173/teacher/requests');
+      await t.page.getByRole('button', { name: 'Accept', exact: true }).click();
+      await t.page.getByRole('status').filter({ hasText: 'Request accepted.' }).waitFor();
+      await s.page.reload();
       await s.page.getByText('Confirmed', { exact: true }).waitFor();
       await s.page.reload(); await s.page.getByText('Confirmed', { exact: true }).waitFor();
       await t.page.goto('http://localhost:5173/teacher/schedules'); await t.page.getByText('Confirmed', { exact: true }).waitFor();
       await s.page.setViewportSize({ width: 390, height: 844 });
       assert.equal(await s.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
       await s.page.getByRole('button', { name: 'Open sidebar', exact: true }).click();
+      assert.equal(await s.page.getByRole('button', { name: 'Request', exact: true }).count(), 0);
       await s.page.getByRole('button', { name: 'Find Tutor', exact: true }).click();
       await s.page.getByRole('heading', { name: 'Find Tutors', exact: true }).waitFor();
       assert.equal(await s.page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
@@ -143,6 +173,7 @@ async function main() {
     if (server) await new Promise((resolve) => server.close(resolve));
     const ids = users.map((u) => u._id);
     await Booking.deleteMany({ $or: [{ teacher: { $in: ids } }, { student: { $in: ids } }] });
+    await DeclinedRequest.deleteMany({ $or: [{ teacher: { $in: ids } }, { student: { $in: ids } }] });
     await Slot.deleteMany({ teacher: { $in: ids } }); await Profile.deleteMany({ user: { $in: ids } }); await User.deleteMany({ _id: { $in: ids } });
     await mongoose.disconnect();
   }

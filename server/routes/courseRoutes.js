@@ -10,7 +10,7 @@ const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.get("/my-courses", protect, getMyCourses);
+router.get("/my-courses", protect, require('../controllers/studentSubjectController').list);
 
 router.post("/enroll", protect, enrollCourse);
 

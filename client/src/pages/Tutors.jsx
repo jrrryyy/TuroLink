@@ -100,7 +100,7 @@ export function TutorDetails() {
   const book = async () => {
     if (!selected || lock.current) return;
     lock.current = true; setBusy(true); setError(''); setNotice('');
-    try { await api.post('/tutors/bookings', { slotId, expectedPrice: tutor.hourlyRate }); setNotice('Session booked! You can find it in Schedules.'); setSlotId(''); await state.reload(); }
+    try { await api.post('/tutors/bookings', { slotId, expectedPrice: tutor.hourlyRate }); setNotice('Request sent! Waiting for teacher approval. Track its status in Schedules.'); setSlotId(''); await state.reload(); }
     catch (e) { setError(e.response?.data?.message || 'Booking failed. Check Schedules before retrying if your connection was interrupted.'); await state.reload(); }
     finally { lock.current = false; setBusy(false); }
   };
@@ -114,7 +114,7 @@ export function TutorDetails() {
         {!tutor.slots.length && <p className="tutor-muted">No available slots. Please check again later.</p>}
         {selected && <p>{dateLabel(selected.start)} · {time(selected.start)}–{time(new Date(new Date(selected.start).getTime() + 3600000))}</p>}
         <div className="tutor-total"><span>1 hour session</span><strong>{tutor.hourlyRate ? money(tutor.hourlyRate) : '—'}</strong><span>Platform fee</span><span>{money(0)}</span><strong>Total</strong><strong>{tutor.hourlyRate ? money(tutor.hourlyRate) : '—'}</strong></div>
-        <p className="tutor-muted">Booking confirms your time. No online payment is collected.</p><button className="tutor-button" disabled={!selected || !tutor.hourlyRate || busy || state.loading || Boolean(state.error)} onClick={book}>{busy ? 'Booking…' : 'Confirm and Book Session'}</button>
+        <p className="tutor-muted">Your teacher must accept this request before the session is confirmed. No online payment is collected.</p><button className="tutor-button" disabled={!selected || !tutor.hourlyRate || busy || state.loading || Boolean(state.error)} onClick={book}>{busy ? 'Sending…' : 'Send Tutoring Request'}</button>
       </section></div>}
   </Shell>;
 }
@@ -136,12 +136,12 @@ export function TeacherAvailability() {
     catch (e) { setError(e.response?.data?.message || 'Unable to save. Please try again.'); }
     finally { lock.current = false; setBusy(false); }
   };
-  return <Shell><section className="tutor-panel"><h1>Teaching Availability</h1><p className="tutor-muted">Set your hourly rate and publish one-hour slots. Students book these times instantly. All times use Manila time (UTC+8).</p><Status state={state} />
+  return <Shell><section className="tutor-panel"><h1>Teaching Availability</h1><p className="tutor-muted">Set your hourly rate and publish one-hour slots. Student requests reserve these times until you accept or decline them in Request. All times use Manila time (UTC+8).</p><Status state={state} />
     {notice && <p className="tutor-success" role="status">{notice}</p>}{error && <p className="tutor-alert" role="alert">{error}</p>}
     <form className="tutor-inline-form" onSubmit={(e) => { e.preventDefault(); action(() => api.put('/tutors/availability/rate', { hourlyRate: Number(rate) }), 'Hourly rate saved. Existing bookings keep their original price.'); }}><label>Hourly rate (PHP)<input type="number" min="1" max="100000" step="0.01" required value={rate} placeholder={state.data?.hourlyRate || 'Enter rate'} onChange={(e) => setRate(e.target.value)} /></label><button className="tutor-button" disabled={busy}>Save Rate</button><span>Current rate: {state.data?.hourlyRate ? money(state.data.hourlyRate) : 'Not set'}</span></form>
     <form className="tutor-inline-form" onSubmit={(e) => { e.preventDefault(); action(() => api.post('/tutors/availability', { start: `${date}T${hour}:00:00+08:00` }), 'Available slot added.'); }}><label>Date<input type="date" required min={today} value={date} onChange={(e) => setDate(e.target.value)} /></label><label>Start time<select value={hour} onChange={(e) => setHour(e.target.value)}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={String(h).padStart(2, '0')}>{String(h).padStart(2, '0')}:00</option>)}</select></label><button className="tutor-button" disabled={busy || !state.data?.hourlyRate}>Add Slot</button></form>
     <h2>Upcoming Availability</h2>{state.data && !state.data.slots.length && <p>No slots yet. Add your first available time above.</p>}
-    <div className="tutor-schedule-list">{state.data?.slots.map((s) => <article className="tutor-schedule-row" key={s._id}><span>{dateLabel(s.start)} · {time(s.start)}–{time(new Date(new Date(s.start).getTime() + 3600000))}</span>{s.booked ? <span className="tutor-badge">Booked</span> : <button className="tutor-secondary" disabled={busy} onClick={() => action(() => api.delete(`/tutors/availability/${s._id}`), 'Slot removed.')}>Remove</button>}</article>)}</div>
+    <div className="tutor-schedule-list">{state.data?.slots.map((s) => <article className="tutor-schedule-row" key={s._id}><span>{dateLabel(s.start)} · {time(s.start)}–{time(new Date(new Date(s.start).getTime() + 3600000))}</span>{s.booked ? <span className="tutor-badge">Reserved</span> : <button className="tutor-secondary" disabled={busy} onClick={() => action(() => api.delete(`/tutors/availability/${s._id}`), 'Slot removed.')}>Remove</button>}</article>)}</div>
   </section></Shell>;
 }
 
@@ -157,17 +157,44 @@ function ReviewForm({ booking, onSaved }) {
     finally { setBusy(false); }
   }}><label>Rating<select aria-label="Rating" value={rating} onChange={(e) => setRating(e.target.value)}>{[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} stars</option>)}</select></label><label>Your review<textarea required maxLength={1000} value={text} onChange={(e) => setText(e.target.value)} placeholder="How was your session?" /></label>{error && <p role="alert" className="tutor-alert">{error}</p>}<button className="tutor-button" disabled={busy}>{busy ? 'Saving…' : 'Submit Review'}</button></form>;
 }
+export function TeacherRequests() {
+  const state = useData('/tutors/requests');
+  const [busy, setBusy] = useState(false);
+  const lock = useRef(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const decide = async (id, action) => {
+    if (lock.current) return;
+    lock.current = true; setBusy(true); setMessage(''); setError('');
+    try { const response = await api.patch(`/tutors/requests/${id}`, { action }); setMessage(response.data.message); state.reload(); }
+    catch (e) { setError(e.response?.data?.message || 'Unable to update the request. Please try again.'); state.reload(); }
+    finally { lock.current = false; setBusy(false); }
+  };
+  return <Shell><section className="tutor-panel"><h1>Tutoring Requests</h1><p className="tutor-muted">Review student requests below. Accept to confirm a session, or decline to release its time slot.</p>
+    <Status state={state} />{message && <p role="status" className="tutor-success">{message}</p>}{error && <p role="alert" className="tutor-alert">{error}</p>}
+    {!state.loading && !state.error && !state.data?.length && <div className="tutor-empty">No pending tutoring requests.</div>}
+    {state.data?.map((request) => <article className="tutor-panel" key={request._id}><div className="tutor-schedule-row"><div><h2>{request.student?.name || 'Student'}</h2><p>{request.subject}</p><p>{dateLabel(request.start)} · {time(request.start)}–{time(request.end)} (Manila)</p><strong>{money(request.price)}</strong></div><span className="tutor-badge">Pending approval</span></div>
+      {new Date(request.start) <= new Date() && <p className="tutor-muted">This time has passed. Please decline this request.</p>}
+      <div className="tutor-tabs"><button className="tutor-button" disabled={busy || state.loading || new Date(request.start) <= new Date()} onClick={() => decide(request._id, 'accept')}>Accept</button><button className="tutor-secondary" disabled={busy || state.loading} onClick={() => decide(request._id, 'decline')}>Decline</button></div>
+    </article>)}<Link className="tutor-back" to="/teacher/schedules">View schedules and request history</Link>
+  </section></Shell>;
+}
 export function TutorSchedules({ reviewsOnly = false }) {
   const { user } = useAuth();
   const state = useData('/tutors/bookings');
   const [tab, setTab] = useState('upcoming');
   const teacher = user.role === 'teacher';
-  const bookings = (state.data || []).filter((b) => (reviewsOnly || tab === 'past') ? new Date(b.end) <= new Date() : new Date(b.end) > new Date());
+  const bookings = (state.data || []).filter((b) => {
+    const confirmed = !b.status || b.status === 'confirmed';
+    if (reviewsOnly) return confirmed && new Date(b.end) <= new Date();
+    if (tab === 'requests') return !confirmed;
+    return confirmed && (tab === 'past' ? new Date(b.end) <= new Date() : new Date(b.end) > new Date());
+  });
   return <Shell><section className="tutor-panel"><h1>{reviewsOnly ? 'Rate Tutors' : 'Schedules'}</h1><p className="tutor-muted">{reviewsOnly ? 'Share feedback on your completed sessions.' : 'Your confirmed tutor bookings · Manila time (UTC+8)'}</p>
-    {!reviewsOnly && <div className="tutor-tabs"><button className={tab === 'upcoming' ? 'selected' : ''} onClick={() => setTab('upcoming')}>Upcoming</button><button className={tab === 'past' ? 'selected' : ''} onClick={() => setTab('past')}>Past sessions</button>{teacher && <Link to="/teacher/availability">Manage availability</Link>}</div>}
+    {!reviewsOnly && <div className="tutor-tabs"><button className={tab === 'upcoming' ? 'selected' : ''} onClick={() => setTab('upcoming')}>Upcoming</button><button className={tab === 'requests' ? 'selected' : ''} onClick={() => setTab('requests')}>Requests</button><button className={tab === 'past' ? 'selected' : ''} onClick={() => setTab('past')}>Past sessions</button>{teacher && <Link to="/teacher/availability">Manage availability</Link>}</div>}
     <Status state={state} />{!state.loading && !state.error && !bookings.length && <div className="tutor-empty">{reviewsOnly ? 'No completed sessions yet.' : 'No sessions here yet.'} {!teacher && <Link to="/student/find-tutors">Find a tutor</Link>}</div>}
-    <div className="tutor-schedule-list">{bookings.map((b) => <article className="tutor-panel" key={b._id}><div className="tutor-schedule-row"><div><h2>{b.subject}</h2><p>{teacher ? b.student?.name : b.teacher?.name}</p><p>{dateLabel(b.start)} · {time(b.start)}–{time(b.end)}</p></div><div><span className="tutor-badge">{new Date(b.end) <= new Date() ? 'Completed' : 'Confirmed'}</span><p>{money(b.price)}</p></div></div>
-      {b.review?.rating ? <p className="tutor-review">★ {b.review.rating} — {b.review.text}</p> : !teacher && new Date(b.end) <= new Date() && <ReviewForm booking={b} onSaved={state.reload} />}
+    <div className="tutor-schedule-list">{bookings.map((b) => <article className="tutor-panel" key={b._id}><div className="tutor-schedule-row"><div><h2>{b.subject}</h2><p>{teacher ? b.student?.name : b.teacher?.name}</p><p>{dateLabel(b.start)} · {time(b.start)}–{time(b.end)}</p></div><div><span className="tutor-badge">{b.status === 'pending' ? 'Pending approval' : b.status === 'declined' ? 'Declined' : new Date(b.end) <= new Date() ? 'Completed' : 'Confirmed'}</span><p>{money(b.price)}</p></div></div>
+      {b.review?.rating ? <p className="tutor-review">★ {b.review.rating} — {b.review.text}</p> : !teacher && (!b.status || b.status === 'confirmed') && new Date(b.end) <= new Date() && <ReviewForm booking={b} onSaved={state.reload} />}
     </article>)}</div>
   </section></Shell>;
 }

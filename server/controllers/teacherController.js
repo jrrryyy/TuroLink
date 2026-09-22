@@ -193,7 +193,10 @@ const getTeacherDashboard = async (req, res) => {
 
       schedules: [...await upcomingBookings(req.user._id, 'teacher'), ...teacherProfile.schedules],
 
-      requests: teacherProfile.requests,
+      requests: (await Booking.find({ teacher: req.user._id, status: 'pending' }).populate('student', 'name').sort({ start: 1 }).lean()).map((request) => ({
+        _id: request._id, studentName: request.student?.name || 'Student', subject: request.subject,
+        time: request.start.toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) + ' (Manila)', status: 'pending',
+      })),
 
       messages: teacherProfile.messages,
     });

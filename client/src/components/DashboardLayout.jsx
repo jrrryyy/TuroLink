@@ -156,7 +156,7 @@ const DashboardLayout = ({
             { label: "My Subjects", icon: BookOpen, path: isTeacher ? "/teacher/my-subjects" : "/student/my-subjects" },
             { label: "Messages", icon: MessageCircle },
             { label: "Schedules", icon: CalendarDays, path: isTeacher ? '/teacher/schedules' : '/student/schedules' },
-            { label: "Request", icon: ClipboardList },
+            ...(isTeacher ? [{ label: 'Request', icon: ClipboardList, path: '/teacher/requests' }] : []),
             ...(isTeacher ? [{ label: 'Availability', icon: CalendarDays, path: '/teacher/availability' }] : [
               { label: 'Find Tutor', icon: Search, path: '/student/find-tutors' },
               { label: 'Rate Tutors', icon: Star, path: '/student/rate-tutors' },

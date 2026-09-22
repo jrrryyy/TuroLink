@@ -312,13 +312,7 @@ const TeacherDashboard = () => {
 
                       <div className="teacher-request-actions">
 
-                        <button className="teacher-decline-button">
-                          Decline
-                        </button>
-
-                        <button className="teacher-accept-button">
-                          Accept
-                        </button>
+                        <a className="teacher-accept-button" href="/teacher/requests">Review Request</a>
 
                       </div>
                     </div>

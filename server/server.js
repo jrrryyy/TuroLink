@@ -27,6 +27,7 @@ app.use(
 
 app.use(
   "/uploads",
+  require('./middleware/privateUploads'),
   express.static(path.join(__dirname, "uploads"))
 );
 
@@ -53,6 +54,7 @@ app.use("/api/student", studentRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/subjects",subjectRoutes);
 app.use('/api/tutors', require('./routes/tutorRoutes'));
+app.use('/api/student-subjects', require('./routes/studentSubjectRoutes'));
 
 
 const PORT = process.env.PORT || 5000;

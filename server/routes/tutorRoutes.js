@@ -4,6 +4,8 @@ const { protect } = require('../middleware/authMiddleware');
 const Profile = require('../models/TeacherProfile');
 const Slot = require('../models/TutorSlot');
 const Booking = require('../models/Booking');
+const DeclinedRequest = require('../models/DeclinedRequest');
+const Subject = require('../models/Subject');
 
 router.use(protect);
 const role = (expected) => (req, res, next) => req.user.role === expected ? next() : res.status(403).json({ message: `${expected} access only.` });
@@ -59,7 +61,38 @@ router.delete('/availability/:id', role('teacher'), run(async (req, res) => {
 }));
 router.get('/bookings', run(async (req, res) => {
   const field = req.user.role === 'teacher' ? 'teacher' : 'student';
-  res.json(await Booking.find({ [field]: req.user._id }).populate('teacher student', 'name profilePicture').sort({ start: 1 }).lean());
+  const [bookings, declined] = await Promise.all([
+    Booking.find({ [field]: req.user._id }).populate('teacher student', 'name profilePicture').lean(),
+    DeclinedRequest.find({ [field]: req.user._id }).populate('teacher student', 'name profilePicture').lean(),
+  ]);
+  res.json([...bookings.map((b) => ({ ...b, status: b.status || 'confirmed' })), ...declined].sort((a, b) => a.start - b.start));
+}));
+router.get('/requests', role('teacher'), run(async (req, res) => {
+  res.json(await Booking.find({ teacher: req.user._id, status: 'pending' }).populate('student', 'name profilePicture').sort({ start: 1 }).lean());
+}));
+router.patch('/requests/:id', role('teacher'), run(async (req, res) => {
+  if (!validId(req.params.id) || !['accept', 'decline'].includes(req.body.action)) throw fail('Choose Accept or Decline for a valid request.');
+  await mongoose.connection.transaction(async (session) => {
+    const request = await Booking.findOne({ _id: req.params.id, teacher: req.user._id, status: 'pending' }).session(session);
+    if (!request) throw fail('This request is no longer pending or does not belong to you.', 409);
+    if (req.body.action === 'accept') {
+      if (request.start <= new Date()) throw fail('This session time has passed. Decline it so the student can choose another time.', 409);
+      // Legacy requests without a subject reference remain valid tutoring requests.
+      if (request.subjectId) {
+        const enrolled = await Subject.updateOne({ _id: request.subjectId, teacherId: req.user._id }, { $addToSet: { enrolledStudents: request.student } }, { session });
+        if (!enrolled.matchedCount) throw fail('The requested subject no longer exists. Decline this request and ask the student to choose another subject.', 409);
+      }
+      await Booking.updateOne({ _id: request._id, status: 'pending' }, { $set: { status: 'confirmed' } }, { session });
+    } else {
+      await DeclinedRequest.create([{
+        _id: request._id, teacher: request.teacher, student: request.student, slot: request.slot,
+        start: request.start, end: request.end, subject: request.subject, subjectId: request.subjectId, price: request.price, requestedAt: request.createdAt,
+      }], { session });
+      await Booking.deleteOne({ _id: request._id }, { session });
+      await Slot.updateOne({ _id: request.slot }, { $set: { booked: false } }, { session });
+    }
+  });
+  res.json({ message: req.body.action === 'accept' ? 'Request accepted. The session is confirmed.' : 'Request declined. The time slot is available again.' });
 }));
 router.post('/bookings', role('student'), run(async (req, res) => {
   if (!validId(req.body.slotId)) throw fail('Select an available time.');
@@ -70,18 +103,22 @@ router.post('/bookings', role('student'), run(async (req, res) => {
     const profile = await Profile.findOne({ user: slot.teacher }).session(session).populate('user', 'role');
     if (!profile?.hourlyRate || profile.user?.role !== 'teacher') throw fail('This teacher is not accepting bookings.', 409);
     if (req.body.expectedPrice !== profile.hourlyRate) throw fail('The rate has changed. Reload the teacher profile before booking.', 409);
+    const subjects = await Subject.find({ teacherId: slot.teacher }).select('_id title').session(session);
+    const selectedSubject = subjects.find((s) => String(s._id) === req.body.subjectId);
+    if ((subjects.length || req.body.subjectId) && !selectedSubject) throw fail('Select one of this teacher\'s subjects before sending your request.');
     [booking] = await Booking.create([{
       teacher: slot.teacher, student: req.user._id, slot: slot._id,
-      start: slot.start, end: new Date(slot.start.getTime() + 3600000), subject: profile.subjectToTeach, price: profile.hourlyRate,
+      status: 'pending',
+      start: slot.start, end: new Date(slot.start.getTime() + 3600000), subject: selectedSubject?.title || profile.subjectToTeach, subjectId: selectedSubject?._id, price: profile.hourlyRate,
     }], { session });
   });
-  res.status(201).json({ message: 'Session booked successfully.', booking });
+  res.status(201).json({ message: 'Request sent. Waiting for teacher approval.', booking });
 }));
 router.post('/bookings/:id/review', role('student'), run(async (req, res) => {
   if (!validId(req.params.id)) throw fail('Invalid booking.');
   const { rating, text } = req.body;
   if (!Number.isInteger(rating) || rating < 1 || rating > 5 || typeof text !== 'string' || !text.trim() || text.trim().length > 1000) throw fail('Choose 1–5 stars and write a review of 1–1,000 characters.');
-  const booking = await Booking.findOneAndUpdate({ _id: req.params.id, student: req.user._id, end: { $lte: new Date() }, 'review.rating': { $exists: false } }, { $set: { review: { rating, text: text.trim(), createdAt: new Date() } } }, { returnDocument: 'after' });
+  const booking = await Booking.findOneAndUpdate({ _id: req.params.id, student: req.user._id, status: { $ne: 'pending' }, end: { $lte: new Date() }, 'review.rating': { $exists: false } }, { $set: { review: { rating, text: text.trim(), createdAt: new Date() } } }, { returnDocument: 'after' });
   if (!booking) throw fail('Only your completed, unreviewed bookings can be rated.', 409);
   // Directory ratings are calculated from reviews, avoiding stale cached totals.
   res.status(201).json({ message: 'Thank you! Your review is saved.' });
@@ -99,6 +136,7 @@ router.get('/:id', role('student'), run(async (req, res) => {
   if (!profile || profile.user?.role !== 'teacher') throw fail('Teacher not found.', 404);
   const reviews = await Booking.find({ teacher: req.params.id, 'review.rating': { $exists: true } }).populate('student', 'name').sort({ 'review.createdAt': -1 }).limit(50).lean();
   res.json({ ...await publicProfile(profile),
+    subjects: await Subject.find({ teacherId: req.params.id }).select('code title').sort({ title: 1 }).lean(),
     slots: await Slot.find({ teacher: req.params.id, booked: false, start: { $gt: new Date() } }).select('start').sort({ start: 1 }).lean(),
     reviews: reviews.map((b) => ({ id: b._id, name: b.student?.name?.split(' ')[0] || 'Student', ...b.review })),
   });

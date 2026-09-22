@@ -1,0 +1,11 @@
+const router = require('express').Router();
+const { protect } = require('../middleware/authMiddleware');
+const controller = require('../controllers/studentSubjectController');
+router.use(protect, (req, res, next) => req.user.role === 'student' ? next() : res.status(403).json({ message: 'Student access only.' }));
+router.get('/', controller.list);
+router.get('/:id', controller.detail);
+router.put('/:id/announcements/:announcementId/like', controller.like);
+router.post('/:id/announcements/:announcementId/comments', controller.comment);
+router.get('/:id/announcements/:announcementId/attachment', controller.attachment);
+router.get('/:id/materials/:materialId/attachment', controller.attachment);
+module.exports = router;
