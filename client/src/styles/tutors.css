@@ -63,3 +63,5 @@
 .tutor-review-form textarea { min-height: 90px; resize: vertical; }
 @media(max-width:1050px) { .tutor-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(max-width:700px) { .tutors-page { padding: 18px 12px; } .tutor-grid,.tutor-detail-grid { grid-template-columns: 1fr; } .tutor-panel { padding: 18px; } .tutor-filters { flex-direction: column; } .tutor-inline-form label { width: 100%; } .tutor-schedule-row { flex-wrap: wrap; } }
+.tutor-slot-assignment { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.tutor-slot-assignment select { max-width: 260px; }

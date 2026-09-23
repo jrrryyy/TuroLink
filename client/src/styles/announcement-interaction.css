@@ -1,0 +1,12 @@
+.announcement-interaction button { cursor: pointer; font: inherit; }
+.announcement-interaction .teacher-announcement-footer button { display: inline-flex; align-items: center; gap: 7px; color: var(--layout-muted); background: transparent; border: 0; }
+.announcement-interaction button[aria-pressed=true] { color: var(--layout-green); }
+.announcement-interaction button:disabled { opacity: .6; cursor: wait; }
+.announcement-interaction [role=alert] { color: #b74343; }
+.announcement-comment-list { margin-top: 16px; }
+.announcement-comment-list article { padding: 14px; background: var(--layout-hover); border-radius: 10px; margin-bottom: 12px; }
+.announcement-comment-list small { display: block; color: var(--layout-muted); margin-top: 5px; }
+.announcement-comment-list p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.announcement-comment-list label { display: flex; flex-direction: column; gap: 8px; }
+.announcement-comment-list textarea { width: 100%; min-height: 80px; padding: 12px; font: inherit; resize: vertical; border: 1px solid var(--layout-border); border-radius: 8px; background: var(--layout-card); color: var(--layout-text); }
+.announcement-comment-list form button { border: 0; border-radius: 8px; background: #335035; color: white; padding: 10px 18px; margin-top: 10px; }

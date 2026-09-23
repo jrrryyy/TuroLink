@@ -136,4 +136,10 @@ router.patch('/:id/materials/:materialId', protect, requireTeacher, materials.ch
 router.delete('/:id/materials/:materialId', protect, requireTeacher, materials.deleteMaterial);
 router.get('/:id/materials/:materialId/attachment', protect, requireTeacher, materials.downloadAttachment);
 router.get('/:id/announcements/:announcementId/attachment', protect, requireTeacher, require('../controllers/studentSubjectController').attachment);
+
+const interactions = require('../controllers/studentSubjectController');
+router.get('/:id/announcements/:announcementId/engagement', protect, requireTeacher, interactions.engagement);
+router.put('/:id/announcements/:announcementId/like', protect, requireTeacher, interactions.like);
+router.post('/:id/announcements/:announcementId/comments', protect, requireTeacher, interactions.comment);
+
 module.exports = router;

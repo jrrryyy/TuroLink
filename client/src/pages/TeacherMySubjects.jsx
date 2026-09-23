@@ -1,3 +1,5 @@
+import TeacherAnnouncementInteraction from '../components/TeacherAnnouncementInteraction';
+import { downloadFile } from '../services/download';
 import { validateSubject, validateAnnouncement as announcementErrors } from "../../../shared/validation.mjs";
 import FieldError from "../components/FieldError";
 import "../styles/validation.css";
@@ -1011,28 +1013,6 @@ const TeacherMySubjects = () => {
   // ATTACHMENT URL
   // =====================================================
 
-  const getAttachmentUrl = (
-    attachment
-  ) => {
-    if (!attachment) {
-      return "#";
-    }
-
-    if (
-      attachment.startsWith(
-        "http://"
-      ) ||
-      attachment.startsWith(
-        "https://"
-      )
-    ) {
-      return attachment;
-    }
-
-    return `http://localhost:5000${attachment}`;
-  };
-
-
   // =====================================================
   // LOADING
   // =====================================================
@@ -1762,9 +1742,7 @@ const TeacherMySubjects = () => {
                           {announcement.attachment && (
                             <a
                               className="teacher-posted-attachment"
-                              href={getAttachmentUrl(
-                                announcement.attachment
-                              )}
+                              href="#" onClick={async (event) => { event.preventDefault(); try { await downloadFile(`/subjects/${selectedSubject._id}/announcements/${announcement._id}/attachment`, announcement.attachmentName); } catch (error) { setError(error.message); } }}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
@@ -1837,17 +1815,7 @@ const TeacherMySubjects = () => {
                           )}
 
 
-                          <div className="teacher-announcement-footer">
-
-                            <span>
-                              ♡ 0 Likes
-                            </span>
-
-                            <span>
-                              □ 0 Comments
-                            </span>
-
-                          </div>
+                          {(announcement.status === 'posted' || (announcement.scheduledAt && new Date(announcement.scheduledAt) <= new Date())) ? <TeacherAnnouncementInteraction subjectId={selectedSubject._id} announcementId={announcement._id} /> : <p>Likes and comments are available after publication.</p>}
 
                         </article>
                       )

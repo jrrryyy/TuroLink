@@ -6,7 +6,7 @@
 2. Search by teacher name or subject. Filter by subject, availability, or minimum rating. **Clear filters** resets the search.
 3. Cards show real teacher profiles, hourly rates, available time categories, and review totals. Teachers without slots still have a **View Profile** link.
 4. Choose **Book Now** to see the teacher's biography and reviews. The calendar opens at the next available month; only dates with open slots can be selected.
-5. Select a date and time. Check the one-hour session details and total, then click **Send Tutoring Request**.
+5. Select the teacher's subject, date, and time. Check the one-hour session details and total, then click **Send Tutoring Request**. Acceptance enrolls you in the selected subject, making its announcements and materials available in My Subjects. Only times assigned to the selected subject are available to request.
 6. Open **Schedules > Requests** to track pending or declined requests. After teacher acceptance, the session appears under **Upcoming** and in both dashboards. The student sidebar no longer has a Request button.
 7. Once the session's end time has passed, open **Rate Tutors** or **Schedules > Past sessions**. Choose 1–5 stars and submit a review. Each booking can be reviewed once.
 
@@ -14,7 +14,7 @@
 
 1. Open **Availability** in the hamburger menu.
 2. Enter an hourly rate in Philippine pesos and click **Save Rate**.
-3. Choose a future date and start hour, then click **Add Slot**. Each slot lasts one hour. Publish individual slots up to one year ahead.
+3. Choose a subject, future date, and start hour, then click **Add Slot**. Each slot lasts one hour. Publish individual slots up to one year ahead.
 4. Open **Request** in the teacher sidebar. Review each student's name, subject, date, time, and rate, then **Accept** or **Decline**. Accepting confirms the session; declining releases the time slot. Only the assigned teacher can decide, and expired requests cannot be accepted.
 5. Unreserved slots can be removed. Pending requests and confirmed bookings reserve the slot; these cannot be removed through Availability.
 6. Open **Schedules** to see student names, subjects, dates, times, and booked prices. Existing bookings keep their original price when the hourly rate changes. The Requests tab keeps declined history visible.

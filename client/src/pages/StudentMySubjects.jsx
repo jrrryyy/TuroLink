@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Download, Heart, MessageSquare } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
@@ -55,7 +55,9 @@ export default function StudentMySubjects() {
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
   const [query, setQuery] = useState('');
-  const [tab, setTab] = useState('announcements');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') === 'materials' ? 'materials' : 'announcements';
+  const setTab = (value) => setSearchParams(value === 'materials' ? { tab: value } : {});
   const endpoint = id ? `/student-subjects/${id}` : '/student-subjects';
   useEffect(() => {
     let active = true;

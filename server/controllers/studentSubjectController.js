@@ -12,7 +12,7 @@ const visible = (item) => item.status === 'posted' || (item.status === 'schedule
 const announcementFilter = (id) => ({ _id: id, $or: [{ status: 'posted' }, { status: 'scheduled', scheduledAt: { $lte: new Date() } }] });
 const safeLink = (value) => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } };
 function summary(subject) {
-  const upcoming = subject.materials.filter((m) => visible(m) && m.dueAt && new Date(m.dueAt) >= new Date()).sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))[0];
+  const upcoming = (subject.materials || []).filter((m) => visible(m) && m.dueAt && new Date(m.dueAt) >= new Date()).sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))[0];
   return { _id: subject._id, code: subject.code, title: subject.title, description: subject.description,
     instructorName: subject.teacherId?.name || 'Teacher', instructorAvatar: subject.teacherId?.profilePicture || '',
     upcomingTopic: upcoming?.title || '', enrolledCount: subject.enrolledStudents.length, rating: subject.rating || 0 };
@@ -44,10 +44,11 @@ const detail = handler(async (req, res) => {
   })).sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
   res.json({ ...summary(subject), announcements, materials });
 });
+const interactionAccess = (req) => req.user.role === 'teacher' ? { teacherId: req.user._id } : { enrolledStudents: req.user._id };
 const like = handler(async (req, res) => {
   if (!mongoose.isObjectIdOrHexString(req.params.id) || !mongoose.isObjectIdOrHexString(req.params.announcementId) || typeof req.body.liked !== 'boolean') throw fail('Invalid like request.');
   const action = req.body.liked ? '$addToSet' : '$pull';
-  const result = await Subject.updateOne({ _id: req.params.id, enrolledStudents: req.user._id, announcements: { $elemMatch: announcementFilter(req.params.announcementId) } }, { [action]: { 'announcements.$.likes': req.user._id } });
+  const result = await Subject.updateOne({ _id: req.params.id, ...interactionAccess(req), announcements: { $elemMatch: announcementFilter(req.params.announcementId) } }, { [action]: { 'announcements.$[post].likes': req.user._id } }, { arrayFilters: [{ 'post._id': new mongoose.Types.ObjectId(req.params.announcementId) }] });
   if (!result.matchedCount) throw fail('Announcement not available.', 404);
   res.json({ message: req.body.liked ? 'Liked.' : 'Like removed.' });
 });
@@ -55,7 +56,7 @@ const comment = handler(async (req, res) => {
   const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
   if (!text || text.length > 2000) throw fail('Enter a comment of 1–2,000 characters.');
   if (!mongoose.isObjectIdOrHexString(req.params.id) || !mongoose.isObjectIdOrHexString(req.params.announcementId)) throw fail('Invalid announcement.');
-  const result = await Subject.updateOne({ _id: req.params.id, enrolledStudents: req.user._id, announcements: { $elemMatch: announcementFilter(req.params.announcementId) } }, { $push: { 'announcements.$.comments': { author: req.user._id, text } } });
+  const result = await Subject.updateOne({ _id: req.params.id, ...interactionAccess(req), announcements: { $elemMatch: announcementFilter(req.params.announcementId) } }, { $push: { 'announcements.$[post].comments': { author: req.user._id, text } } }, { arrayFilters: [{ 'post._id': new mongoose.Types.ObjectId(req.params.announcementId) }] });
   if (!result.matchedCount) throw fail('Announcement not available.', 404);
   res.status(201).json({ message: 'Comment posted.' });
 });
@@ -72,4 +73,11 @@ const attachment = handler(async (req, res) => {
   try { await fs.access(file); } catch { throw fail('Attachment not found.', 404); }
   res.download(file, item.attachmentName || 'Attachment');
 });
-module.exports = { list, detail, like, comment, attachment };
+const engagement = handler(async (req, res) => {
+  const subject = await accessible(req, true);
+  if (!mongoose.isObjectIdOrHexString(req.params.announcementId)) throw fail('Announcement not found.', 404);
+  const post = subject.announcements.id(req.params.announcementId);
+  if (!post || !visible(post)) throw fail('Announcement not available.', 404);
+  res.json({ likes: post.likes.length, liked: post.likes.some((id) => id.equals(req.user._id)), comments: post.comments.map((c) => ({ _id: c._id, text: c.text, createdAt: c.createdAt, name: c.author?.name || 'Former user' })) });
+});
+module.exports = { list, detail, like, comment, attachment, engagement };

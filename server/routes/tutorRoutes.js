@@ -37,7 +37,7 @@ async function publicProfile(profile) {
 router.get('/availability', role('teacher'), run(async (req, res) => {
   const profile = await Profile.findOne({ user: req.user._id });
   if (!profile) throw fail('Teacher profile not found.', 404);
-  res.json({ hourlyRate: profile.hourlyRate, slots: await Slot.find({ teacher: req.user._id, start: { $gt: new Date() } }).sort({ start: 1 }).lean() });
+  res.json({ hourlyRate: profile.hourlyRate, subjects: await Subject.find({ teacherId: req.user._id }).select('code title').sort({ title: 1 }).lean(), slots: await Slot.find({ teacher: req.user._id, start: { $gt: new Date() } }).populate('subjectId', 'code title').sort({ start: 1 }).lean() });
 }));
 router.put('/availability/rate', role('teacher'), run(async (req, res) => {
   const rate = req.body.hourlyRate;
@@ -51,7 +51,14 @@ router.post('/availability', role('teacher'), run(async (req, res) => {
   if (!req.body.start || !Number.isFinite(start.getTime()) || start <= new Date() || start > new Date(Date.now() + 366 * 86400000) || start.getUTCMinutes() || start.getUTCSeconds() || start.getUTCMilliseconds()) throw fail('Choose a future time on the hour within the next year.');
   const profile = await Profile.findOne({ user: req.user._id });
   if (!profile?.hourlyRate) throw fail('Set your hourly rate first.');
-  res.status(201).json(await Slot.create({ teacher: req.user._id, start }));
+  if (!validId(req.body.subjectId) || !await Subject.exists({ _id: req.body.subjectId, teacherId: req.user._id })) throw fail('Select one of your subjects.');
+  res.status(201).json(await Slot.create({ teacher: req.user._id, start, subjectId: req.body.subjectId }));
+}));
+router.patch('/availability/:id', role('teacher'), run(async (req, res) => {
+  if (!validId(req.params.id) || !validId(req.body.subjectId) || !await Subject.exists({ _id: req.body.subjectId, teacherId: req.user._id })) throw fail('Select one of your subjects.');
+  const slot = await Slot.findOneAndUpdate({ _id: req.params.id, teacher: req.user._id, booked: false, start: { $gt: new Date() } }, { $set: { subjectId: req.body.subjectId } }, { returnDocument: 'after' });
+  if (!slot) throw fail('Only your future, unreserved slots can be updated.', 409);
+  res.json({ message: 'Subject assigned.', slot });
 }));
 router.delete('/availability/:id', role('teacher'), run(async (req, res) => {
   if (!validId(req.params.id)) throw fail('Invalid slot.');
@@ -103,6 +110,7 @@ router.post('/bookings', role('student'), run(async (req, res) => {
     const profile = await Profile.findOne({ user: slot.teacher }).session(session).populate('user', 'role');
     if (!profile?.hourlyRate || profile.user?.role !== 'teacher') throw fail('This teacher is not accepting bookings.', 409);
     if (req.body.expectedPrice !== profile.hourlyRate) throw fail('The rate has changed. Reload the teacher profile before booking.', 409);
+    if (!slot.subjectId || String(slot.subjectId) !== req.body.subjectId) throw fail('This time slot is not available for the selected subject.', 409);
     const subjects = await Subject.find({ teacherId: slot.teacher }).select('_id title').session(session);
     const selectedSubject = subjects.find((s) => String(s._id) === req.body.subjectId);
     if ((subjects.length || req.body.subjectId) && !selectedSubject) throw fail('Select one of this teacher\'s subjects before sending your request.');
@@ -126,7 +134,7 @@ router.post('/bookings/:id/review', role('student'), run(async (req, res) => {
 router.get('/', role('student'), run(async (req, res) => {
   const profiles = await Profile.find().populate('user', 'name role bio profilePicture').lean();
   const tutors = await Promise.all(profiles.filter((p) => p.user?.role === 'teacher').map(async (p) => ({
-    ...await publicProfile(p), slots: await Slot.find({ teacher: p.user._id, booked: false, start: { $gt: new Date() } }).select('start').sort({ start: 1 }).lean(),
+    ...await publicProfile(p), slots: await Slot.find({ teacher: p.user._id, booked: false, subjectId: { $in: await Subject.find({ teacherId: p.user._id }).distinct('_id') }, start: { $gt: new Date() } }).select('start subjectId').sort({ start: 1 }).lean(),
   })));
   res.json(tutors);
 }));
@@ -137,7 +145,7 @@ router.get('/:id', role('student'), run(async (req, res) => {
   const reviews = await Booking.find({ teacher: req.params.id, 'review.rating': { $exists: true } }).populate('student', 'name').sort({ 'review.createdAt': -1 }).limit(50).lean();
   res.json({ ...await publicProfile(profile),
     subjects: await Subject.find({ teacherId: req.params.id }).select('code title').sort({ title: 1 }).lean(),
-    slots: await Slot.find({ teacher: req.params.id, booked: false, start: { $gt: new Date() } }).select('start').sort({ start: 1 }).lean(),
+    slots: await Slot.find({ teacher: req.params.id, booked: false, subjectId: { $in: await Subject.find({ teacherId: req.params.id }).distinct('_id') }, start: { $gt: new Date() } }).select('start subjectId').sort({ start: 1 }).lean(),
     reviews: reviews.map((b) => ({ id: b._id, name: b.student?.name?.split(' ')[0] || 'Student', ...b.review })),
   });
 }));

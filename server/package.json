@@ -10,7 +10,8 @@
     "test:classwork": "node scripts/check-classwork-api.js",
     "test:validation": "node scripts/check-validation.js",
     "test:account-settings": "node scripts/check-account-settings.js",
-    "test:tutors": "node scripts/check-tutors.js"
+    "test:tutors": "node scripts/check-tutors.js",
+    "test:student-subjects": "node scripts/check-student-subjects.js"
   },
   "keywords": [],
   "author": "",

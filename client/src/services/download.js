@@ -12,6 +12,6 @@ export async function downloadFile(endpoint, name) {
     if (error.response?.data instanceof Blob) {
       try { message = JSON.parse(await error.response.data.text()).message || message; } catch { /* Keep the download message. */ }
     }
-    throw new Error(message);
+    throw new Error(message, { cause: error });
   }
 }
