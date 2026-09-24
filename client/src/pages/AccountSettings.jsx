@@ -1,3 +1,5 @@
+import PasswordStrength from '../components/PasswordStrength';
+import { NotificationPreferences } from '../components/StudentNotifications';
 import { useEffect, useRef, useState } from 'react';
 import { Eye, EyeOff, Pencil } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
@@ -90,10 +92,11 @@ export default function AccountSettings() {
           </div>
           <section className="account-security" aria-label="Password and contact information">
             <div><h2>Change Password</h2><p className="account-hint">Leave these fields blank to keep your current password.</p>
-              {[['currentPassword', 'Current Password'], ['newPassword', 'New Password'], ['confirmPassword', 'Confirm New Password']].map(([name, label]) => <label key={name}>{label}<div className="account-password"><input name={name} type={visible[name] ? 'text' : 'password'} autoComplete={name === 'currentPassword' ? 'current-password' : 'new-password'} value={form[name]} onChange={change} placeholder={label} aria-invalid={Boolean(errors[name])} aria-describedby={errors[name] ? `${name}-error` : undefined} /><button type="button" aria-label={`${visible[name] ? 'Hide' : 'Show'} ${label.toLowerCase()}`} onClick={() => setVisible((previous) => ({ ...previous, [name]: !previous[name] }))}>{visible[name] ? <EyeOff size={17} /> : <Eye size={17} />}</button></div><FieldError errors={errors} name={name} /></label>)}
+              {(user.hasPassword ? [['currentPassword', 'Current Password'], ['newPassword', 'New Password'], ['confirmPassword', 'Confirm New Password']] : []).map(([name, label]) => <label key={name}>{label}<div className="account-password"><input name={name} type={visible[name] ? 'text' : 'password'} autoComplete={name === 'currentPassword' ? 'current-password' : 'new-password'} value={form[name]} onChange={change} placeholder={label} aria-invalid={Boolean(errors[name])} aria-describedby={errors[name] ? `${name}-error` : undefined} /><button type="button" aria-label={`${visible[name] ? 'Hide' : 'Show'} ${label.toLowerCase()}`} onClick={() => setVisible((previous) => ({ ...previous, [name]: !previous[name] }))}>{visible[name] ? <EyeOff size={17} /> : <Eye size={17} />}</button></div><FieldError errors={errors} name={name} />{name === "newPassword" && <PasswordStrength value={form.newPassword} />}</label>)}{!user.hasPassword && <p>You sign in with Google. Manage your password in your Google account.</p>}
             </div>
             <dl><dt>Contact Number</dt><dd>{user.phone || 'Not provided'}</dd><dt>Role</dt><dd>{user.role === 'teacher' ? 'Teacher' : 'Student'}</dd></dl>
           </section>
+          {user.role === 'student' && <NotificationPreferences />}
           <button type="submit" className="account-save">{busy ? 'Saving...' : 'Save Changes'}</button>
         </fieldset>
       </form>

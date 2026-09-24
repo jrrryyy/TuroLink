@@ -7,28 +7,27 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const mongoose = require('mongoose');
 const express = require('express');
-const jwt = require('jsonwebtoken');
+const { token, browserCookie, cleanup } = require('./test-session');
 const User = require('../models/User');
 const Subject = require('../models/Subject');
 const { protect } = require('../middleware/authMiddleware');
 const { publishDueMaterials } = require('../controllers/materialController');
 
 async function main() {
-  assert(process.env.MONGO_URI && process.env.JWT_SECRET, 'Configure MONGO_URI and JWT_SECRET.');
+  assert(process.env.MONGO_URI, 'Configure MONGO_URI and JWT_SECRET.');
   const users = [];
   let server, browser;
   try {
     await mongoose.connect(process.env.MONGO_URI, { dbName: 'turolink_integration_checks', serverSelectionTimeoutMS: 8000 });
-    for (const role of ['teacher', 'teacher', 'student']) users.push(await User.create({ name: 'Classwork Test Teacher', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), password: 'unused-test-account', role }));
+    for (const role of ['teacher', 'teacher', 'student']) users.push(await User.create({ emailVerifiedAt: new Date(), name: 'Classwork Test Teacher', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), password: 'unused-test-account', role }));
     const app = express(); app.use(express.json());
-    app.get('/api/auth/me', protect, (req, res) => res.json(req.user));
+    app.get('/api/auth/me', protect, (req, res) => res.json(require('../controllers/accountController').publicUser(req.user)));
     app.use('/api/subjects', require('../routes/subjectRoutes'));
     server = app.listen(0, '127.0.0.1'); await new Promise((resolve) => server.once('listening', resolve));
     const origin = 'http://127.0.0.1:' + server.address().port;
-    const token = (user) => jwt.sign({ id: user._id }, process.env.JWT_SECRET);
     const call = async (url, method = 'GET', body, user = users[0]) => {
       const multipart = body instanceof FormData;
-      const response = await fetch(origin + '/api/subjects' + url, { method, headers: { ...(user ? { Authorization: 'Bearer ' + token(user) } : {}), ...(!multipart ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}) });
+      const response = await fetch(origin + '/api/subjects' + url, { method, headers: { ...(user ? { Cookie: 'turolink_session=' + await token(user) } : {}), ...(!multipart ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}) });
       return { status: response.status, body: await response.json() };
     };
     const subject = await call('/', 'POST', { code: 'ITE 314', title: 'Advanced Database' });
@@ -48,7 +47,7 @@ async function main() {
     for (const [key, value] of Object.entries({ ...fields, status: 'posted', link: 'https://example.com/module' })) multipart.append(key, String(value));
     multipart.append('attachment', new Blob(['Test classwork attachment'], { type: 'text/plain' }), 'module.txt');
     assert.equal((await call(materialUrl, 'PUT', multipart)).status, 200);
-    const attachment = await fetch(origin + '/api/subjects' + materialUrl + '/attachment', { headers: { Authorization: 'Bearer ' + token(users[0]) } });
+    const attachment = await fetch(origin + '/api/subjects' + materialUrl + '/attachment', { headers: { Cookie: 'turolink_session=' + await token(users[0]) } });
     assert.equal(attachment.status, 200); assert.equal(await attachment.text(), 'Test classwork attachment');
     assert.equal((await call(materialUrl + '/attachment', 'GET', undefined, users[1])).status, 404);
     assert.equal((await call(materialUrl, 'PATCH', { action: 'archive' })).body.status, 'archived');
@@ -68,7 +67,7 @@ async function main() {
       browser = await chromium.launch({ channel: 'msedge', headless: true });
       const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
       const errors = []; page.on('pageerror', (error) => errors.push(error.message));
-      await page.addInitScript((savedToken) => localStorage.setItem('turolinkToken', savedToken), token(users[0]));
+      await browserCookie(page.context(), users[0]);
       await page.route('**/api/**', async (route) => {
         const url = new URL(route.request().url());
         const response = await route.fetch({ url: origin + url.pathname + url.search });
@@ -141,7 +140,7 @@ async function main() {
       const subjects = await Subject.find({ teacherId: { $in: users.map((user) => user._id) } });
       for (const subject of subjects) for (const material of subject.materials) if (material.attachmentKey && path.basename(material.attachmentKey) === material.attachmentKey) await fs.unlink(path.join(__dirname, '../storage/materials', material.attachmentKey)).catch(() => {});
       await Subject.deleteMany({ teacherId: { $in: users.map((user) => user._id) } });
-      await User.deleteMany({ _id: { $in: users.map((user) => user._id) } });
+      await cleanup(users); await User.deleteMany({ _id: { $in: users.map((user) => user._id) } });
     }
     await mongoose.disconnect();
   }

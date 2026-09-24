@@ -16,11 +16,17 @@ const badRequest = (message, field) => Object.assign(new Error(message), { statu
 // Also called before reads, so scheduled posts appear even after a server restart.
 async function publishDueMaterials() {
   const now = new Date();
-  await Subject.updateMany(
+  const subjects = await Subject.find({ $or: [
     { materials: { $elemMatch: { status: 'scheduled', scheduledAt: { $lte: now } } } },
-    { $set: { 'materials.$[item].status': 'posted', 'materials.$[item].postedAt': now } },
-    { arrayFilters: [{ 'item.status': 'scheduled', 'item.scheduledAt': { $lte: now } }] }
-  );
+    { announcements: { $elemMatch: { status: 'scheduled', scheduledAt: { $lte: now } } } },
+  ] });
+  for (const subject of subjects) {
+    for (const item of [...subject.materials, ...subject.announcements]) {
+      if (item.status === 'scheduled' && item.scheduledAt && item.scheduledAt <= now) { item.status = 'posted'; item.postedAt = now; }
+    }
+    try { await subject.save(); } catch (error) { if (error.name !== 'VersionError') throw error; }
+  }
+  await require('../services/notifications').retryNotifications();
 }
 
 async function ownedSubject(req) {

@@ -1,4 +1,6 @@
 import AccountSettings from "./pages/AccountSettings";
+import VerifyEmail from './pages/VerifyEmail';
+import CompleteGoogle from './pages/CompleteGoogle';
 import { FindTutors, TutorDetails, TeacherAvailability, TutorSchedules, TeacherRequests } from './pages/Tutors';
 import {
   Navigate,
@@ -70,6 +72,8 @@ const GuestRoute = ({ children }) => {
 function App() {
   return (
     <Routes>
+      <Route path="/verify-email" element={<VerifyEmail />} />
+      <Route path="/complete-google" element={<CompleteGoogle />} />
       <Route path="/student/my-subjects/:id" element={<ProtectedRoute allowedRole="student"><StudentMySubjects /></ProtectedRoute>} />
       <Route path="/teacher/requests" element={<ProtectedRoute allowedRole="teacher"><TeacherRequests /></ProtectedRoute>} />
       <Route path="/student/find-tutors" element={<ProtectedRoute allowedRole="student"><FindTutors /></ProtectedRoute>} />

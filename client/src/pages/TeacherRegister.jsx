@@ -1,3 +1,5 @@
+import PasswordStrength from '../components/PasswordStrength';
+import GoogleSignIn from '../components/GoogleSignIn';
 import { validateRegistration, documentError } from "../../../shared/validation.mjs";
 import FieldError from "../components/FieldError";
 import "../styles/validation.css";
@@ -120,8 +122,8 @@ const TeacherRegister = () => {
         );
       }
 
-      await registerTeacher(data);
-      navigate("/teacher/dashboard");
+      const result = await registerTeacher(data);
+      navigate("/verify-email", { state: { email: formData.email, message: result.message } });
     } catch (err) {
       setFieldErrors(err.response?.data?.errors || {});
       if (["name", "email", "phone", "password", "confirmPassword"].some((key) => err.response?.data?.errors?.[key])) setStep(1);
@@ -198,8 +200,9 @@ const TeacherRegister = () => {
 
           {/* STEP 1 */}
 
+          {step === 1 && <GoogleSignIn />}
           {step === 1 && (
-            <form noValidate
+          <form noValidate
               className="teacher-form"
               onSubmit={handleNext}
             >
@@ -265,7 +268,7 @@ const TeacherRegister = () => {
                         : "password"
                     }
                     name="password" aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? "password-error" : undefined}
-                    placeholder="Create password"
+                    placeholder="At least 12 characters"
                     value={formData.password}
                     onChange={handleChange}
                   />
@@ -285,7 +288,7 @@ const TeacherRegister = () => {
                     )}
                   </button>
                 </div>
-              <FieldError errors={fieldErrors} name="password" />
+              <FieldError errors={fieldErrors} name="password" /><PasswordStrength value={formData.password} />
             </label>
 
               <label>

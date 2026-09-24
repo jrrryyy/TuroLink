@@ -98,6 +98,12 @@ router.patch('/requests/:id', role('teacher'), run(async (req, res) => {
       await Booking.deleteOne({ _id: request._id }, { session });
       await Slot.updateOne({ _id: request.slot }, { $set: { booked: false } }, { session });
     }
+    await require('../models/Notification').create([{
+      recipient: request.student, eventKey: `request:${request._id}:${req.body.action}`, kind: 'session',
+      title: req.body.action === 'accept' ? 'Tutoring request accepted' : 'Tutoring request declined',
+      message: `${req.user.name} ${req.body.action === 'accept' ? 'accepted' : 'declined'} your ${request.subject} session on ${request.start.toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' })} (Manila).`,
+      url: '/student/schedules',
+    }], { session });
   });
   res.json({ message: req.body.action === 'accept' ? 'Request accepted. The session is confirmed.' : 'Request declined. The time slot is available again.' });
 }));

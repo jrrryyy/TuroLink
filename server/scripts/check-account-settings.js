@@ -5,7 +5,7 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const { token, browserCookie, cleanup } = require('./test-session');
 const express = require('express');
 const User = require('../models/User');
 
@@ -14,15 +14,14 @@ async function main() {
   try {
     await mongoose.connect(process.env.MONGO_URI, { dbName: 'turolink_integration_checks', serverSelectionTimeoutMS: 8000 });
     await User.init();
-    for (const role of ['student', 'teacher']) users.push(await User.create({ name: 'Settings Test', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), role, password: await bcrypt.hash('old-password', 10) }));
+    for (const role of ['student', 'teacher']) users.push(await User.create({ emailVerifiedAt: new Date(), name: 'Settings Test', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), role, password: await bcrypt.hash('old-password', 10) }));
     const app = express(); app.use(express.json()); app.use('/api/auth', require('../routes/authRoutes'));
     app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
     server = app.listen(0, '127.0.0.1'); await new Promise((resolve) => server.once('listening', resolve));
     const origin = 'http://127.0.0.1:' + server.address().port;
-    const token = (user) => jwt.sign({ id: user._id }, process.env.JWT_SECRET);
     const call = async (user, body, method = 'PUT', route = '/api/auth/me') => {
       const multipart = body instanceof FormData;
-      const response = await fetch(origin + route, { method, headers: { ...(user ? { Authorization: 'Bearer ' + token(user) } : {}), ...(!multipart ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}) });
+      const response = await fetch(origin + route, { method, headers: { ...(user ? { Cookie: 'turolink_session=' + await token(user) } : {}), ...(!multipart ? { 'Content-Type': 'application/json' } : {}) }, ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}) });
       return { status: response.status, body: await response.json() };
     };
     const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aN2kAAAAASUVORK5CYII=', 'base64');
@@ -33,18 +32,18 @@ async function main() {
       assert.equal(updated.status, 200); assert.equal(updated.body.user.role, user.role); assert.equal(updated.body.user.phone, user.phone); assert.equal(updated.body.user.email, user.email);
       assert.equal((await call(user, undefined, 'GET')).body.bio, 'My saved bio');
       assert(!('password' in updated.body.user)); assert(!('phoneKey' in updated.body.user));
-      const wrong = await call(user, { name: 'Should Not Save', currentPassword: 'wrong', newPassword: 'new-password', confirmPassword: 'new-password' });
+      const wrong = await call(user, { name: 'Should Not Save', currentPassword: 'wrong', newPassword: 'Cedar!Orbit!Lantern38', confirmPassword: 'Cedar!Orbit!Lantern38' });
       assert.equal(wrong.status, 400); assert(wrong.body.errors.currentPassword);
       assert.equal((await call(user, undefined, 'GET')).body.name, 'Updated Name');
-      assert.equal((await call(user, { name: 'Updated Name', currentPassword: 'old-password', newPassword: 'new-password', confirmPassword: 'different' })).status, 400);
+      assert.equal((await call(user, { name: 'Updated Name', currentPassword: 'old-password', newPassword: 'Cedar!Orbit!Lantern38', confirmPassword: 'different' })).status, 400);
       const badPhoto = new FormData(); badPhoto.append('name', 'Updated Name'); badPhoto.append('profilePicture', new Blob(['not an image'], { type: 'image/png' }), 'bad.png');
       assert.equal((await call(user, badPhoto)).status, 400);
       const photo = new FormData(); photo.append('name', 'Updated Name'); photo.append('profilePicture', new Blob([png], { type: 'image/png' }), 'avatar.png');
       const uploaded = await call(user, photo); assert.equal(uploaded.status, 200); assert(uploaded.body.user.profilePicture.startsWith('/uploads/avatars/'));
       assert.equal((await fetch(origin + uploaded.body.user.profilePicture)).status, 200);
-      assert.equal((await call(user, { name: 'Updated Name', currentPassword: 'old-password', newPassword: 'new-password', confirmPassword: 'new-password' })).status, 200);
+      assert.equal((await call(user, { name: 'Updated Name', currentPassword: 'old-password', newPassword: 'Cedar!Orbit!Lantern38', confirmPassword: 'Cedar!Orbit!Lantern38' })).status, 200);
       assert.equal((await call(null, { email: user.email, password: 'old-password' }, 'POST', '/api/auth/login')).status, 401);
-      assert.equal((await call(null, { email: user.email, password: 'new-password' }, 'POST', '/api/auth/login')).status, 200);
+      assert.equal((await call(null, { email: user.email, password: 'Cedar!Orbit!Lantern38' }, 'POST', '/api/auth/login')).status, 200);
       const removed = await call(user, { name: 'Updated Name', removePicture: 'true' }); assert.equal(removed.body.user.profilePicture, '');
       assert.equal((await fetch(origin + uploaded.body.user.profilePicture)).status, 404);
     }
@@ -54,7 +53,7 @@ async function main() {
       browser = await chromium.launch({ channel: 'msedge', headless: true });
       for (const user of users) {
         const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
-        await context.addInitScript((savedToken) => { localStorage.setItem('turolinkToken', savedToken); localStorage.setItem('turolink-theme', 'dark'); }, token(user));
+        await browserCookie(context, user); await context.addInitScript(() => localStorage.setItem('turolink-theme', 'dark'));
         const page = await context.newPage(); const errors = []; page.on('pageerror', (error) => errors.push(error.message));
         await page.route('**/api/**', async (route) => { const url = new URL(route.request().url()); const response = await route.fetch({ url: origin + url.pathname }); await route.fulfill({ response }); });
         await page.route('**/uploads/avatars/**', async (route) => { const response = await route.fetch({ url: origin + new URL(route.request().url()).pathname }); await route.fulfill({ response }); });
@@ -77,7 +76,7 @@ async function main() {
         await page.locator('input[name="confirmPassword"]').fill('browser-password');
         await page.getByRole('button', { name: 'Save Changes' }).click();
         await page.locator('#currentPassword-error').waitFor();
-        await page.locator('input[name="currentPassword"]').fill('new-password');
+        await page.locator('input[name="currentPassword"]').fill('Cedar!Orbit!Lantern38');
         await page.getByRole('button', { name: 'Save Changes' }).click();
         await page.getByRole('status').filter({ hasText: 'Changes saved' }).waitFor();
         assert.equal(await page.locator('input[name="newPassword"]').inputValue(), '');
@@ -99,6 +98,7 @@ async function main() {
       if (saved?.profilePicture && /^\/uploads\/avatars\/[a-f0-9-]+\.(png|jpg|webp)$/.test(saved.profilePicture)) await fs.unlink(path.join(__dirname, '../uploads/avatars', path.basename(saved.profilePicture))).catch(() => {});
       await User.deleteOne({ _id: user._id });
     }
+    await cleanup(users);
     await mongoose.disconnect();
   }
 }

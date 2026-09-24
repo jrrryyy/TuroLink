@@ -9,6 +9,7 @@ const {
 const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
+router.use(protect, require('../middleware/authMiddleware').requireStudent);
 
 router.get("/my-courses", protect, require('../controllers/studentSubjectController').list);
 

@@ -12,6 +12,18 @@ const {
 } = require("../middleware/authMiddleware");
 
 const router = express.Router();
+router.use((req, res, next) => { req.body ||= {}; next(); });
+const { authLimit } = require('../services/authSecurity');
+router.use((req, res, next) => ['/me', '/logout', '/google/profile'].includes(req.path) ? next() : authLimit(req, res, next));
+const auth = require('../controllers/authController');
+const google = require('../controllers/googleAuthController');
+router.post('/verify-email', auth.verifyEmail);
+router.post('/resend-verification', auth.resend);
+router.post('/logout', auth.logout);
+router.get('/google/config', google.config);
+router.post('/google', google.authenticate);
+router.get('/google/profile', google.profile);
+router.post('/google/complete', google.complete);
 
 router.post("/register", validation("student"), register);
 router.post("/login", validation("login"), login);

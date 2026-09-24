@@ -9,6 +9,8 @@ const announcementSchema =
   new mongoose.Schema(
     {
       likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+      notificationPending: { type: Boolean, default: false },
+      notificationRecipients: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
       comments: [{
         author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         text: { type: String, required: true, maxlength: 2000 },
@@ -75,6 +77,8 @@ const announcementSchema =
 // ============================================
 
 const materialSchema = new mongoose.Schema({
+  notificationPending: { type: Boolean, default: false },
+  notificationRecipients: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   title: { type: String, required: true, trim: true },
   type: { type: String, enum: ['assignment', 'quiz'], default: 'assignment' },
   instructions: { type: String, default: '' },
@@ -159,6 +163,18 @@ const subjectSchema =
   );
 
 
+subjectSchema.pre('save', function () {
+  for (const item of [...this.announcements, ...this.materials]) {
+    if (item.status === 'posted' && (item.isNew || item.isModified('status'))) {
+      item.notificationPending = true;
+      item.notificationRecipients = [...this.enrolledStudents];
+    }
+  }
+});
+subjectSchema.post('save', async function (subject) {
+  try { await require('../services/notifications').flushSubject(subject); }
+  catch (error) { console.error('Notification delivery queued for retry:', error.name); }
+});
 module.exports =
   mongoose.model(
     "Subject",

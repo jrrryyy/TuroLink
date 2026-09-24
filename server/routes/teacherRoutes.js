@@ -19,6 +19,7 @@ const router = express.Router();
 
 router.post(
   "/register",
+  require('../services/authSecurity').authLimit,
   uploadValidation(upload.single("verificationDocument"), "verificationDocument"),
   validation("teacher"),
   registerTeacher

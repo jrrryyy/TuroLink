@@ -3,7 +3,7 @@ require('dns').setServers(['8.8.8.8', '8.8.4.4']);
 const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 const express = require('express');
-const jwt = require('jsonwebtoken');
+const { token, browserCookie, cleanup } = require('./test-session');
 const path = require('node:path');
 const User = require('../models/User');
 const Profile = require('../models/TeacherProfile');
@@ -16,7 +16,7 @@ async function main() {
   try {
     await mongoose.connect(process.env.MONGO_URI, { dbName: 'turolink_integration_checks', serverSelectionTimeoutMS: 8000 });
     await Promise.all([User.init(), Profile.init(), Slot.init(), Booking.init(), DeclinedRequest.init()]);
-    for (const role of ['teacher', 'teacher', 'student', 'student']) users.push(await User.create({ name: role === 'teacher' ? 'Discovery Tutor' : 'Discovery Student', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), role, password: 'unused-test-hash' }));
+    for (const role of ['teacher', 'teacher', 'student', 'student']) users.push(await User.create({ emailVerifiedAt: new Date(), name: role === 'teacher' ? 'Discovery Tutor' : 'Discovery Student', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), role, password: 'unused-test-hash' }));
     const [teacher, otherTeacher, student, otherStudent] = users;
     const subject = await Subject.create({ teacherId: teacher._id, code: 'MATH', title: 'Discovery Mathematics' });
     const alternateSubject = await Subject.create({ teacherId: teacher._id, code: 'ENG', title: 'Discovery English' });
@@ -26,9 +26,8 @@ async function main() {
     app.use('/api/student', require('../routes/studentRoutes')); app.use('/api/teacher', require('../routes/teacherRoutes'));
     server = app.listen(0, '127.0.0.1'); await new Promise((resolve) => server.once('listening', resolve));
     const origin = 'http://127.0.0.1:' + server.address().port;
-    const token = (u) => jwt.sign({ id: u._id }, process.env.JWT_SECRET);
     const call = async (u, route, method = 'GET', body) => {
-      const response = await fetch(origin + '/api/tutors' + route, { method, headers: { 'Content-Type': 'application/json', ...(u ? { Authorization: 'Bearer ' + token(u) } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+      const response = await fetch(origin + '/api/tutors' + route, { method, headers: { 'Content-Type': 'application/json', ...(u ? { Cookie: 'turolink_session=' + await token(u) } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
       return { status: response.status, body: await response.json() };
     };
     assert.equal((await call(null, '/')).status, 401);
@@ -73,13 +72,13 @@ async function main() {
     assert.equal((await call(student, '/requests')).status, 403);
     assert.equal((await call(student, `/requests/${booking._id}`, 'PATCH', { action: 'accept' })).status, 403);
     assert.equal((await call(otherTeacher, `/requests/${booking._id}`, 'PATCH', { action: 'accept' })).status, 409);
-    const pendingDashboard = await fetch(origin + '/api/student/dashboard-data', { headers: { Authorization: 'Bearer ' + token(winner) } }).then((r) => r.json());
+    const pendingDashboard = await fetch(origin + '/api/student/dashboard-data', { headers: { Cookie: 'turolink_session=' + await token(winner) } }).then((r) => r.json());
     assert.equal(pendingDashboard.upcomingClasses.length, 0);
     assert.equal((await call(teacher, `/requests/${booking._id}`, 'PATCH', { action: 'accept' })).status, 200);
     assert.equal((await call(teacher, `/requests/${booking._id}`, 'PATCH', { action: 'decline' })).status, 409);
-    const studentDashboard = await fetch(origin + '/api/student/dashboard-data', { headers: { Authorization: 'Bearer ' + token(winner) } }).then((r) => r.json());
+    const studentDashboard = await fetch(origin + '/api/student/dashboard-data', { headers: { Cookie: 'turolink_session=' + await token(winner) } }).then((r) => r.json());
     assert.equal(studentDashboard.upcomingClasses[0]._id, booking._id);
-    const teacherDashboard = await fetch(origin + '/api/teacher/dashboard-data', { headers: { Authorization: 'Bearer ' + token(teacher) } }).then((r) => r.json());
+    const teacherDashboard = await fetch(origin + '/api/teacher/dashboard-data', { headers: { Cookie: 'turolink_session=' + await token(teacher) } }).then((r) => r.json());
     assert.equal(teacherDashboard.schedules[0]._id, booking._id);
     assert.equal((await call(loser, '/bookings')).body.length, 0);
     assert.equal((await call(winner, `/bookings/${booking._id}/review`, 'POST', { rating: 5, text: 'Helpful session.' })).status, 409);
@@ -109,7 +108,7 @@ async function main() {
       const browserErrors = [];
       const open = async (u, theme = 'light') => {
         const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
-        await context.addInitScript(({ savedToken, theme }) => { localStorage.setItem('turolinkToken', savedToken); localStorage.setItem('turolink-theme', theme); }, { savedToken: token(u), theme });
+        await browserCookie(context, u); await context.addInitScript(theme => localStorage.setItem('turolink-theme', theme), theme);
         const page = await context.newPage();
         page.on('pageerror', (error) => browserErrors.push(error.name));
         await page.route('**/api/**', async (route) => {
@@ -192,7 +191,7 @@ async function main() {
     const ids = users.map((u) => u._id);
     await Booking.deleteMany({ $or: [{ teacher: { $in: ids } }, { student: { $in: ids } }] });
     await DeclinedRequest.deleteMany({ $or: [{ teacher: { $in: ids } }, { student: { $in: ids } }] });
-    await Subject.deleteMany({ teacherId: { $in: ids } }); await Slot.deleteMany({ teacher: { $in: ids } }); await Profile.deleteMany({ user: { $in: ids } }); await User.deleteMany({ _id: { $in: ids } });
+    await Subject.deleteMany({ teacherId: { $in: ids } }); await Slot.deleteMany({ teacher: { $in: ids } }); await Profile.deleteMany({ user: { $in: ids } }); await cleanup(users); await User.deleteMany({ _id: { $in: ids } });
     await mongoose.disconnect();
   }
 }

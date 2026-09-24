@@ -1,3 +1,4 @@
+import GoogleSignIn from '../components/GoogleSignIn';
 import { validateLogin, normalizeEmail } from "../../../shared/validation.mjs";
 import FieldError from "../components/FieldError";
 import "../styles/validation.css";
@@ -56,11 +57,7 @@ const Login = () => {
     try {
       setLoading(true);
 
-      // Login returns:
-      // {
-      //   token: "...",
-      //   user: {...}
-      // }
+      // The API sets an HttpOnly session cookie and returns the verified user.
       const result = await login(
         normalizeEmail(email),
         password
@@ -82,7 +79,7 @@ const Login = () => {
       } else {
         navigate("/dashboard");
       }
-    } catch (error) {
+    } catch (error) { if (error.response?.data?.code === "EMAIL_UNVERIFIED") { navigate("/verify-email", { state: { email } }); return; }
       setFieldErrors(error.response?.data?.errors || {});
       
       setError(
@@ -141,6 +138,7 @@ const Login = () => {
             </div>
           )}
 
+          <GoogleSignIn />
           <form noValidate
             onSubmit={handleSubmit}
             className="auth-form"

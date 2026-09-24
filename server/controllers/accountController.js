@@ -5,7 +5,7 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const directory = path.resolve(__dirname, '../uploads/avatars');
 
-const publicUser = (user) => ({ id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, bio: user.bio || '', sex: user.sex || '', profilePicture: user.profilePicture || '' });
+const publicUser = (user) => ({ emailVerified: Boolean(user.emailVerifiedAt), hasPassword: Boolean(user.password), id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, bio: user.bio || '', sex: user.sex || '', profilePicture: user.profilePicture || '' });
 async function removePicture(url) {
   if (!/^\/uploads\/avatars\/[a-f0-9-]+\.(png|jpg|webp)$/.test(url || '')) return;
   await fs.unlink(path.join(directory, path.basename(url))).catch(() => {});
@@ -22,7 +22,7 @@ const updateAccount = async (req, res) => {
     const changes = { name: req.body.name.trim(), bio: (req.body.bio || '').trim(), sex: req.body.sex || '' };
     const passwordChange = Boolean(req.body.currentPassword || req.body.newPassword || req.body.confirmPassword);
     if (passwordChange) {
-      if (!await bcrypt.compare(req.body.currentPassword, user.password)) return res.status(400).json({ message: 'Current password is incorrect.', errors: { currentPassword: 'Current password is incorrect.' } });
+      if (!user.password || !await bcrypt.compare(req.body.currentPassword, user.password)) return res.status(400).json({ message: 'Current password is incorrect.', errors: { currentPassword: 'Current password is incorrect.' } });
       changes.password = await bcrypt.hash(req.body.newPassword, 10);
     }
     if (req.file) {
@@ -42,6 +42,7 @@ const updateAccount = async (req, res) => {
       await removePicture(uploaded);
       return res.status(409).json({ message: 'Your account changed during this request. Reload and try again.' });
     }
+    if (passwordChange) await require('../models/AuthSession').deleteMany({ user: user._id, _id: { $ne: req.authSession._id } });
     if ('profilePicture' in changes) await removePicture(user.profilePicture);
     res.json({ message: 'Changes saved successfully.', user: publicUser(updated) });
   } catch (error) {

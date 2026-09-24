@@ -10,6 +10,6 @@ const {
 
 const router = express.Router();
 
-router.get("/dashboard-data", protect, getDashboardData);
+router.get("/dashboard-data", protect, require('../middleware/authMiddleware').requireStudent, getDashboardData);
 
 module.exports = router;

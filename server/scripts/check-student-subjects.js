@@ -3,7 +3,7 @@ require('dns').setServers(['8.8.8.8', '8.8.4.4']);
 const assert = require('node:assert/strict');
 const mongoose = require('mongoose');
 const express = require('express');
-const jwt = require('jsonwebtoken');
+const { token, browserCookie, cleanup } = require('./test-session');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
@@ -18,7 +18,7 @@ async function main() {
   try {
     await mongoose.connect(process.env.MONGO_URI, { dbName: 'turolink_integration_checks', serverSelectionTimeoutMS: 8000 });
     await Promise.all([User.init(), Slot.init(), Booking.init()]);
-    for (const role of ['teacher', 'teacher', 'student', 'student']) users.push(await User.create({ name: role === 'teacher' ? 'Subject Test Teacher' : 'Subject Test Student', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), role, password: 'unused-test-hash' }));
+    for (const role of ['teacher', 'teacher', 'student', 'student']) users.push(await User.create({ emailVerifiedAt: new Date(), name: role === 'teacher' ? 'Subject Test Teacher' : 'Subject Test Student', email: new mongoose.Types.ObjectId() + '@example.invalid', phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), role, password: 'unused-test-hash' }));
     const [teacher, otherTeacher, student, outsider] = users;
     await Profile.create({ user: teacher._id, degreeTitle: 'Education', subjectToTeach: 'Database', teachingBio: 'Learning together.', hourlyRate: 500 });
     const materialKey = randomUUID(), announcementKey = randomUUID() + '.txt';
@@ -50,9 +50,8 @@ async function main() {
     app.use('/api/courses', require('../routes/courseRoutes'));
     server = app.listen(0, '127.0.0.1'); await new Promise((resolve) => server.once('listening', resolve));
     const origin = 'http://127.0.0.1:' + server.address().port;
-    const token = (u) => jwt.sign({ id: u._id }, process.env.JWT_SECRET);
     const call = async (u, endpoint, method = 'GET', body) => {
-      const response = await fetch(origin + '/api' + endpoint, { method, headers: { 'Content-Type': 'application/json', ...(u ? { Authorization: 'Bearer ' + token(u) } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+      const response = await fetch(origin + '/api' + endpoint, { method, headers: { 'Content-Type': 'application/json', ...(u ? { Cookie: 'turolink_session=' + await token(u) } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
       const text = await response.text(); let data; try { data = JSON.parse(text); } catch { data = text; }
       return { status: response.status, body: data };
     };
@@ -118,7 +117,7 @@ async function main() {
       const { chromium } = require(path.join(process.env.TEMP, 'turolink-browser-check/node_modules/playwright'));
       browser = await chromium.launch({ channel: 'msedge', headless: true });
       const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
-      await context.addInitScript((value) => localStorage.setItem('turolinkToken', value), token(outsider));
+      await browserCookie(context, outsider);
       const page = await context.newPage(); const errors = [];
       page.on('pageerror', (e) => errors.push(e.message));
       await page.route('**/api/**', async (route) => {
@@ -167,7 +166,7 @@ async function main() {
       assert.equal(await page.getByRole('button', { name: 'Edit subject' }).count(), 0);
       assert.deepEqual(errors, []);
       const teacherContext = await browser.newContext();
-      await teacherContext.addInitScript((value) => localStorage.setItem('turolinkToken', value), token(teacher));
+      await browserCookie(teacherContext, teacher);
       const teacherPage = await teacherContext.newPage();
       teacherPage.on('pageerror', (e) => errors.push(e.message));
       await teacherPage.route('**/api/**', async (route) => {
@@ -202,7 +201,7 @@ async function main() {
     if (server) await new Promise((resolve) => server.close(resolve));
     const ids = users.map((u) => u._id);
     await Booking.deleteMany({ teacher: { $in: ids } }); await Declined.deleteMany({ teacher: { $in: ids } }); await Slot.deleteMany({ teacher: { $in: ids } });
-    await Subject.deleteMany({ teacherId: { $in: ids } }); await Profile.deleteMany({ user: { $in: ids } }); await User.deleteMany({ _id: { $in: ids } });
+    await Subject.deleteMany({ teacherId: { $in: ids } }); await Profile.deleteMany({ user: { $in: ids } }); await cleanup(users); await User.deleteMany({ _id: { $in: ids } });
     for (const file of files) await fs.unlink(file).catch(() => {});
     await mongoose.disconnect();
   }

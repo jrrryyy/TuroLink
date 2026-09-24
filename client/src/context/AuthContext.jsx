@@ -1,159 +1,27 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
-
-import api from "../services/api";
-
+import { createContext, useContext, useEffect, useState } from 'react';
+import api from '../services/api';
 const AuthContext = createContext(null);
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const token = localStorage.getItem("turolinkToken");
-
-  // ==========================================
-  // LOAD CURRENT USER
-  // ==========================================
-
   useEffect(() => {
-    const loadUser = async () => {
-      const savedToken =
-        localStorage.getItem("turolinkToken");
-
-      if (!savedToken) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await api.get("/auth/me");
-
-        setUser(response.data);
-      } catch (error) {
-        console.error(
-          "Unable to load current user:",
-          error
-        );
-
-        localStorage.removeItem("turolinkToken");
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUser();
+    let active = true;
+    localStorage.removeItem('turolinkToken');
+    const expired = () => setUser(null);
+    window.addEventListener('turolink:session-expired', expired);
+    api.get('/auth/me').then(response => { if (active) setUser(response.data); }).catch(() => { if (active) setUser(null); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; window.removeEventListener('turolink:session-expired', expired); };
   }, []);
-
-  // ==========================================
-  // LOGIN
-  // Student + Teacher
-  // ==========================================
-
   const login = async (email, password) => {
-    const response = await api.post("/auth/login", {
-      email,
-      password,
-    });
-
-    localStorage.setItem(
-      "turolinkToken",
-      response.data.token
-    );
-
-    setUser(response.data.user);
-
-    return response.data;
+    const { data } = await api.post('/auth/login', { email, password });
+    setUser(data.user);
+    return data;
   };
-
-  // ==========================================
-  // STUDENT REGISTER
-  // ==========================================
-
-  const register = async ({
-    name,
-    email,
-    phone,
-    password,
-    confirmPassword,
-    terms,
-  }) => {
-    const response = await api.post("/auth/register", {
-      name,
-      email,
-      phone,
-      password,
-      confirmPassword,
-      terms,
-    });
-
-    localStorage.setItem(
-      "turolinkToken",
-      response.data.token
-    );
-
-    setUser(response.data.user);
-
-    return response.data;
-  };
-
-  // ==========================================
-  // TEACHER REGISTER
-  // ==========================================
-
-  const registerTeacher = async (formData) => {
-    const response = await api.post(
-      "/teacher/register",
-      formData
-    );
-
-    localStorage.setItem(
-      "turolinkToken",
-      response.data.token
-    );
-
-    setUser(response.data.user);
-
-    return response.data;
-  };
-
-  // ==========================================
-  // LOGOUT
-  // ==========================================
-
-  const logout = () => {
-    localStorage.removeItem("turolinkToken");
-    setUser(null);
-  };
-
-  // ==========================================
-  // PROVIDER
-  // ==========================================
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-        isAuthenticated: Boolean(user),
-
-        login,
-        register,
-        registerTeacher,
-        logout,
-        updateUser: setUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const register = async (body) => (await api.post('/auth/register', body)).data;
+  const registerTeacher = async (body) => (await api.post('/teacher/register', body)).data;
+  const logout = async () => { await api.post('/auth/logout'); setUser(null); };
+  return <AuthContext.Provider value={{ user, loading, isAuthenticated: Boolean(user?.emailVerified), login, register, registerTeacher, logout, updateUser: setUser }}>{children}</AuthContext.Provider>;
 };
-
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+// The provider and its hook intentionally share this module.
+// eslint-disable-next-line react-refresh/only-export-components
+export const useAuth = () => useContext(AuthContext);

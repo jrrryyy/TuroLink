@@ -1,44 +1,15 @@
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-
+const Session = require('../models/AuthSession');
+const { cookie, hash } = require('../services/authSecurity');
 const protect = async (req, res, next) => {
   try {
-    let token;
-
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer ")
-    ) {
-      token = req.headers.authorization.split(" ")[1];
-    }
-
-    if (!token) {
-      return res.status(401).json({
-        message: "Not authorized. Please log in.",
-      });
-    }
-
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
-
-    const user = await User.findById(decoded.id).select("-password");
-
-    if (!user) {
-      return res.status(401).json({
-        message: "User no longer exists.",
-      });
-    }
-
-    req.user = user;
-
+    const token = cookie(req, 'turolink_session');
+    const session = token && await Session.findOne({ tokenHash: hash(token), expiresAt: { $gt: new Date() } }).populate('user');
+    if (!session?.user) return res.status(401).json({ message: 'Please log in again.' });
+    if (!session.user.emailVerifiedAt) return res.status(403).json({ code: 'EMAIL_UNVERIFIED', message: 'Verify your email before signing in.' });
+    req.user = session.user;
+    req.authSession = session;
     next();
-  } catch (error) {
-    return res.status(401).json({
-      message: "Invalid or expired token.",
-    });
-  }
+  } catch { res.status(503).json({ message: 'Unable to verify your session. Please try again.' }); }
 };
-
-module.exports = { protect };
+const requireStudent = (req, res, next) => req.user.role === 'student' ? next() : res.status(403).json({ message: 'Student access only.' });
+module.exports = { protect, requireStudent };

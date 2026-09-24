@@ -1,4 +1,5 @@
 import { profilePictureUrl } from "../services/profile";
+import StudentNotifications from './StudentNotifications';
 import {
   useEffect,
   useRef,
@@ -128,13 +129,12 @@ const DashboardLayout = ({
     navigate(path);
   };
 
-  const confirmLogout = () => {
+  const confirmLogout = async () => {
     setShowLogoutModal(false);
     setShowSettings(false);
 
-    logout();
-
-    navigate("/");
+    try { await logout(); navigate('/'); }
+    catch { setNavigationNotice('Unable to sign out. Check your connection and try again.'); }
   };
 
   return (
@@ -260,6 +260,7 @@ const DashboardLayout = ({
                 SETTINGS
             ================================= */}
 
+            {!isTeacher && <StudentNotifications />}
             <div
               className="dashboard-settings-wrapper"
               ref={settingsRef}

@@ -6,26 +6,26 @@ const assert = require("node:assert/strict");
 require("dns").setServers(["8.8.8.8", "8.8.4.4"]);
 const mongoose = require("mongoose");
 const express = require("express");
-const jwt = require("jsonwebtoken");
+const { token, cleanup } = require('./test-session');
 const User = require("../models/User");
 const Subject = require("../models/Subject");
 const routes = require("../routes/subjectRoutes");
 
 async function main() {
-  assert(process.env.MONGO_URI && process.env.JWT_SECRET, "MONGO_URI and JWT_SECRET are required.");
+  assert(process.env.MONGO_URI, "MONGO_URI and JWT_SECRET are required.");
   const users = [];
   let server;
   try {
     await mongoose.connect(process.env.MONGO_URI, { dbName: "turolink_integration_checks", serverSelectionTimeoutMS: 8000 });
     for (const role of ["teacher", "teacher", "student"]) {
-      users.push(await User.create({ name: "API check", email: new mongoose.Types.ObjectId() + "@example.invalid", phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), password: "unused-test-account", role }));
+      users.push(await User.create({ emailVerifiedAt: new Date(), name: "API check", email: new mongoose.Types.ObjectId() + "@example.invalid", phone: '09' + require('crypto').randomInt(1000000000).toString().padStart(9, '0'), password: "unused-test-account", role }));
     }
     const app = express(); app.use(express.json()); app.use("/api/subjects", routes);
     server = app.listen(0, "127.0.0.1");
     await new Promise((resolve) => server.once("listening", resolve));
     const base = "http://127.0.0.1:" + server.address().port + "/api/subjects";
     const call = async (path, method = "GET", user = users[0], body) => {
-      const response = await fetch(base + path, { method, headers: { "Content-Type": "application/json", ...(user ? { Authorization: "Bearer " + jwt.sign({ id: user._id }, process.env.JWT_SECRET) } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+      const response = await fetch(base + path, { method, headers: { "Content-Type": "application/json", ...(user ? { Cookie: 'turolink_session=' + await token(user) } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
       return { status: response.status, body: await response.json() };
     };
     assert.equal((await call("/my-subjects", "GET", null)).status, 401);
@@ -49,7 +49,7 @@ async function main() {
     if (server) await new Promise((resolve) => server.close(resolve));
     if (users.length) {
       await Subject.deleteMany({ teacherId: { $in: users.map((user) => user._id) } });
-      await User.deleteMany({ _id: { $in: users.map((user) => user._id) } });
+      await cleanup(users); await User.deleteMany({ _id: { $in: users.map((user) => user._id) } });
     }
     await mongoose.disconnect();
   }

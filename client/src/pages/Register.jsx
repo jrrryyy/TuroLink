@@ -1,3 +1,5 @@
+import PasswordStrength from '../components/PasswordStrength';
+import GoogleSignIn from '../components/GoogleSignIn';
 import { validateRegistration } from "../../../shared/validation.mjs";
 import FieldError from "../components/FieldError";
 import "../styles/validation.css";
@@ -71,7 +73,7 @@ const Register = () => {
     try {
       setLoading(true);
 
-      await register({
+      const result = await register({
         name: form.name,
         email: form.email,
         phone: form.phone,
@@ -80,7 +82,7 @@ const Register = () => {
         terms,
       });
 
-      navigate("/dashboard");
+      navigate("/verify-email", { state: { email: form.email, message: result.message } });
     } catch (error) {
       setFieldErrors(error.response?.data?.errors || {});
       
@@ -148,6 +150,7 @@ const Register = () => {
             </div>
           )}
 
+          <GoogleSignIn />
           <form noValidate
             onSubmit={handleSubmit}
             className="auth-form"
@@ -202,7 +205,7 @@ const Register = () => {
                       : "password"
                   }
                   name="password" aria-invalid={Boolean(fieldErrors.password)} aria-describedby={fieldErrors.password ? "password-error" : undefined}
-                  placeholder="Minimum 6 characters"
+                  placeholder="At least 12 characters"
                   value={form.password}
                   onChange={handleChange}
                 />
@@ -223,7 +226,7 @@ const Register = () => {
                   )}
                 </button>
               </div>
-            <FieldError errors={fieldErrors} name="password" />
+            <FieldError errors={fieldErrors} name="password" /><PasswordStrength value={form.password} />
             </label>
 
             <label>

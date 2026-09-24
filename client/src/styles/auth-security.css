@@ -1,0 +1,25 @@
+.password-strength { margin: 8px 0 18px; font-size: .82rem; }
+.password-strength-track { height: 6px; border-radius: 99px; overflow: hidden; background: #e6e6df; }
+.password-strength-track span { display: block; height: 100%; transition: width .2s; }
+.password-strength-track .strength-1 { background: #ba3b36; }
+.password-strength-track .strength-2 { background: #a56812; }
+.password-strength-track .strength-3 { background: #32734b; }
+.password-strength p { margin: 8px 0; line-height: 1.5; }
+.google-sign-in { margin: 20px 0; }
+.google-sign-in p { font-size: .85rem; color: #52604f; }
+.auth-divider { display: flex; align-items: center; gap: 12px; margin: 22px 0; color: #667060; font-size: .8rem; }
+.auth-divider::before,.auth-divider::after { content: ''; height: 1px; flex: 1; background: #d9ddd4; }
+.security-page { min-height: 100dvh; background: #e8e5d9; padding: 40px 20px; display: grid; place-items: center; color: #263e2a; }
+.security-card { width: min(100%, 560px); box-sizing: border-box; padding: clamp(24px, 5vw, 44px); background: white; border: 1px solid #dedfd5; border-radius: 24px; box-shadow: 0 16px 50px #243c2910; }
+.security-brand { font-family: Georgia, serif; font-size: 1.8rem; color: #315139; font-weight: bold; }
+.security-card h1 { font-size: 1.8rem; margin: 28px 0 12px; }
+.security-card p { line-height: 1.6; }
+.security-card form { display: grid; gap: 16px; margin: 24px 0; }
+.security-card label { display: grid; gap: 7px; font-size: .9rem; }
+.security-card input,.security-card select,.security-card textarea { width: 100%; box-sizing: border-box; border: 1px solid #cdd3c7; border-radius: 10px; padding: 12px; font: inherit; background: #fafbf8; }
+.security-card button { background: #315139; color: white; border: 0; border-radius: 99px; padding: 14px 20px; font: inherit; cursor: pointer; }
+.security-card button:disabled { opacity: .6; cursor: wait; }
+.security-card .security-check { display: flex; align-items: flex-start; gap: 10px; }
+.security-check input { width: 18px; height: 18px; flex-shrink: 0; }
+.security-card a { color: #315139; }
+.security-card :focus-visible { outline: 3px solid #92aa79; outline-offset: 3px; }

@@ -34,7 +34,7 @@ function Announcement({ subject, post, reload }) {
     finally { lock.current = false; setBusy(false); }
   };
   const endpoint = `/student-subjects/${subject._id}/announcements/${post._id}`;
-  return <article className="subject-feed-post"><header><Avatar subject={subject} /><div><strong>{subject.instructorName}</strong><small>Lead Instructor</small></div><time dateTime={post.postedAt}>{date(post.postedAt)}</time></header>
+  return <article id={`announcement-${post._id}`} className="subject-feed-post"><header><Avatar subject={subject} /><div><strong>{subject.instructorName}</strong><small>Lead Instructor</small></div><time dateTime={post.postedAt}>{date(post.postedAt)}</time></header>
     <p className="subject-feed-content">{post.content}</p>
     {post.link && <p><a href={post.link} target="_blank" rel="noreferrer">Open announcement link</a></p>}
     {post.attachmentName && <Attachment name={post.attachmentName} endpoint={`${endpoint}/attachment`} />}
@@ -66,6 +66,11 @@ export default function StudentMySubjects() {
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [endpoint, revision]);
+  useEffect(() => {
+    if (!result || !window.location.hash) return;
+    const target = document.getElementById(window.location.hash.slice(1));
+    target?.scrollIntoView({ block: 'center' });
+  }, [result, tab, searchParams]);
   const reload = async () => { const response = await api.get(endpoint); setResult({ endpoint, data: response.data }); };
   const data = result?.endpoint === endpoint ? result.data : null;
   const filtered = Array.isArray(data) ? data.filter((s) => `${s.code} ${s.title} ${s.instructorName} ${s.upcomingTopic}`.toLowerCase().includes(query.toLowerCase().trim())) : [];
@@ -75,7 +80,7 @@ export default function StudentMySubjects() {
     {!id && data && <><h1>My Subjects</h1><div className="subject-feed-grid">{filtered.map((s) => <article className="subject-feed-card" key={s._id}><header><Avatar subject={s} /><div><strong>{s.instructorName}</strong><small>{s.title}</small></div></header><div className="subject-feed-card-body"><span>Upcoming topic:</span><p>{s.upcomingTopic || 'No upcoming topic yet'}</p></div><Link className="subject-feed-primary" to={`/student/my-subjects/${s._id}`}>View Announcements</Link></article>)}</div>
       {!filtered.length && <div className="subject-feed-empty"><BookOpen size={36} /><h2>{query ? 'No matching subjects' : 'No enrolled subjects yet'}</h2><p>{query ? 'Try a different subject or teacher name.' : 'Choose a subject when requesting a tutor. It appears here after the teacher accepts.'}</p><Link to="/student/find-tutors">Find a tutor</Link></div>}</>}
     {id && data && <><h1>{data.code}: {data.title}</h1><p className="subject-feed-muted">Enrolled Students: {data.enrolledCount} · Subject Rating: {data.rating ? `${data.rating}/5` : 'Not rated yet'}</p><nav className="subject-feed-tabs" aria-label="Subject content"><button aria-pressed={tab === 'announcements'} className={tab === 'announcements' ? 'active' : ''} onClick={() => setTab('announcements')}>Announcements</button><button aria-pressed={tab === 'materials'} className={tab === 'materials' ? 'active' : ''} onClick={() => setTab('materials')}>Materials</button></nav>
-      {tab === 'announcements' ? <>{!data.announcements.length && <div className="subject-feed-empty">No announcements posted yet.</div>}{data.announcements.map((p) => <Announcement key={p._id} subject={data} post={p} reload={reload} />)}</> : <>{!data.materials.length && <div className="subject-feed-empty">No materials published yet.</div>}{data.materials.map((m) => <article className="subject-feed-post" key={m._id}><small>{m.type === 'quiz' ? 'Quiz Assignment' : 'Assignment'}</small><h2>{m.title}</h2><p className="subject-feed-muted">{m.points == null ? 'Ungraded' : `${m.points} points`}{m.dueAt ? ` · Due ${date(m.dueAt)} (Manila)` : ' · No due date'}</p><p className="subject-feed-content">{m.instructions}</p>{m.link && <p><a href={m.link} target="_blank" rel="noreferrer">Open material link</a></p>}{m.attachmentName && <Attachment name={m.attachmentName} endpoint={`/student-subjects/${id}/materials/${m._id}/attachment`} />}</article>)}</>}
+      {tab === 'announcements' ? <>{!data.announcements.length && <div className="subject-feed-empty">No announcements posted yet.</div>}{data.announcements.map((p) => <Announcement key={p._id} subject={data} post={p} reload={reload} />)}</> : <>{!data.materials.length && <div className="subject-feed-empty">No materials published yet.</div>}{data.materials.map((m) => <article id={`material-${m._id}`} className="subject-feed-post" key={m._id}><small>{m.type === 'quiz' ? 'Quiz Assignment' : 'Assignment'}</small><h2>{m.title}</h2><p className="subject-feed-muted">{m.points == null ? 'Ungraded' : `${m.points} points`}{m.dueAt ? ` · Due ${date(m.dueAt)} (Manila)` : ' · No due date'}</p><p className="subject-feed-content">{m.instructions}</p>{m.link && <p><a href={m.link} target="_blank" rel="noreferrer">Open material link</a></p>}{m.attachmentName && <Attachment name={m.attachmentName} endpoint={`/student-subjects/${id}/materials/${m._id}/attachment`} />}</article>)}</>}
     </>}
   </div></DashboardLayout>;
 }

@@ -11,7 +11,8 @@
     "test:validation": "node scripts/check-validation.js",
     "test:account-settings": "node scripts/check-account-settings.js",
     "test:tutors": "node scripts/check-tutors.js",
-    "test:student-subjects": "node scripts/check-student-subjects.js"
+    "test:student-subjects": "node scripts/check-student-subjects.js",
+    "test:auth": "node scripts/check-auth-security.js"
   },
   "keywords": [],
   "author": "",
@@ -22,10 +23,13 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "google-auth-library": "^11.1.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.6.0",
     "mongoose": "^9.10.1",
-    "multer": "^2.4.0"
+    "multer": "^2.4.0",
+    "nodemailer": "^10.0.10"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

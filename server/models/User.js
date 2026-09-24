@@ -60,10 +60,15 @@ const userSchema = new mongoose.Schema(
     profilePicture: { type: String, default: '' },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      required: function () { return !this.googleSub; },
       minlength: 6,
     },
 
+    emailVerifiedAt: { type: Date, default: null },
+    verificationHash: { type: String, select: false },
+    verificationExpiresAt: { type: Date, select: false },
+    verificationSentAt: { type: Date, select: false },
+    googleSub: { type: String, unique: true, sparse: true },
     role: {
     type: String,
     enum: ["student", "teacher"],
