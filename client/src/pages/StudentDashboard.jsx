@@ -61,30 +61,86 @@ const StudentDashboard = () => {
       searchValue={searchTerm} onSearchChange={setSearchTerm}
       searchPlaceholder="Search your subjects...">
       <div className="student-dashboard-content">
+        <header className="student-page-intro">
+          <div>
+            <span className="student-eyebrow">YOUR LEARNING SPACE</span>
+            <h1>Dashboard</h1>
+          </div>
+          <span className="student-date">
+            <CalendarDays size={16} />
+            {new Date().toLocaleDateString("en-PH", { timeZone: "Asia/Manila", month: "long", day: "numeric", year: "numeric" })}
+          </span>
+        </header>
+
         <section className="student-welcome">
           <div>
-            <span className="student-eyebrow">STUDENT DASHBOARD</span>
-            <h1>Welcome Back, {firstName}!</h1>
-            <p>A little progress today. A world of possibilities tomorrow.</p>
-            <Link className="student-hero-link" to="/student/find-tutors">Find your next tutor <ArrowRight size={17} /></Link>
+            <span className="student-eyebrow">A LITTLE PROGRESS TODAY...</span>
+            <h1>Welcome back, {firstName}.</h1>
+            <p>Make room for your next great lesson. Find tutors, review announcements, and prepare for upcoming sessions.</p>
+            <Link className="student-hero-link" to="/student/find-tutors">
+              <Search size={15} /> Find your next tutor <ArrowRight size={15} />
+            </Link>
           </div>
-          <div className="student-welcome-symbol" aria-hidden="true"><BookOpen size={46} strokeWidth={1.7} /></div>
+          <div className="student-hero-aside">
+            <CalendarDays size={26} />
+            <span>YOUR NEXT SESSION</span>
+            <strong>{nextClass?.subject || "Room for something new"}</strong>
+            <p>{nextClass ? [nextClass.time, nextClass.tutor].filter(Boolean).join(" · ") : "Find a tutor and book a session that fits your schedule."}</p>
+            {nextClass ? (
+              <button
+                type="button"
+                onClick={() => detailsRef.current?.showModal()}
+                aria-label="View session details"
+              >
+                Session details <ArrowRight size={15} />
+              </button>
+            ) : (
+              <Link to="/student/find-tutors">
+                Explore tutors <ArrowRight size={15} />
+              </Link>
+            )}
+          </div>
         </section>
 
-        {loading ? <div className="student-panel student-empty" role="status">Loading dashboard...</div>
-          : error ? <div className="student-panel student-empty" role="alert">{error}<button className="student-primary-button" onClick={() => { setError(""); setLoading(true); setRevision(r => r + 1); }}>Try again</button></div>
-          : <>
-            <section className="student-panel student-next-class" aria-labelledby="student-next-heading">
-              <div>
-                <span className="student-eyebrow">YOUR NEXT CLASS</span>
-                <h2 id="student-next-heading">{nextClass?.subject || "No upcoming classes"}</h2>
-                <p>{nextClass ? [nextClass.time, nextClass.tutor].filter(Boolean).join(" / ") : "Your next tutoring session will appear here."}</p>
-              </div>
-              {!nextClass && <Link className="student-primary-button" to="/student/find-tutors">Explore tutors</Link>}
-              {nextClass && <button type="button" className="student-primary-button" onClick={() => detailsRef.current.showModal()}>Session Details</button>}
-            </section>
-
-            <nav className="student-shortcuts" aria-label="Learning shortcuts"><Link to="/student/find-tutors"><Search size={22} /><div><strong>Find a tutor</strong><span>Learn with someone who understands you</span></div><ArrowRight size={17} /></Link><Link to="/student/schedules"><CalendarDays size={22} /><div><strong>Your schedules</strong><span>Manage sessions and track requests</span></div><ArrowRight size={17} /></Link></nav>
+        {loading ? (
+          <div className="student-panel student-overview-loading" role="status">
+            <p>Loading your dashboard…</p>
+          </div>
+        ) : error ? (
+          <div className="student-ui-feedback" role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={() => { setError(""); setLoading(true); setRevision((r) => r + 1); }}>
+              Try again
+            </button>
+          </div>
+        ) : (
+          <>
+            <nav className="student-shortcuts" aria-label="Quick actions">
+              <Link to="/student/find-tutors">
+                <Search size={21} />
+                <div>
+                  <strong>Find a tutor</strong>
+                  <span>Learn with someone who understands you</span>
+                </div>
+                <ArrowRight size={18} />
+              </Link>
+              <Link to="/student/schedules">
+                <CalendarDays size={21} />
+                <div>
+                  <strong>Your schedules</strong>
+                  <span>Manage sessions and track requests</span>
+                </div>
+                <ArrowRight size={18} />
+              </Link>
+              <Link to="/student/my-subjects">
+                <BookOpen size={21} />
+                <div>
+                  <strong>My Subjects</strong>
+                  <span>Course announcements and learning materials</span>
+                </div>
+                <ArrowRight size={18} />
+              </Link>
+            </nav>
             <div className="student-overview-grid">
               <section className="student-panel student-enrolled" aria-labelledby="student-subjects-heading">
                 <div className="student-panel-heading">
@@ -133,7 +189,8 @@ const StudentDashboard = () => {
                 </section>
               </div>
             </div>
-          </>}
+          </>
+        )}
         <dialog ref={detailsRef} className="student-session-dialog" aria-labelledby="student-session-title">
           <div className="student-panel-heading"><h2 id="student-session-title">Session Details</h2><button type="button" aria-label="Close session details" onClick={() => detailsRef.current.close()}><X size={22} /></button></div>
           {schedules.map((schedule, index) => <article className="student-session-item" key={schedule._id || index}><h3>{schedule.subject}</h3><p>{schedule.time}</p><p>{schedule.tutor}</p></article>)}

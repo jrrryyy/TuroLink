@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 
 import {
+  Link,
   useLocation,
   useNavigate,
 } from "react-router-dom";
@@ -83,6 +84,7 @@ const DashboardLayout = ({
 
   const isTeacher =
     role === "teacher";
+  const dashboardPath = isTeacher ? "/teacher/dashboard" : "/dashboard";
 
   const displayName =
     userName || user?.name ||
@@ -148,9 +150,10 @@ const DashboardLayout = ({
       ========================================== */}
 
       <aside id="dashboard-sidebar" className="dashboard-layout-sidebar" inert={!sidebarOpen ? true : undefined}>
-        <div className="dashboard-layout-logo">
-          TuroLink
-        </div>
+        <Link to={dashboardPath} className="dashboard-layout-logo" aria-label="Go to Dashboard" onClick={closeSidebar}>
+          <img src="/turolink-logo.png" alt="TuroLink Logo" className="dashboard-sidebar-logo-img" />
+          <span>TuroLink</span>
+        </Link>
 
         <nav className="dashboard-layout-nav" aria-label="Main navigation">
           {[
@@ -202,7 +205,10 @@ const DashboardLayout = ({
             <button type="button" ref={menuButtonRef} className="dashboard-layout-icon-button dashboard-menu-button"
               aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"} aria-expanded={sidebarOpen} aria-controls="dashboard-sidebar"
               onClick={() => setSidebarOpen((open) => !open)}>{sidebarOpen ? <X size={23} /> : <Menu size={23} />}</button>
-            <div className="dashboard-topbar-brand"><span><BookOpen size={23} /></span><strong>TuroLink</strong></div>
+            <Link to={dashboardPath} className="dashboard-topbar-brand" aria-label="Go to Dashboard">
+              <img src="/turolink-logo.png" alt="TuroLink Logo" className="dashboard-topbar-logo-img" />
+              <strong>TuroLink</strong>
+            </Link>
           </>}
           <form className="dashboard-layout-search" onSubmit={(event) => {
             event.preventDefault();

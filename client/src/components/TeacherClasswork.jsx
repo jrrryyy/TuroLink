@@ -1,8 +1,25 @@
 import FieldError from "./FieldError";
 import "../styles/validation.css";
 import { useEffect, useRef, useState } from 'react';
-import { BookOpen, CheckCircle2, ChevronDown, FileText, Link as LinkIcon, MoreVertical, Plus, Upload, X } from 'lucide-react';
+import {
+  AlertCircle,
+  BookOpen,
+  CheckCircle,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  FileText,
+  Link as LinkIcon,
+  MoreVertical,
+  Paperclip,
+  Plus,
+  Upload,
+  Users,
+  X,
+} from 'lucide-react';
 import api from '../services/api';
+import { profilePictureUrl } from '../services/profile';
+import { downloadFile } from '../services/download';
 import '../styles/teacher-classwork.css';
 
 const emptyForm = (type = 'assignment') => ({ type, title: '', instructions: '', points: '100', dueAt: '', scheduledAt: '', link: '' });
@@ -31,6 +48,17 @@ export default function TeacherClasswork({ subject, teacherName }) {
   const createRef = useRef(null);
   const editorRef = useRef(null);
   const endpoint = `/subjects/${subject._id}/materials`;
+
+  // Submissions state
+  const [activeMaterialSubmissions, setActiveMaterialSubmissions] = useState(null);
+  const [submissionsLoading, setSubmissionsLoading] = useState(false);
+  const [submissionsError, setSubmissionsError] = useState('');
+  const [gradeInputs, setGradeInputs] = useState({});
+  const [gradeFeedback, setGradeFeedback] = useState({});
+  const [gradeSaving, setGradeSaving] = useState(false);
+  const [gradingId, setGradingId] = useState(null);
+  const [gradeNotice, setGradeNotice] = useState('');
+  const submissionsDialogRef = useRef(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -113,6 +141,72 @@ export default function TeacherClasswork({ subject, teacherName }) {
     } catch { setError('Unable to download the attachment. Please try again.'); }
   };
 
+  const openSubmissionsModal = async (item) => {
+    setActiveMaterialSubmissions({
+      material: item,
+      counts: { total: 0, turnedIn: 0, graded: 0, assigned: 0, missing: 0 },
+      submissions: [],
+    });
+    setSubmissionsLoading(true);
+    setSubmissionsError('');
+    setGradeNotice('');
+    submissionsDialogRef.current?.showModal();
+    try {
+      const res = await api.get(`/subjects/${subject._id}/materials/${item._id}/submissions`);
+      setActiveMaterialSubmissions(res.data);
+      const initialGrades = {};
+      const initialFeedback = {};
+      res.data.submissions.forEach((sub) => {
+        if (sub.grade != null) initialGrades[sub._id] = String(sub.grade);
+        if (sub.feedback) initialFeedback[sub._id] = sub.feedback;
+      });
+      setGradeInputs(initialGrades);
+      setGradeFeedback(initialFeedback);
+    } catch (err) {
+      setSubmissionsError(err.response?.data?.message || 'Unable to load student submissions.');
+    } finally {
+      setSubmissionsLoading(false);
+    }
+  };
+
+  const saveGrade = async (subId) => {
+    if (!activeMaterialSubmissions || !subId) return;
+    setGradeSaving(true);
+    setGradingId(subId);
+    setGradeNotice('');
+    try {
+      const gradeVal = gradeInputs[subId];
+      const feedbackVal = gradeFeedback[subId];
+      await api.post(
+        `/subjects/${subject._id}/materials/${activeMaterialSubmissions.material._id}/submissions/${subId}/grade`,
+        {
+          grade: gradeVal === '' ? null : gradeVal,
+          feedback: feedbackVal,
+        }
+      );
+      setGradeNotice('Grade and feedback saved successfully.');
+      const res = await api.get(`/subjects/${subject._id}/materials/${activeMaterialSubmissions.material._id}/submissions`);
+      setActiveMaterialSubmissions(res.data);
+    } catch (err) {
+      setSubmissionsError(err.response?.data?.message || 'Unable to save grade.');
+    } finally {
+      setGradeSaving(false);
+      setGradingId(null);
+    }
+  };
+
+  const downloadStudentWork = async (sub) => {
+    if (!activeMaterialSubmissions || !sub._id) return;
+    try {
+      await downloadFile(
+        `/subjects/${subject._id}/materials/${activeMaterialSubmissions.material._id}/submissions/${sub._id}/attachment`,
+        sub.attachmentName || 'Student_Work'
+      );
+    } catch (err) {
+      alert(err.message || 'Unable to download student attachment.');
+    }
+  };
+
   const updateForm = (event) => setForm((previous) => ({ ...previous, [event.target.name]: event.target.value }));
   const posted = materials.filter((item) => !item.status || item.status === 'posted');
   const saved = materials.filter((item) => ['draft', 'scheduled', 'archived'].includes(item.status));
@@ -141,6 +235,19 @@ export default function TeacherClasswork({ subject, teacherName }) {
         {item.fileUrl && /^(https?:\/\/|\/uploads\/)/.test(item.fileUrl) && <a href={new URL(item.fileUrl, new URL(api.defaults.baseURL, window.location.origin).origin).href} target="_blank" rel="noreferrer"><FileText size={18} />Attachment</a>}
         {item.link && /^https?:\/\//.test(item.link) && <a href={item.link} target="_blank" rel="noreferrer"><LinkIcon size={18} />Open attached link</a>}
       </div>
+
+      {(!item.status || item.status === 'posted') && (
+        <div className="classwork-card-submissions-row">
+          <button
+            type="button"
+            className="classwork-submissions-btn"
+            onClick={() => openSubmissionsModal(item)}
+          >
+            <Users size={16} />
+            <span>View Submissions &amp; Grade</span>
+          </button>
+        </div>
+      )}
     </article>
   );
 
@@ -185,6 +292,172 @@ export default function TeacherClasswork({ subject, teacherName }) {
     {loading ? <p role="status">Loading classwork...</p> : <div className="classwork-posts">{posted.map(card)}{posted.length === 0 && !editing && <div className="classwork-empty"><BookOpen size={32} /><h3>No classwork posted yet</h3><p>Use Create to add an assignment or quiz assignment.</p></div>}</div>}
     <dialog className="classwork-delete-dialog" ref={deleteRef} aria-labelledby="classwork-delete-title" onCancel={(event) => { if (busy) event.preventDefault(); }}>
       <h2 id="classwork-delete-title">Delete this {deleteTarget ? labelFor(deleteTarget.type).toLowerCase() : 'classwork'}?</h2><p>{deleteTarget?.title}</p><p>This action cannot be undone.</p><div><button type="button" disabled={busy} onClick={() => deleteRef.current.close()}>Cancel</button><button type="button" disabled={busy} className="classwork-danger" onClick={confirmDelete}>{busy ? 'Deleting...' : 'Delete'}</button></div>
+    </dialog>
+
+    <dialog
+      className="teacher-submissions-modal"
+      ref={submissionsDialogRef}
+      onClose={() => setActiveMaterialSubmissions(null)}
+      aria-labelledby="teacher-submissions-title"
+    >
+      <div className="submissions-modal-header">
+        <div>
+          <span className="teacher-eyebrow">STUDENT WORK</span>
+          <h2 id="teacher-submissions-title">{activeMaterialSubmissions?.material?.title}</h2>
+          <p className="submissions-modal-meta">
+            {activeMaterialSubmissions?.material?.points != null ? `${activeMaterialSubmissions.material.points} Points` : 'Ungraded'}
+            {activeMaterialSubmissions?.material?.dueAt ? ` · Due ${formattedDate(activeMaterialSubmissions.material.dueAt)}` : ' · No due date'}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="submissions-modal-close"
+          aria-label="Close submissions"
+          onClick={() => submissionsDialogRef.current?.close()}
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      {submissionsLoading ? (
+        <div className="submissions-modal-loading">Loading student submissions…</div>
+      ) : submissionsError ? (
+        <div className="classwork-error" role="alert">{submissionsError}</div>
+      ) : activeMaterialSubmissions && (
+        <>
+          <div className="submissions-summary-counters">
+            <div className="sub-stat-chip">
+              <strong>{activeMaterialSubmissions.counts?.total || 0}</strong>
+              <span>Enrolled</span>
+            </div>
+            <div className="sub-stat-chip highlight">
+              <strong>{activeMaterialSubmissions.counts?.turnedIn || 0}</strong>
+              <span>Turned In</span>
+            </div>
+            <div className="sub-stat-chip success">
+              <strong>{activeMaterialSubmissions.counts?.graded || 0}</strong>
+              <span>Graded</span>
+            </div>
+            <div className="sub-stat-chip warning">
+              <strong>{activeMaterialSubmissions.counts?.missing || 0}</strong>
+              <span>Missing</span>
+            </div>
+          </div>
+
+          {gradeNotice && (
+            <div className="classwork-success" role="status">
+              <CheckCircle2 size={16} />
+              {gradeNotice}
+            </div>
+          )}
+
+          <div className="submissions-students-list">
+            {!activeMaterialSubmissions.submissions?.length ? (
+              <p className="classwork-muted">No students are currently enrolled in this subject.</p>
+            ) : (
+              activeMaterialSubmissions.submissions.map((sub) => {
+                const isSubmitted = sub.status === 'submitted' || sub.status === 'graded';
+                return (
+                  <article className="submission-student-card" key={sub.student._id}>
+                    <div className="submission-student-info">
+                      <span className="submission-student-avatar">
+                        {sub.student.profilePicture ? (
+                          <img src={profilePictureUrl(sub.student.profilePicture)} alt="" />
+                        ) : (
+                          sub.student.name?.charAt(0).toUpperCase() || 'S'
+                        )}
+                      </span>
+                      <div className="submission-student-names">
+                        <strong>{sub.student.name}</strong>
+                        <small>{sub.student.email}</small>
+                      </div>
+                      <span className={`turnin-badge turnin-badge-${sub.status === 'graded' ? 'graded' : sub.isLate ? 'late' : sub.status === 'submitted' ? 'ontime' : sub.status === 'missing' ? 'missing' : 'assigned'}`}>
+                        {sub.status === 'graded' && <CheckCircle size={12} />}
+                        {sub.status === 'submitted' && !sub.isLate && <CheckCircle size={12} />}
+                        {sub.status === 'submitted' && sub.isLate && <Clock size={12} />}
+                        {sub.status === 'missing' && <AlertCircle size={12} />}
+                        {sub.status === 'graded' ? `Graded: ${sub.grade ?? 'Done'}/${activeMaterialSubmissions.material.points ?? 100}` : sub.isLate ? 'Turned in late' : sub.status === 'submitted' ? 'Turned in on time' : sub.status === 'missing' ? 'Missing' : 'Assigned'}
+                      </span>
+                    </div>
+
+                    {isSubmitted ? (
+                      <div className="submission-work-body">
+                        {sub.attachmentName && (
+                          <button
+                            type="button"
+                            className="submission-attachment-btn"
+                            onClick={() => downloadStudentWork(sub)}
+                            title="Download student attachment"
+                          >
+                            <Paperclip size={16} />
+                            <span>{sub.attachmentName}</span>
+                            <small>({Math.max(1, Math.round(sub.attachmentSize / 1024))} KB) · Click to Download</small>
+                          </button>
+                        )}
+                        {sub.text && (
+                          <p className="submission-student-note">
+                            <strong>Student note:</strong> {sub.text}
+                          </p>
+                        )}
+                        <small className="submission-time-label">
+                          Submitted on {new Date(sub.submittedAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' })}
+                        </small>
+
+                        <form
+                          className="submission-grading-form"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            saveGrade(sub._id);
+                          }}
+                        >
+                          <div className="submission-grading-inputs">
+                            {activeMaterialSubmissions.material.points != null && (
+                              <label className="grade-score-label">
+                                <span>Score (out of {activeMaterialSubmissions.material.points})</span>
+                                <div className="grade-score-input-wrap">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    max={activeMaterialSubmissions.material.points}
+                                    placeholder="Grade"
+                                    value={gradeInputs[sub._id] ?? (sub.grade != null ? String(sub.grade) : '')}
+                                    onChange={(e) => setGradeInputs((p) => ({ ...p, [sub._id]: e.target.value }))}
+                                  />
+                                  <span>/ {activeMaterialSubmissions.material.points}</span>
+                                </div>
+                              </label>
+                            )}
+                            <label className="grade-feedback-label">
+                              <span>Feedback / Remarks</span>
+                              <input
+                                type="text"
+                                placeholder="Add private feedback to student…"
+                                value={gradeFeedback[sub._id] ?? (sub.feedback || '')}
+                                onChange={(e) => setGradeFeedback((p) => ({ ...p, [sub._id]: e.target.value }))}
+                              />
+                            </label>
+                          </div>
+                          <button
+                            type="submit"
+                            className="submission-save-grade-btn"
+                            disabled={gradeSaving}
+                          >
+                            {gradeSaving && gradingId === sub._id ? 'Saving…' : sub.status === 'graded' ? 'Update Grade' : 'Save Grade'}
+                          </button>
+                        </form>
+                      </div>
+                    ) : (
+                      <p className="submission-not-turned-in">
+                        {sub.status === 'missing' ? 'Student has not turned in work (past due date).' : 'No work turned in yet.'}
+                      </p>
+                    )}
+                  </article>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
     </dialog>
   </section>;
 }

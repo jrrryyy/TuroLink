@@ -71,6 +71,7 @@ export default function AccountSettings() {
   return <DashboardLayout role={user.role} userName={user.name}>
     <div className="account-settings-wrap">
       <form className="account-settings-card" ref={formRef} noValidate onSubmit={save}>
+        {user.role === 'teacher' ? <span className="teacher-eyebrow">PREFERENCES</span> : <span className="student-section-label">PREFERENCES</span>}
         <h1>Settings &amp; Preferences</h1>
         {message && <div className={success ? 'account-feedback success' : 'account-feedback'} role={success ? 'status' : 'alert'}>{message}</div>}
         <fieldset disabled={busy}>

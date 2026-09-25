@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, Search, Star } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
@@ -29,9 +29,9 @@ function useData(path) {
 function Status({ state }) {
   return <>{state.loading && <p role="status">Loading…</p>}{state.error && <div className="tutor-alert" role="alert">{state.error} <button onClick={state.reload}>Try again</button></div>}</>;
 }
-function Shell({ children }) {
+function Shell({ children, searchValue, onSearchChange, searchPlaceholder }) {
   const { user } = useAuth();
-  return <DashboardLayout role={user.role} userName={user.name}><div className="tutors-page">{children}</div></DashboardLayout>;
+  return <DashboardLayout role={user.role} userName={user.name} searchValue={searchValue} onSearchChange={onSearchChange} searchPlaceholder={searchPlaceholder}><div className="tutors-page">{children}</div></DashboardLayout>;
 }
 function Avatar({ tutor }) {
   return <div className="tutor-avatar">{tutor.profilePicture ? <img src={profilePictureUrl(tutor.profilePicture)} alt="" /> : tutor.name?.charAt(0)}</div>;
@@ -57,7 +57,7 @@ export function FindTutors() {
   const [rating, setRating] = useState('');
   const tutors = state.data || [];
   const filtered = tutors.filter((t) => `${t.name} ${t.subject}`.toLowerCase().includes(query.trim().toLowerCase()) && (!subject || t.subject === subject) && (!availability || availabilityTags(t.slots).includes(availability)) && (!rating || (t.totalRatings > 0 && t.averageRating >= Number(rating))));
-  return <Shell><section className="tutor-panel"><span className="student-section-label">LEARN TOGETHER</span><h1>Find Tutors</h1><p className="tutor-muted">Search by tutor name or subject, then find a time that fits your schedule.</p>
+  return <Shell searchValue={query} onSearchChange={setQuery} searchPlaceholder="Search tutors by name or subject..."><section className="tutor-panel"><span className="student-section-label">LEARN TOGETHER</span><h1>Find Tutors</h1><p className="tutor-muted">Search by tutor name or subject, then find a time that fits your schedule.</p>
     <label className="tutor-search"><Search size={18} /><input aria-label="Search tutors by name or subject" placeholder="Search tutors by name or subject" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
     <div className="tutor-filters">
       <select aria-label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)}><option value="">All subjects</option>{[...new Set(tutors.map((t) => t.subject))].sort().map((s) => <option key={s}>{s}</option>)}</select>
@@ -184,12 +184,221 @@ export function TeacherRequests() {
   return <Shell><section className="tutor-panel"><div className="teacher-request-header"><div><span className="teacher-eyebrow">YOUR NEXT CONNECTION</span><h1>Tutoring Requests</h1><p className="tutor-muted">Meet your next learner. Review the subject and time before confirming a session.</p></div>{state.data && <span className="teacher-count">{state.data.length} pending</span>}</div>
     <Status state={state} />{message && <p role="status" className="tutor-success">{message}</p>}{error && <p role="alert" className="tutor-alert">{error}</p>}
     {!state.loading && !state.error && !state.data?.length && <div className="tutor-empty">No pending tutoring requests.</div>}
-    {state.data?.map((request) => <article className="tutor-panel" key={request._id}><div className="tutor-schedule-row"><div><div className="teacher-request-identity"><span className="teacher-person-avatar">{request.student?.name?.charAt(0) || 'S'}</span><div><h2>{request.student?.name || 'Student'}</h2><p>{request.subject}</p></div></div><p>{dateLabel(request.start)} · {time(request.start)}–{time(request.end)} (Manila)</p><strong>{money(request.price)}</strong></div><span className="tutor-badge">Pending approval</span></div>
+    {state.data?.map((request) => <article className="tutor-panel" key={request._id}><div className="tutor-schedule-row"><div><div className="teacher-request-identity"><span className="teacher-person-avatar">{request.student?.name?.charAt(0) || 'S'}</span><div><h2>{request.student?.name || 'Student'}</h2><p>{request.subject}</p></div></div><p>{dateLabel(request.start)} · {time(request.start)}–{time(request.end)} (Manila)</p><strong>{money(request.price)}</strong></div><span className="tutor-badge tutor-badge-pending">Pending approval</span></div>
       {new Date(request.start) <= new Date() && <p className="tutor-muted">This time has passed. Please decline this request.</p>}
       <div className="tutor-tabs"><button className="tutor-button" disabled={busy || state.loading || new Date(request.start) <= new Date()} onClick={() => decide(request._id, 'accept')}>{busy && pendingAction?.id === request._id && pendingAction.action === 'accept' ? 'Accepting...' : 'Accept'}</button><button className="tutor-secondary" disabled={busy || state.loading} onClick={() => decide(request._id, 'decline')}>{busy && pendingAction?.id === request._id && pendingAction.action === 'decline' ? 'Declining...' : 'Decline'}</button></div>
     </article>)}<Link className="tutor-back" to="/teacher/schedules">View schedules and request history</Link>
   </section></Shell>;
 }
+function getWeekDays(referenceDateKey) {
+  const [year, month, day] = referenceDateKey.split('-').map(Number);
+  const local = new Date(Date.UTC(year, month - 1, day));
+  const dayOfWeek = local.getUTCDay();
+  const days = [];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  for (let i = 0; i < 7; i++) {
+    const target = new Date(Date.UTC(year, month - 1, day - dayOfWeek + i));
+    const key = target.toISOString().slice(0, 10);
+    days.push({
+      key,
+      dayName: dayNames[i],
+      dayNum: target.getUTCDate(),
+      dateObj: target,
+    });
+  }
+  return days;
+}
+
+export function TeacherScheduleCalendar({ bookings = [] }) {
+  const [todayKey] = useState(() => dayKey(Date.now()));
+  const [selectedDate, setSelectedDate] = useState(todayKey);
+
+  const [currentYear, currentMonthNum, currentDayNum] = selectedDate.split('-').map(Number);
+  const monthDateObj = new Date(Date.UTC(currentYear, currentMonthNum - 1, 1));
+  const monthLabel = monthDateObj.toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' });
+
+  const weekDays = useMemo(() => getWeekDays(selectedDate), [selectedDate]);
+
+  const changeYear = (delta) => {
+    const nextY = currentYear + delta;
+    const maxDay = new Date(Date.UTC(nextY, currentMonthNum, 0)).getUTCDate();
+    const nextD = Math.min(currentDayNum, maxDay);
+    setSelectedDate(`${nextY}-${String(currentMonthNum).padStart(2, '0')}-${String(nextD).padStart(2, '0')}`);
+  };
+
+  const changeMonth = (delta) => {
+    const target = new Date(Date.UTC(currentYear, currentMonthNum - 1 + delta, 1));
+    const nextY = target.getUTCFullYear();
+    const nextM = target.getUTCMonth() + 1;
+    const maxDay = new Date(Date.UTC(nextY, nextM, 0)).getUTCDate();
+    const nextD = Math.min(currentDayNum, maxDay);
+    setSelectedDate(`${nextY}-${String(nextM).padStart(2, '0')}-${String(nextD).padStart(2, '0')}`);
+  };
+
+  const bookingsByDay = useMemo(() => {
+    const map = {};
+    for (const b of bookings) {
+      const key = dayKey(b.start);
+      if (!map[key]) map[key] = [];
+      map[key].push(b);
+    }
+    return map;
+  }, [bookings]);
+
+  const daysWithSessions = useMemo(() => {
+    return new Set(bookings.map((b) => dayKey(b.start)));
+  }, [bookings]);
+
+  const dayBookings = bookingsByDay[selectedDate] || [];
+  const isSelectedToday = selectedDate === todayKey;
+
+  const cardThemes = ['card-cream', 'card-tinted', 'card-sage', 'card-amber'];
+
+  return (
+    <div className="teacher-calendar-wrapper">
+      <div className="teacher-calendar-box">
+        {/* Centered Year Row */}
+        <div className="teacher-cal-header-row teacher-cal-year-row">
+          <button
+            type="button"
+            className="teacher-cal-nav-btn"
+            aria-label="Previous year"
+            onClick={() => changeYear(-1)}
+          >
+            <ChevronLeft size={20} />
+          </button>
+          <span>{currentYear}</span>
+          <button
+            type="button"
+            className="teacher-cal-nav-btn"
+            aria-label="Next year"
+            onClick={() => changeYear(1)}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </div>
+
+        {/* Centered Month Row */}
+        <div className="teacher-cal-header-row teacher-cal-month-row">
+          <button
+            type="button"
+            className="teacher-cal-nav-btn"
+            aria-label="Previous month"
+            onClick={() => changeMonth(-1)}
+          >
+            <ChevronLeft size={22} />
+          </button>
+          <span>{monthLabel}</span>
+          <button
+            type="button"
+            className="teacher-cal-nav-btn"
+            aria-label="Next month"
+            onClick={() => changeMonth(1)}
+          >
+            <ChevronRight size={22} />
+          </button>
+        </div>
+
+        {/* 7-Day Horizontal Week Strip */}
+        <div className="teacher-cal-week-strip" role="group" aria-label="Days of the week">
+          {weekDays.map((d) => {
+            const isSelected = d.key === selectedDate;
+            const hasSessions = daysWithSessions.has(d.key);
+            return (
+              <button
+                key={d.key}
+                type="button"
+                className="teacher-cal-day-col"
+                onClick={() => setSelectedDate(d.key)}
+                aria-pressed={isSelected}
+                aria-label={`${d.dayName} ${d.dayNum}, ${d.key}`}
+              >
+                <span className="teacher-cal-day-name">{d.dayName}</span>
+                <span className={`teacher-cal-day-num ${isSelected ? 'active' : ''}`}>
+                  {d.dayNum}
+                </span>
+                {hasSessions && (
+                  <span className={`teacher-cal-day-dot ${isSelected ? 'active-dot' : ''}`} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Divider Line */}
+        <hr className="teacher-cal-divider" />
+
+        {/* Schedule List Section */}
+        <div className="teacher-cal-schedule-header">
+          <h2 className="teacher-cal-schedule-title">
+            {isSelectedToday ? "Today's Schedule" : `Schedule for ${dateLabel(new Date(selectedDate + 'T00:00:00+08:00'))}`}
+          </h2>
+          {!isSelectedToday && (
+            <button
+              type="button"
+              className="teacher-cal-today-badge"
+              onClick={() => setSelectedDate(todayKey)}
+            >
+              Back to Today
+            </button>
+          )}
+        </div>
+
+        <div className="teacher-cal-list">
+          {dayBookings.length === 0 ? (
+            <div className="teacher-cal-empty-card">
+              <p>No sessions scheduled for this day.</p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {!isSelectedToday && (
+                  <button
+                    type="button"
+                    className="teacher-cal-today-badge"
+                    onClick={() => setSelectedDate(todayKey)}
+                  >
+                    View Today
+                  </button>
+                )}
+                <Link className="tutor-secondary" to="/teacher/availability">
+                  Add availability
+                </Link>
+              </div>
+            </div>
+          ) : (
+            dayBookings.map((b, index) => {
+              const theme = cardThemes[index % cardThemes.length];
+              const isPast = new Date(b.end) <= new Date();
+              const statusKey = b.status === 'pending' ? 'pending' : b.status === 'declined' ? 'declined' : isPast ? 'completed' : 'confirmed';
+              const statusLabel = b.status === 'pending' ? 'Pending approval' : b.status === 'declined' ? 'Declined' : isPast ? 'Completed' : 'Confirmed';
+
+              return (
+                <article key={b._id} className={`teacher-cal-card ${theme}`}>
+                  <div className="teacher-cal-card-info">
+                    <h3 className="teacher-cal-card-title">{b.subject}</h3>
+                    <p className="teacher-cal-card-time">{time(b.start)} - {time(b.end)}</p>
+                    {b.student?.name && (
+                      <span className="teacher-cal-card-student">
+                        Student: <strong>{b.student.name}</strong>
+                      </span>
+                    )}
+                  </div>
+                  <div className="teacher-cal-card-meta">
+                    <span className={`tutor-badge tutor-badge-${statusKey}`}>
+                      {statusLabel}
+                    </span>
+                    {b.price ? (
+                      <small className="tutor-muted">{money(b.price)}</small>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function TutorSchedules({ reviewsOnly = false }) {
   const { user } = useAuth();
   const state = useData('/tutors/bookings');
@@ -197,17 +406,97 @@ export function TutorSchedules({ reviewsOnly = false }) {
   const tab = ['past', 'requests'].includes(scheduleParams.get('tab')) ? scheduleParams.get('tab') : 'upcoming';
   const setTab = value => setScheduleParams(value === 'upcoming' ? {} : { tab: value });
   const teacher = user.role === 'teacher';
+  const [viewMode, setViewMode] = useState('calendar');
+
   const bookings = (state.data || []).filter((b) => {
     const confirmed = !b.status || b.status === 'confirmed';
     if (reviewsOnly) return confirmed && new Date(b.end) <= new Date();
     if (tab === 'requests') return !confirmed;
     return confirmed && (tab === 'past' ? new Date(b.end) <= new Date() : new Date(b.end) > new Date());
   });
-  return <Shell><section className="tutor-panel">{teacher && <span className="teacher-eyebrow">YOUR TEACHING CALENDAR</span>}<h1>{reviewsOnly ? 'Rate Tutors' : 'Schedules'}</h1><p className="tutor-muted">{reviewsOnly ? 'Share feedback on your completed sessions.' : 'Your confirmed tutor bookings · Manila time (UTC+8)'}</p>
-    {!reviewsOnly && <div className="tutor-tabs"><button aria-pressed={tab === 'upcoming'} className={tab === 'upcoming' ? 'selected' : ''} onClick={() => setTab('upcoming')}>Upcoming</button><button aria-pressed={tab === 'requests'} className={tab === 'requests' ? 'selected' : ''} onClick={() => setTab('requests')}>Requests</button><button aria-pressed={tab === 'past'} className={tab === 'past' ? 'selected' : ''} onClick={() => setTab('past')}>Past sessions</button>{teacher && <Link to="/teacher/availability">Manage availability</Link>}</div>}
-    <Status state={state} />{!state.loading && !state.error && !bookings.length && <div className="tutor-empty">{reviewsOnly ? 'No completed sessions yet.' : 'No sessions here yet.'} {!teacher && <Link to="/student/find-tutors">Find a tutor</Link>}</div>}
-    <div className="tutor-schedule-list">{bookings.map((b) => <article className="tutor-panel" key={b._id}><div className="tutor-schedule-row"><div><h2>{b.subject}</h2><p>{teacher ? b.student?.name : b.teacher?.name}</p><p>{dateLabel(b.start)} · {time(b.start)}–{time(b.end)}</p></div><div><span className="tutor-badge">{b.status === 'pending' ? 'Pending approval' : b.status === 'declined' ? 'Declined' : new Date(b.end) <= new Date() ? 'Completed' : 'Confirmed'}</span><p>{money(b.price)}</p></div></div>
-      {b.review?.rating ? <p className="tutor-review">★ {b.review.rating} — {b.review.text}</p> : !teacher && (!b.status || b.status === 'confirmed') && new Date(b.end) <= new Date() && <ReviewForm booking={b} onSaved={state.reload} />}
-    </article>)}</div>
-  </section></Shell>;
+
+  return (
+    <Shell>
+      <section className="tutor-panel">
+        {teacher ? <span className="teacher-eyebrow">YOUR TEACHING CALENDAR</span> : <span className="student-section-label">YOUR LEARNING CALENDAR</span>}
+        <h1>{reviewsOnly ? 'Rate Tutors' : 'Schedules'}</h1>
+        <p className="tutor-muted">{reviewsOnly ? 'Share feedback on your completed sessions.' : 'Your confirmed tutor bookings · Manila time (UTC+8)'}</p>
+
+        {teacher && !reviewsOnly && (
+          <div className="teacher-calendar-toolbar">
+            <div className="teacher-view-toggles" role="tablist" aria-label="Schedule view selection">
+              <button
+                type="button"
+                className={viewMode === 'calendar' ? 'active' : ''}
+                onClick={() => setViewMode('calendar')}
+                aria-selected={viewMode === 'calendar'}
+              >
+                Calendar View
+              </button>
+              <button
+                type="button"
+                className={viewMode === 'list' ? 'active' : ''}
+                onClick={() => setViewMode('list')}
+                aria-selected={viewMode === 'list'}
+              >
+                List View
+              </button>
+            </div>
+            <Link className="tutor-secondary" to="/teacher/availability">
+              Manage availability
+            </Link>
+          </div>
+        )}
+
+        <Status state={state} />
+
+        {teacher && !reviewsOnly && viewMode === 'calendar' ? (
+          <TeacherScheduleCalendar bookings={state.data || []} />
+        ) : (
+          <>
+            {!reviewsOnly && (
+              <div className="tutor-tabs">
+                <button aria-pressed={tab === 'upcoming'} className={tab === 'upcoming' ? 'selected' : ''} onClick={() => setTab('upcoming')}>Upcoming</button>
+                <button aria-pressed={tab === 'requests'} className={tab === 'requests' ? 'selected' : ''} onClick={() => setTab('requests')}>Requests</button>
+                <button aria-pressed={tab === 'past'} className={tab === 'past' ? 'selected' : ''} onClick={() => setTab('past')}>Past sessions</button>
+                {teacher && <Link to="/teacher/availability">Manage availability</Link>}
+              </div>
+            )}
+            {!state.loading && !state.error && !bookings.length && (
+              <div className="tutor-empty">
+                {reviewsOnly ? 'No completed sessions yet.' : 'No sessions here yet.'} {!teacher && <Link to="/student/find-tutors">Find a tutor</Link>}
+              </div>
+            )}
+            <div className="tutor-schedule-list">
+              {bookings.map((b) => {
+                const isPast = new Date(b.end) <= new Date();
+                const statusKey = b.status === 'pending' ? 'pending' : b.status === 'declined' ? 'declined' : isPast ? 'completed' : 'confirmed';
+                const statusLabel = b.status === 'pending' ? 'Pending approval' : b.status === 'declined' ? 'Declined' : isPast ? 'Completed' : 'Confirmed';
+                return (
+                  <article className="tutor-panel" key={b._id}>
+                    <div className="tutor-schedule-row">
+                      <div>
+                        <h2>{b.subject}</h2>
+                        <p>{teacher ? b.student?.name : b.teacher?.name}</p>
+                        <p>{dateLabel(b.start)} · {time(b.start)}–{time(b.end)}</p>
+                      </div>
+                      <div>
+                        <span className={`tutor-badge tutor-badge-${statusKey}`}>{statusLabel}</span>
+                        <p>{money(b.price)}</p>
+                      </div>
+                    </div>
+                    {b.review?.rating ? (
+                      <p className="tutor-review">★ {b.review.rating} — {b.review.text}</p>
+                    ) : !teacher && (!b.status || b.status === 'confirmed') && isPast && (
+                      <ReviewForm booking={b} onSaved={state.reload} />
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </section>
+    </Shell>
+  );
 }

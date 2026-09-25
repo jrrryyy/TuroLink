@@ -69,6 +69,293 @@
 .classwork-delete-dialog > div { display: flex; justify-content: space-between; gap: 20px; margin-top: 24px; }
 .classwork-delete-dialog button { border: 0; border-radius: 999px; background: #335035; color: white; padding: 10px 24px; }
 .classwork-delete-dialog .classwork-danger { background: #d63039; }
+/* ── Submissions button on card ── */
+.classwork-card-submissions-row {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ts-border);
+  display: flex;
+  justify-content: flex-end;
+}
+.classwork-submissions-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: var(--ts-input, #edf3e4);
+  color: var(--ts-green, #355c42);
+  border: 1px solid var(--ts-border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.classwork-submissions-btn:hover {
+  background: var(--ts-hover);
+  border-color: var(--ts-green);
+}
+
+/* ── Teacher Submissions Modal ── */
+.teacher-submissions-modal {
+  width: min(720px, calc(100% - 32px));
+  max-height: 85vh;
+  padding: 28px;
+  border: 1px solid var(--ts-border);
+  border-radius: 20px;
+  background: var(--ts-card, #fff);
+  color: var(--ts-text);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
+}
+.teacher-submissions-modal::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}
+.submissions-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ts-border);
+}
+.submissions-modal-header h2 {
+  margin: 4px 0;
+  font-size: 20px;
+  color: var(--ts-text);
+}
+.submissions-modal-meta {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ts-muted);
+}
+.submissions-modal-close {
+  background: transparent;
+  border: 0;
+  color: var(--ts-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.submissions-modal-close:hover {
+  background: var(--ts-hover);
+  color: var(--ts-text);
+}
+.submissions-modal-loading {
+  padding: 36px 0;
+  text-align: center;
+  color: var(--ts-muted);
+  font-size: 13px;
+}
+.submissions-summary-counters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0;
+}
+.sub-stat-chip {
+  background: var(--ts-hover);
+  border: 1px solid var(--ts-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sub-stat-chip strong {
+  font-size: 18px;
+  color: var(--ts-text);
+}
+.sub-stat-chip span {
+  font-size: 11px;
+  color: var(--ts-muted);
+  font-weight: 500;
+}
+.sub-stat-chip.highlight strong { color: #1e5a26; }
+.sub-stat-chip.success strong { color: #1967d2; }
+.sub-stat-chip.warning strong { color: #c62828; }
+
+.submissions-students-list {
+  display: grid;
+  gap: 14px;
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-top: 14px;
+}
+.submission-student-card {
+  background: var(--ts-bg, #fbfcf8);
+  border: 1px solid var(--ts-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.submission-student-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.submission-student-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #355c42;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.submission-student-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.submission-student-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.submission-student-names strong {
+  font-size: 14px;
+  color: var(--ts-text);
+}
+.submission-student-names small {
+  font-size: 11px;
+  color: var(--ts-muted);
+}
+.submission-student-info .turnin-badge {
+  margin-left: auto;
+}
+.submission-work-body {
+  background: var(--ts-card, #fff);
+  border: 1px solid var(--ts-border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.submission-attachment-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  background: var(--ts-hover);
+  color: var(--ts-green, #355c42);
+  border: 1px solid var(--ts-border);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  width: fit-content;
+  max-width: 100%;
+}
+.submission-attachment-btn:hover {
+  border-color: var(--ts-green);
+}
+.submission-attachment-btn span {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.submission-attachment-btn small {
+  color: var(--ts-muted);
+  margin-left: 4px;
+}
+.submission-student-note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ts-text);
+  background: var(--ts-hover);
+  padding: 8px 12px;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+.submission-time-label {
+  font-size: 11px;
+  color: var(--ts-muted);
+}
+.submission-grading-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ts-border);
+}
+.submission-grading-inputs {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 10px;
+  align-items: flex-end;
+}
+.grade-score-label, .grade-feedback-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ts-muted);
+}
+.grade-score-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.grade-score-input-wrap input {
+  width: 70px;
+  padding: 8px 10px;
+  border: 1px solid var(--ts-border);
+  border-radius: 8px;
+  background: var(--ts-input);
+  color: var(--ts-text);
+  font-size: 13px;
+  text-align: center;
+}
+.grade-score-input-wrap span {
+  font-size: 12px;
+  color: var(--ts-muted);
+  white-space: nowrap;
+}
+.grade-feedback-label input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--ts-border);
+  border-radius: 8px;
+  background: var(--ts-input);
+  color: var(--ts-text);
+  font-size: 13px;
+}
+.submission-save-grade-btn {
+  align-self: flex-end;
+  background: #355c42;
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 34px;
+}
+.submission-save-grade-btn:hover {
+  filter: brightness(1.08);
+}
+.submission-not-turned-in {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ts-muted);
+  font-style: italic;
+}
+
 .teacher-classwork :is(button, summary, input, select, textarea, a):focus-visible { outline: 2px solid var(--ts-green); outline-offset: 3px; }
 .teacher-classwork button:disabled { cursor: wait; opacity: .6; }
 @media (max-width: 1050px) { .classwork-editor-options { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

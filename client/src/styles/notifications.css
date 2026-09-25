@@ -1,10 +1,111 @@
-.student-notifications{position:relative;color:inherit}
-.notification-bell{position:relative;display:grid;place-items:center;background:transparent;border:0;cursor:pointer;padding:10px;color:inherit}
-.notification-badge{position:absolute;top:0;right:0;min-width:18px;height:18px;padding:0 3px;border-radius:12px;background:#a63730;color:white;font:700 10px/18px sans-serif}
-.notification-panel{position:absolute;right:0;top:calc(100% + 15px);width:min(390px,calc(100vw - 24px));max-height:75dvh;overflow:auto;z-index:1000;background:#fffdf8;color:#293e2d;border:1px solid #d7ddcf;border-radius:18px;box-shadow:0 16px 45px #15251630;padding:16px;box-sizing:border-box}
-.notification-panel header{display:flex;align-items:center;justify-content:space-between}.notification-panel h2{font-size:19px;margin:0}.notification-panel button{font:inherit;cursor:pointer;color:inherit}.notification-panel header button{background:transparent;border:0;padding:8px}.notification-panel ul{list-style:none;margin:8px 0;padding:0}.notification-panel li{border-bottom:1px solid #d7ddcf}
-.notification-item{display:grid;gap:7px;width:100%;text-align:left;border:0;background:transparent;padding:15px 10px;border-radius:10px;overflow-wrap:anywhere}.notification-item.unread{background:#edf3e8}.notification-item span{font-size:13px;line-height:1.5}.notification-item time,.notification-panel>small{font-size:11px;opacity:.75}.notification-dot{display:inline-block;width:7px;height:7px;background:#436d38;border-radius:50%;margin-right:6px}
-.notification-read-all{border:0;background:transparent;padding:12px 0;font-size:12px!important}.notification-panel button:disabled{opacity:.5;cursor:default}.notification-empty{display:grid;justify-items:center;text-align:center;gap:10px;padding:24px 10px}.notification-empty p{font-size:13px;margin:0;line-height:1.5}
-.notification-preferences{padding:14px;border:1px solid #d7ddcf;background:#f1f3ec;border-radius:12px;margin:15px 0;font-size:13px;color:#293e2d}.notification-preferences p{font-size:12px;line-height:1.5;margin:8px 0}.notification-preferences button{border:1px solid #bbc9b2;background:#fffdf8;color:#29412e;border-radius:8px;padding:8px 10px;font:inherit;cursor:pointer;margin:4px 6px 0 0}.notification-panel :focus-visible,.notification-preferences :focus-visible{outline:3px solid #8da86f;outline-offset:2px}
-.dark-dashboard-layout .notification-panel{background:#202b23;color:#edf3e8;border-color:#4b5b4d}.dark-dashboard-layout .notification-item.unread{background:#334535}.dark-dashboard-layout .notification-preferences{background:#29392d;color:#edf3e8;border-color:#4b5b4d}.dark-dashboard-layout .notification-preferences button{background:#334535;color:#edf3e8;border-color:#6b7a60}
-@media(max-width:600px){.notification-panel{position:fixed;top:calc(var(--dashboard-header-height, 90px) + 8px);right:12px;max-height:calc(100dvh - var(--dashboard-header-height, 90px) - 24px)}}
+/* Notification bell, panel, and preferences — uses layout tokens for theme integration. */
+.student-notifications { position: relative; color: inherit; }
+
+/* ── Bell ── */
+.notification-bell {
+  position: relative; display: grid; place-items: center;
+  width: 42px; height: 42px; background: transparent; border: 0; border-radius: 50%;
+  cursor: pointer; padding: 0; color: inherit;
+}
+.notification-bell:hover { background: var(--layout-hover, rgba(51,80,53,.08)); }
+.notification-badge {
+  position: absolute; top: 2px; right: 2px; min-width: 18px; height: 18px;
+  padding: 0 4px; border-radius: 12px; background: #a63730; color: white;
+  font: 700 10px/18px sans-serif; display: grid; place-items: center;
+}
+
+/* ── Panel ── */
+.notification-panel {
+  position: absolute; right: 0; top: calc(100% + 12px);
+  width: min(390px, calc(100vw - 24px)); max-height: 75dvh;
+  overflow: auto; z-index: 1000;
+  background: var(--layout-card, #fff); color: var(--layout-text, #253c30);
+  border: 1px solid var(--layout-border, #dfe5da); border-radius: 18px;
+  box-shadow: 0 16px 45px #15251620; padding: 18px; box-sizing: border-box;
+}
+.notification-panel::before {
+  content: ""; position: absolute; top: -6px; right: 18px;
+  width: 12px; height: 12px; border-left: 1px solid var(--layout-border, #dfe5da);
+  border-top: 1px solid var(--layout-border, #dfe5da);
+  background: var(--layout-card, #fff); transform: rotate(45deg);
+}
+
+/* ── Panel header ── */
+.notification-panel header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.notification-panel h2 { font-size: 18px; margin: 0; letter-spacing: -.4px; }
+.notification-panel button { font: inherit; cursor: pointer; color: inherit; }
+.notification-panel header button { background: transparent; border: 0; padding: 8px; border-radius: 8px; }
+.notification-panel header button:hover { background: var(--layout-hover, rgba(51,80,53,.08)); }
+
+/* ── List ── */
+.notification-panel ul { list-style: none; margin: 8px 0; padding: 0; }
+.notification-panel li { border-bottom: 1px solid var(--layout-border, #dfe5da); }
+.notification-panel li:last-child { border-bottom: 0; }
+
+/* ── Items ── */
+.notification-item {
+  display: grid; gap: 6px; width: 100%; text-align: left; border: 0;
+  background: transparent; padding: 14px 10px; border-radius: 10px;
+  overflow-wrap: anywhere; color: var(--layout-text, #253c30);
+}
+.notification-item:hover { background: var(--layout-hover, rgba(51,80,53,.08)); }
+.notification-item.unread { background: var(--layout-hover, #edf1e8); }
+.notification-item strong { font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.notification-item span { font-size: 13px; line-height: 1.5; color: var(--layout-muted, #67766b); }
+.notification-item time, .notification-panel > small { font-size: 11px; color: var(--layout-muted, #67766b); }
+.notification-dot {
+  display: inline-block; width: 7px; height: 7px; flex-shrink: 0;
+  background: #355c42; border-radius: 50%;
+}
+
+/* ── Mark all read ── */
+.notification-read-all {
+  border: 0; background: transparent; padding: 10px 0; font-size: 12px !important;
+  color: var(--layout-green, #355c42); font-weight: 600;
+}
+.notification-panel button:disabled { opacity: .5; cursor: default; }
+
+/* ── Empty state ── */
+.notification-empty {
+  display: grid; justify-items: center; text-align: center; gap: 10px; padding: 28px 10px;
+  color: var(--layout-muted, #67766b);
+}
+.notification-empty strong { font-size: 14px; color: var(--layout-text, #253c30); }
+.notification-empty p { font-size: 13px; margin: 0; line-height: 1.5; max-width: 260px; }
+
+/* ── Preferences ── */
+.notification-preferences {
+  padding: 16px; border: 1px solid var(--layout-border, #dfe5da);
+  background: var(--layout-hover, #edf1e8); border-radius: 12px; margin: 14px 0;
+  font-size: 13px; color: var(--layout-text, #253c30);
+}
+.notification-preferences strong { font-size: 13px; }
+.notification-preferences p { font-size: 12px; line-height: 1.5; margin: 8px 0; color: var(--layout-muted, #67766b); }
+.notification-preferences button {
+  border: 1px solid var(--layout-border, #dfe5da); background: var(--layout-card, #fff);
+  color: var(--layout-text, #253c30); border-radius: 8px; padding: 8px 12px;
+  font: inherit; font-size: 12px; cursor: pointer; margin: 4px 6px 0 0;
+}
+.notification-preferences button:hover { border-color: #8ba17e; }
+
+/* ── Focus ── */
+.notification-panel :focus-visible,
+.notification-preferences :focus-visible,
+.notification-bell:focus-visible { outline: 3px solid #8dac74; outline-offset: 2px; }
+
+/* ── Dark mode ── */
+.dark-dashboard-layout .notification-panel { background: var(--layout-card); color: var(--layout-text); border-color: var(--layout-border); box-shadow: 0 16px 45px #00000030; }
+.dark-dashboard-layout .notification-panel::before { background: var(--layout-card); border-color: var(--layout-border); }
+.dark-dashboard-layout .notification-item.unread { background: var(--layout-hover); }
+.dark-dashboard-layout .notification-dot { background: var(--layout-green); }
+.dark-dashboard-layout .notification-preferences { background: var(--layout-hover); color: var(--layout-text); border-color: var(--layout-border); }
+.dark-dashboard-layout .notification-preferences button { background: var(--layout-card); color: var(--layout-text); border-color: var(--layout-border); }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .notification-panel {
+    position: fixed; top: calc(var(--dashboard-header-height, 88px) + 8px);
+    right: 12px; max-height: calc(100dvh - var(--dashboard-header-height, 88px) - 24px);
+  }
+  .notification-panel::before { display: none; }
+}

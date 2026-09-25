@@ -142,4 +142,9 @@ router.get('/:id/announcements/:announcementId/engagement', protect, requireTeac
 router.put('/:id/announcements/:announcementId/like', protect, requireTeacher, interactions.like);
 router.post('/:id/announcements/:announcementId/comments', protect, requireTeacher, interactions.comment);
 
+const submissions = require('../controllers/submissionController');
+router.get('/:id/materials/:materialId/submissions', protect, requireTeacher, submissions.listMaterialSubmissions);
+router.post('/:id/materials/:materialId/submissions/:submissionId/grade', protect, requireTeacher, submissions.gradeSubmission);
+router.get('/:id/materials/:materialId/submissions/:submissionId/attachment', protect, requireTeacher, submissions.downloadTeacherAttachment);
+
 module.exports = router;

@@ -38,10 +38,29 @@ const detail = handler(async (req, res) => {
     likes: a.likes.length, liked: a.likes.some((id) => id.equals(req.user._id)),
     comments: a.comments.map((c) => ({ _id: c._id, text: c.text, createdAt: c.createdAt, name: c.author?.name || 'Former student', own: String(c.author?._id) === String(req.user._id) })),
   })).sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
-  const materials = subject.materials.filter((m) => m.status === 'posted').map((m) => ({
-    _id: m._id, title: m.title, type: m.type, instructions: m.instructions, points: m.points,
-    dueAt: m.dueAt, postedAt: m.postedAt, link: safeLink(m.link), attachmentName: m.attachmentKey ? m.attachmentName || 'Attachment' : '',
-  })).sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
+  const userSubmissions = await require('../models/Submission').find({ subjectId: subject._id, studentId: req.user._id });
+  const subMap = new Map();
+  userSubmissions.forEach((s) => subMap.set(String(s.materialId), s));
+
+  const materials = subject.materials.filter((m) => m.status === 'posted').map((m) => {
+    const sub = subMap.get(String(m._id));
+    return {
+      _id: m._id, title: m.title, type: m.type, instructions: m.instructions, points: m.points,
+      dueAt: m.dueAt, postedAt: m.postedAt, link: safeLink(m.link), attachmentName: m.attachmentKey ? m.attachmentName || 'Attachment' : '',
+      submission: sub ? {
+        _id: sub._id,
+        status: sub.status,
+        submittedAt: sub.submittedAt,
+        isLate: sub.isLate,
+        attachmentName: sub.attachmentName,
+        attachmentSize: sub.attachmentSize,
+        text: sub.text,
+        grade: sub.grade,
+        feedback: sub.feedback,
+        gradedAt: sub.gradedAt,
+      } : null,
+    };
+  }).sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
   res.json({ ...summary(subject), announcements, materials });
 });
 const interactionAccess = (req) => req.user.role === 'teacher' ? { teacherId: req.user._id } : { enrolledStudents: req.user._id };
