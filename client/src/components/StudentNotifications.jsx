@@ -24,7 +24,7 @@ export function NotificationPreferences() {
     } catch { setMessage('Unable to enable browser alerts. You can still use the notification bell.'); }
     finally { setBusy(false); }
   };
-  return <section className="notification-preferences" aria-label="Notification preferences"><strong>Browser notifications</strong><p>Get alerts for announcements, materials, and tutoring decisions while TuroLink is open. The bell works even when browser alerts are off.</p>
+  return <section className="notification-preferences" aria-label="Notification preferences"><strong>Browser notifications</strong><p>{user.role === 'teacher' ? 'Get alerts for tutoring requests, student comments, and reviews while TuroLink is open.' : 'Get alerts for announcements, materials, and tutoring decisions while TuroLink is open.'} The bell works even when browser alerts are off.</p>
     {value === 'enabled' && supported() && window.Notification.permission === 'granted' ? <button type="button" onClick={() => savePreference(user.id, 'off')}>Turn off browser alerts</button> : <><button type="button" disabled={busy} onClick={enable}>{busy ? 'Waiting for permission…' : 'Enable notifications'}</button>{value === 'ask' && <button type="button" onClick={() => savePreference(user.id, 'off')}>Not now</button>}</>}
     {message && <p role="status">{message}</p>}
   </section>;
@@ -79,11 +79,11 @@ export default function StudentNotifications() {
     finally { setBusy(false); }
   };
   return <div className="student-notifications" ref={wrapper}><button type="button" className="notification-bell" ref={bell} aria-label={`Notifications${data.unreadCount ? `, ${data.unreadCount} unread` : ''}`} aria-expanded={open} aria-controls="student-notification-panel" onClick={() => setOpen(v => !v)}><Bell size={23} />{data.unreadCount > 0 && <span className="notification-badge">{data.unreadCount > 99 ? '99+' : data.unreadCount}</span>}</button>
-    {open && <section className="notification-panel" id="student-notification-panel" aria-label="Student notifications"><header><h2>Notifications</h2><button type="button" aria-label="Close notifications" onClick={() => { setOpen(false); bell.current?.focus(); }}><X size={18} /></button></header>
+    {open && <section className="notification-panel" id="student-notification-panel" aria-label={`${user.role === 'teacher' ? 'Teacher' : 'Student'} notifications`}><header><h2>Notifications</h2><button type="button" aria-label="Close notifications" onClick={() => { setOpen(false); bell.current?.focus(); }}><X size={18} /></button></header>
       <NotificationPreferences />
       <button type="button" className="notification-read-all" disabled={busy || !data.unreadCount} onClick={() => read()}>Mark all as read</button>
       {error && <p role="alert">{error} <button type="button" onClick={() => setRevision(v => v + 1)}>Retry</button></p>}
-      {loading ? <p role="status">Loading notifications…</p> : !data.items.length ? <div className="notification-empty"><Bell size={30} /><strong>You’re all caught up</strong><p>Updates from your subjects and tutors will appear here.</p></div> : <ul>{data.items.map(item => <li key={item._id}><button type="button" disabled={busy} className={`notification-item ${item.readAt ? '' : 'unread'}`} onClick={() => read(item)}><strong>{!item.readAt && <span className="notification-dot" aria-label="Unread" />}{item.title}</strong><span>{item.message}</span><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}</time></button></li>)}</ul>}
+      {loading ? <p role="status">Loading notifications…</p> : !data.items.length ? <div className="notification-empty"><Bell size={30} /><strong>You’re all caught up</strong><p>{user.role === 'teacher' ? 'New student requests, comments, and reviews will appear here.' : 'Updates from your subjects and tutors will appear here.'}</p></div> : <ul>{data.items.map(item => <li key={item._id}><button type="button" disabled={busy} className={`notification-item ${item.readAt ? '' : 'unread'}`} onClick={() => read(item)}><strong>{!item.readAt && <span className="notification-dot" aria-label="Unread" />}{item.title}</strong><span>{item.message}</span><time dateTime={item.createdAt}>{new Date(item.createdAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}</time></button></li>)}</ul>}
       <small>Showing the latest 50 notifications.</small>
     </section>}
   </div>;

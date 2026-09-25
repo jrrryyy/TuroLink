@@ -1,0 +1,55 @@
+﻿/* Student workspace. All overrides are scoped to protect the teacher layout. */
+.dashboard-layout.student-layout{--layout-bg:#f4f5ef;--layout-card:#fff;--layout-text:#253c30;--layout-muted:#657568;--layout-green:#355c42;--layout-border:#dfe5da;--layout-hover:#edf1e8;--dashboard-sidebar-width:270px;background:var(--layout-bg)}
+.dashboard-layout.student-layout.dark-dashboard-layout{--layout-bg:#17221d;--layout-card:#213129;--layout-text:#edf3e9;--layout-muted:#b2bfb1;--layout-green:#b3d2a4;--layout-border:#3a4d3f;--layout-hover:#2a3d31}
+.student-layout .dashboard-layout-header{background:var(--layout-card);border-bottom:1px solid var(--layout-border);gap:22px;padding:0 32px}
+.student-layout .dashboard-layout-search{background:var(--layout-bg);border:1px solid var(--layout-border);border-radius:12px;height:44px}
+.student-layout .dashboard-layout-search input{font-size:13px;color:var(--layout-text)}
+.student-layout .dashboard-topbar-brand{font-size:19px;letter-spacing:-.5px}
+.student-layout .dashboard-topbar-brand>span{background:var(--layout-hover);border-radius:13px}
+.student-layout .dashboard-layout-avatar{width:40px;height:40px;font-size:15px;box-shadow:0 0 0 4px var(--layout-hover)}
+.student-layout .dashboard-layout-profile strong{font-size:13px}.student-layout .dashboard-layout-profile span{font-size:11px}
+.student-layout .dashboard-layout-sidebar{background:var(--layout-card);border-right:1px solid var(--layout-border)}
+.student-layout .dashboard-layout-sidebar .dashboard-layout-logo{font-size:27px;padding-bottom:22px}
+.student-layout .dashboard-layout-nav{padding:12px 16px;gap:6px}
+.student-layout .dashboard-layout-nav-item{min-height:49px;border-radius:12px;font-size:13px;gap:12px}
+.student-layout .dashboard-layout-nav-item:hover:not(.active){background:var(--layout-hover);color:var(--layout-text)}
+.student-layout .dashboard-layout-content{background:var(--layout-bg);padding:0}
+.student-layout :where(button,a,input,select,textarea):focus-visible{outline:3px solid #8dac74;outline-offset:3px}
+.student-layout button:disabled{cursor:not-allowed;opacity:.55}
+.student-layout :is(.student-dashboard-content,.subject-feed-page,.tutors-page,.account-settings-wrap){max-width:1360px;margin:auto;padding:32px 40px 48px;box-sizing:border-box}
+.student-layout .student-dashboard-content{gap:22px}
+.student-layout .student-welcome{padding:36px 40px;border-radius:24px;min-height:230px;background:#294d38}
+.student-layout .student-welcome h1{font-family:Georgia,serif;font-size:clamp(32px,3.5vw,48px);letter-spacing:-1.2px;margin:14px 0;line-height:1.15}
+.student-layout .student-welcome p{font-size:14px;max-width:500px}
+.student-layout .student-welcome-symbol{width:116px;height:116px;background:#789568;border:12px solid #ffffff0d}
+.student-layout .student-hero-link{display:inline-flex;align-items:center;gap:12px;margin-top:24px;padding:12px 17px;background:#edf3e4;color:#294d38;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600}
+.student-layout :is(.student-panel,.subject-feed-card,.subject-feed-post,.tutor-panel,.account-settings-card){border:1px solid var(--layout-border);background:var(--layout-card);border-radius:18px;box-shadow:0 8px 28px #233f2b06}
+.student-layout .student-panel{padding:26px}.student-layout .student-panel h2{font-family:inherit;font-size:21px;font-weight:600;letter-spacing:-.5px;color:var(--layout-text)}
+.student-layout .student-eyebrow,.student-layout .student-section-label{font-size:10px;letter-spacing:1.6px;font-weight:700;color:var(--layout-muted);display:block;line-height:1.6}
+.student-layout .student-welcome .student-eyebrow{color:#c2d3b7}
+.student-layout .student-next-class{min-height:130px;border-left:4px solid #789568}
+.student-layout .student-primary-button{display:inline-flex;align-items:center;justify-content:center;border-radius:10px;padding:12px 20px;font-size:13px;min-height:44px;text-decoration:none;box-sizing:border-box}
+.student-layout .student-shortcuts{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.student-layout .student-shortcuts>a{display:flex;align-items:center;gap:16px;padding:22px;border:1px solid var(--layout-border);border-radius:14px;background:var(--layout-card);text-decoration:none;color:var(--layout-green)}
+.student-layout .student-shortcuts>a>div{flex:1;min-width:0}.student-layout .student-shortcuts strong{display:block;font-size:14px;color:var(--layout-text)}.student-layout .student-shortcuts span{display:block;font-size:12px;line-height:1.6;color:var(--layout-muted);margin-top:5px}
+.student-layout .student-overview-grid{grid-template-columns:1.2fr 1fr;gap:22px}.student-layout .student-enrolled{min-height:360px}
+.student-layout .student-course-row{padding:12px;text-decoration:none;color:var(--layout-text);border:1px solid var(--layout-border)}.student-layout .student-course-list{gap:12px;margin:24px 0}
+.student-layout .student-all-subjects{text-decoration:none;border-top:1px solid var(--layout-border);padding-top:18px}
+.student-layout .student-empty{line-height:1.8}.student-layout .student-empty>button{display:block;margin:16px auto 0}
+.student-layout .student-session-dialog{box-sizing:border-box}.student-layout .student-calendar button{min-width:36px;min-height:36px;justify-content:center}
+.student-layout :is(.subject-feed-page,.tutors-page) h1,.student-layout .account-settings-card h1{font-size:28px;letter-spacing:-.7px;color:var(--layout-text);margin-top:6px}
+.student-layout .subject-feed-card{border-top:4px solid #789568;border-radius:18px;min-height:240px}.student-layout .subject-feed-card header{padding:24px}.student-layout .subject-feed-card header strong{font-size:18px}.student-layout .subject-feed-card-body{font-size:13px;line-height:1.6}.student-layout .subject-feed-card>a{margin:0 24px 24px;align-self:flex-start;font-size:12px}
+.student-layout .subject-feed-primary,.student-layout .tutor-button,.student-layout .account-save{background:#355c42;color:#fff;border-radius:10px;min-height:42px}
+.student-layout .subject-feed-post{padding:26px;scroll-margin-top:calc(var(--dashboard-header-height) + 18px)}.student-layout .subject-feed-content{font-size:14px;line-height:1.85}.student-layout .subject-feed-post footer button{min-height:40px}.student-layout .subject-feed-comments{font-size:13px}
+.student-layout .subject-feed-tabs{gap:12px;padding:6px;border:1px solid var(--layout-border);border-radius:12px;background:var(--layout-card)}.student-layout .subject-feed-tabs button{border:0;border-radius:8px;padding:12px 20px}.student-layout .subject-feed-tabs button.active{background:var(--layout-hover)}
+.student-layout .subject-feed-empty,.student-layout .tutor-empty{border:1px dashed var(--layout-border);background:var(--layout-card);border-radius:14px;padding:40px 24px;line-height:1.8}
+.student-layout .tutor-panel{padding:28px}.student-layout .tutor-card{background:var(--layout-card);padding:24px;border-top:3px solid #789568;gap:22px}.student-layout .tutor-card-bottom{border-top:1px solid var(--layout-border);padding-top:18px}.student-layout .tutor-card-bottom strong{font-size:19px}
+.student-layout .tutor-search{background:var(--layout-bg);min-height:48px}.student-layout .tutor-filters{gap:10px}.student-layout .tutor-muted{line-height:1.8}.student-layout .tutor-booking{position:sticky;top:calc(var(--dashboard-header-height) + 24px)}
+.student-layout .tutor-tabs button{background:var(--layout-hover);padding:12px 18px;border-radius:9px;font-size:13px}.student-layout .tutor-tabs button.selected,.student-layout .tutor-slot-grid button.selected{background:#355c42;color:#fff}
+.student-layout .tutor-schedule-list>.tutor-panel{background:var(--layout-bg);box-shadow:none}.student-layout .tutor-schedule-row p{font-size:13px;color:var(--layout-muted)}.student-layout .tutor-review-form{padding:20px;background:var(--layout-card);border-radius:12px;border:1px solid var(--layout-border)}
+.student-layout .account-settings-card{padding:30px}.student-layout .account-security{background:var(--layout-bg);border:1px solid var(--layout-border);border-radius:14px}.student-layout .account-details-table{border-radius:10px;overflow:hidden}.student-layout .account-picture-circle{box-shadow:0 0 0 8px var(--layout-hover);width:190px}
+.student-layout :is(.account-settings-card,.tutors-page,.subject-feed-page) :is(input,select,textarea){font-size:14px;border-radius:10px}
+@media(max-width:1000px){.student-layout :is(.student-dashboard-content,.subject-feed-page,.tutors-page,.account-settings-wrap){padding:24px}.student-layout .student-overview-grid{grid-template-columns:1fr}.student-layout .student-activity-column{grid-template-columns:1fr 1fr}.student-layout .tutor-detail-grid{grid-template-columns:1fr}.student-layout .tutor-booking{position:static}}
+@media(max-width:760px){.dashboard-layout.student-layout{--dashboard-sidebar-width:min(280px,82vw)}.student-layout .dashboard-layout-header{padding:0 12px;gap:8px}.student-layout .dashboard-layout-search{height:34px}.student-layout :is(.student-dashboard-content,.subject-feed-page,.tutors-page,.account-settings-wrap){padding:20px 16px 32px}.student-layout .student-welcome{padding:28px 24px;min-height:0}.student-layout .student-welcome h1{font-size:34px}.student-layout .student-shortcuts,.student-layout .student-activity-column{grid-template-columns:1fr}.student-layout .student-shortcuts>a{padding:18px}.student-layout :is(.student-panel,.tutor-panel,.subject-feed-post,.account-settings-card){padding:20px}.student-layout .student-next-class{gap:20px}.student-layout .tutor-card{padding:20px}.student-layout .student-enrolled{min-height:0}.student-layout :is(.subject-feed-page,.tutors-page) h1{font-size:25px}.student-layout .subject-feed-grid{gap:18px}.student-layout .tutor-profile-heading>strong{margin-left:0}.student-layout .account-security{padding:16px}.student-layout .tutor-filters{flex-direction:column}}
+@media(prefers-reduced-motion:no-preference){.student-layout :is(.student-shortcuts>a,.tutor-card,.subject-feed-card){transition:border-color .15s,box-shadow .15s}.student-layout :is(.student-shortcuts>a,.tutor-card,.subject-feed-card):hover{border-color:#8ba17e;box-shadow:0 8px 24px #233f2b12}}
+@media(prefers-reduced-motion:reduce){.student-layout *{transition:none!important;animation:none!important;scroll-behavior:auto!important}}

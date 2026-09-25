@@ -56,8 +56,16 @@ const comment = handler(async (req, res) => {
   const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
   if (!text || text.length > 2000) throw fail('Enter a comment of 1–2,000 characters.');
   if (!mongoose.isObjectIdOrHexString(req.params.id) || !mongoose.isObjectIdOrHexString(req.params.announcementId)) throw fail('Invalid announcement.');
-  const result = await Subject.updateOne({ _id: req.params.id, ...interactionAccess(req), announcements: { $elemMatch: announcementFilter(req.params.announcementId) } }, { $push: { 'announcements.$[post].comments': { author: req.user._id, text } } }, { arrayFilters: [{ 'post._id': new mongoose.Types.ObjectId(req.params.announcementId) }] });
-  if (!result.matchedCount) throw fail('Announcement not available.', 404);
+  await mongoose.connection.transaction(async session => {
+    const commentId = new mongoose.Types.ObjectId();
+    const subject = await Subject.findOneAndUpdate({ _id: req.params.id, ...interactionAccess(req), announcements: { $elemMatch: announcementFilter(req.params.announcementId) } }, { $push: { 'announcements.$[post].comments': { _id: commentId, author: req.user._id, text } } }, { arrayFilters: [{ 'post._id': new mongoose.Types.ObjectId(req.params.announcementId) }], returnDocument: 'after', session });
+    if (!subject) throw fail('Announcement not available.', 404);
+    if (req.user.role === 'student') await require('../models/Notification').create([{
+      recipient: subject.teacherId, eventKey: `comment:${commentId}`, sourceId: req.params.announcementId, kind: 'comment',
+      title: `New comment · ${subject.code}`, message: `${req.user.name}: ${text.slice(0, 200)}`,
+      url: `/teacher/my-subjects?subject=${subject._id}&post=${req.params.announcementId}`,
+    }], { session });
+  });
   res.status(201).json({ message: 'Comment posted.' });
 });
 const attachment = handler(async (req, res) => {

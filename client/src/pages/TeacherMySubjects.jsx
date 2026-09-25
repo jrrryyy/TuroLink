@@ -383,9 +383,24 @@ const TeacherMySubjects = () => {
   // OPEN SUBJECT
   // =====================================================
 
+  const linkedSubject = searchParams.get('subject');
+  const linkedPost = searchParams.get('post');
+  useEffect(() => {
+    if (!linkedSubject) return;
+    let active = true;
+    api.get('/subjects/' + linkedSubject).then(({ data }) => {
+      if (active) { setSelectedSubject(data); setActiveTab('announcements'); setShowAnnouncementComposer(false); }
+    }).catch(() => { if (active) setError('This subject is no longer available.'); });
+    return () => { active = false; };
+  }, [linkedSubject, linkedPost]);
+  useEffect(() => {
+    if (linkedPost && selectedSubject) document.getElementById('teacher-announcement-' + linkedPost)?.scrollIntoView({ block: 'center' });
+  }, [linkedPost, selectedSubject, loading]);
+
   const openSubject =
     async (subject) => {
       try {
+        setSearchParams(searchTerm ? { q: searchTerm } : {}, { replace: true });
         setError("");
 
         setSuccessMessage(
@@ -1047,9 +1062,7 @@ const TeacherMySubjects = () => {
 
             <div className="teacher-subject-title-row">
 
-              <h1>
-                Subjects
-              </h1>
+              <div><span className="teacher-eyebrow">YOUR CLASSROOM</span><h1>My Subjects</h1><p className="teacher-page-description">A home for every lesson. Share updates, prepare classwork, and support your students.</p></div>
 
               <button
                 type="button"
@@ -1128,8 +1141,10 @@ const TeacherMySubjects = () => {
                       <div>
 
                         <h2>
+                          <button type="button" className="teacher-subject-open" onClick={(event) => { event.stopPropagation(); openSubject(subject); }}>
                           {subject.code}:{" "}
                           {subject.title}
+                          </button>
                         </h2>
 
                         <p>
@@ -1194,6 +1209,7 @@ const TeacherMySubjects = () => {
                   type="button"
                   className="teacher-subject-back"
                   onClick={() => {
+                    setSearchParams(searchTerm ? { q: searchTerm } : {}, { replace: true });
                     setSelectedSubject(
                       null
                     );
@@ -1663,7 +1679,7 @@ const TeacherMySubjects = () => {
                           key={
                             announcement._id
                           }
-                          className="teacher-announcement-card"
+                          className="teacher-announcement-card" id={`teacher-announcement-${announcement._id}`}
                         >
 
                           <div className="teacher-announcement-author">

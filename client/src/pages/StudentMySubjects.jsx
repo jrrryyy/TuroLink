@@ -8,7 +8,7 @@ import { profilePictureUrl } from '../services/profile';
 import { downloadFile } from '../services/download';
 import '../styles/student-subject-feed.css';
 
-const date = (value) => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+const date = (value) => value ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : '';
 function Avatar({ subject }) {
   return <span className="subject-feed-avatar">{subject.instructorAvatar ? <img src={profilePictureUrl(subject.instructorAvatar)} alt="" /> : subject.instructorName?.charAt(0) || 'T'}</span>;
 }
@@ -54,8 +54,9 @@ export default function StudentMySubjects() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [revision, setRevision] = useState(0);
-  const [query, setQuery] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get('q') || '';
+  const setQuery = value => setSearchParams(previous => { const next = new URLSearchParams(previous); if (value) next.set('q', value); else next.delete('q'); return next; }, { replace: true });
   const tab = searchParams.get('tab') === 'materials' ? 'materials' : 'announcements';
   const setTab = (value) => setSearchParams(value === 'materials' ? { tab: value } : {});
   const endpoint = id ? `/student-subjects/${id}` : '/student-subjects';
@@ -77,7 +78,7 @@ export default function StudentMySubjects() {
   return <DashboardLayout role="student" userName={user.name} searchValue={query} onSearchChange={setQuery} searchPlaceholder="Search your subjects…"><div className="subject-feed-page">
     {id && <Link className="subject-feed-back" to="/student/my-subjects"><ArrowLeft size={16} />Back to My Subjects</Link>}
     {error ? <div className="subject-feed-error" role="alert">{error} <button onClick={() => { setError(''); setLoading(true); setRevision((r) => r + 1); }}>Try again</button></div> : (loading || !data) && <p role="status">Loading subjects…</p>}
-    {!id && data && <><h1>My Subjects</h1><div className="subject-feed-grid">{filtered.map((s) => <article className="subject-feed-card" key={s._id}><header><Avatar subject={s} /><div><strong>{s.instructorName}</strong><small>{s.title}</small></div></header><div className="subject-feed-card-body"><span>Upcoming topic:</span><p>{s.upcomingTopic || 'No upcoming topic yet'}</p></div><Link className="subject-feed-primary" to={`/student/my-subjects/${s._id}`}>View Announcements</Link></article>)}</div>
+    {!id && data && <><span className="student-section-label">YOUR CLASSROOM</span><h1>My Subjects</h1><p className="subject-feed-muted">Everything you need for your next lesson, all in one place.</p><div className="subject-feed-grid">{filtered.map((s) => <article className="subject-feed-card" key={s._id}><header><Avatar subject={s} /><div><strong>{s.title}</strong><small>{s.instructorName}</small></div></header><div className="subject-feed-card-body"><span>Upcoming topic:</span><p>{s.upcomingTopic || 'No upcoming topic yet'}</p></div><Link className="subject-feed-primary" to={`/student/my-subjects/${s._id}`}>View Announcements</Link></article>)}</div>
       {!filtered.length && <div className="subject-feed-empty"><BookOpen size={36} /><h2>{query ? 'No matching subjects' : 'No enrolled subjects yet'}</h2><p>{query ? 'Try a different subject or teacher name.' : 'Choose a subject when requesting a tutor. It appears here after the teacher accepts.'}</p><Link to="/student/find-tutors">Find a tutor</Link></div>}</>}
     {id && data && <><h1>{data.code}: {data.title}</h1><p className="subject-feed-muted">Enrolled Students: {data.enrolledCount} · Subject Rating: {data.rating ? `${data.rating}/5` : 'Not rated yet'}</p><nav className="subject-feed-tabs" aria-label="Subject content"><button aria-pressed={tab === 'announcements'} className={tab === 'announcements' ? 'active' : ''} onClick={() => setTab('announcements')}>Announcements</button><button aria-pressed={tab === 'materials'} className={tab === 'materials' ? 'active' : ''} onClick={() => setTab('materials')}>Materials</button></nav>
       {tab === 'announcements' ? <>{!data.announcements.length && <div className="subject-feed-empty">No announcements posted yet.</div>}{data.announcements.map((p) => <Announcement key={p._id} subject={data} post={p} reload={reload} />)}</> : <>{!data.materials.length && <div className="subject-feed-empty">No materials published yet.</div>}{data.materials.map((m) => <article id={`material-${m._id}`} className="subject-feed-post" key={m._id}><small>{m.type === 'quiz' ? 'Quiz Assignment' : 'Assignment'}</small><h2>{m.title}</h2><p className="subject-feed-muted">{m.points == null ? 'Ungraded' : `${m.points} points`}{m.dueAt ? ` · Due ${date(m.dueAt)} (Manila)` : ' · No due date'}</p><p className="subject-feed-content">{m.instructions}</p>{m.link && <p><a href={m.link} target="_blank" rel="noreferrer">Open material link</a></p>}{m.attachmentName && <Attachment name={m.attachmentName} endpoint={`/student-subjects/${id}/materials/${m._id}/attachment`} />}</article>)}</>}

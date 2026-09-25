@@ -26,6 +26,10 @@ const getTeacherDashboard = async (req, res) => {
       { $match: { teacher: req.user._id, 'review.rating': { $exists: true } } },
       { $group: { _id: null, average: { $avg: '$review.rating' }, count: { $sum: 1 } } },
     ]);
+    const subjects = await require('../models/Subject').find({ teacherId: req.user._id }).select('enrolledStudents').lean();
+    const manilaNow = new Date(Date.now() + 8 * 3600000);
+    const weekStart = new Date(Date.UTC(manilaNow.getUTCFullYear(), manilaNow.getUTCMonth(), manilaNow.getUTCDate() - (manilaNow.getUTCDay() + 6) % 7) - 8 * 3600000);
+    const completed = await Booking.find({ teacher: req.user._id, status: 'confirmed', start: { $gte: weekStart }, end: { $lte: new Date() } }).select('start end').lean();
     res.json({
       teacher: {
         id: req.user._id,
@@ -37,13 +41,13 @@ const getTeacherDashboard = async (req, res) => {
 
       statistics: {
         activeStudents:
-          teacherProfile.activeStudents,
+          new Set(subjects.flatMap(subject => subject.enrolledStudents.map(String))).size,
 
         weeklyHours:
-          teacherProfile.weeklyHours,
+          Math.round(completed.reduce((hours, session) => hours + (session.end - session.start) / 3600000, 0) * 10) / 10,
 
         activeSubjects:
-          teacherProfile.subjects.length,
+          subjects.length,
 
         averageRating:
           rating?.average || 0,
@@ -58,7 +62,7 @@ const getTeacherDashboard = async (req, res) => {
 
       requests: (await Booking.find({ teacher: req.user._id, status: 'pending' }).populate('student', 'name').sort({ start: 1 }).lean()).map((request) => ({
         _id: request._id, studentName: request.student?.name || 'Student', subject: request.subject,
-        time: request.start.toLocaleString('en-PH', { timeZone: 'Asia/Manila' }) + ' (Manila)', status: 'pending',
+        time: request.start.toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short', hour12: true }) + ' (Manila)', status: 'pending',
       })),
 
       messages: teacherProfile.messages,

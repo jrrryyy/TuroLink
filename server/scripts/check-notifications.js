@@ -24,7 +24,7 @@ async function main() {
   await publishDueMaterials(); await publishDueMaterials();
   assert.equal(await Notification.countDocuments({ recipient: student._id }), 4);
   const app = express(); app.use(express.json()); app.use('/api', require('../services/authSecurity').csrf);
-  app.use('/api/notifications', require('../routes/notificationRoutes')); app.use('/api/auth', require('../routes/authRoutes')); app.use('/api/tutors', require('../routes/tutorRoutes')); app.use('/api/student-subjects', require('../routes/studentSubjectRoutes')); app.use('/api/student', require('../routes/studentRoutes'));
+  app.use('/api/notifications', require('../routes/notificationRoutes')); app.use('/api/auth', require('../routes/authRoutes')); app.use('/api/tutors', require('../routes/tutorRoutes')); app.use('/api/student-subjects', require('../routes/studentSubjectRoutes')); app.use('/api/student', require('../routes/studentRoutes')); app.use('/api/subjects', require('../routes/subjectRoutes'));
   server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
   const origin = 'http://127.0.0.1:' + server.address().port;
   const call = async (user, url, method = 'GET', body) => {
@@ -32,7 +32,7 @@ async function main() {
     return { status: response.status, data: await response.json() };
   };
   assert.equal((await call(null, '/notifications')).status, 401);
-  assert.equal((await call(teacher, '/notifications')).status, 403);
+  assert.equal((await call(teacher, '/notifications')).status, 200);
   assert.equal((await call(outsider, '/notifications')).data.unreadCount, 0);
   const list = await call(student, '/notifications'); assert.equal(list.data.unreadCount, 4);
   assert(!list.data.items.some(n => n.message === 'Private draft'));
@@ -53,6 +53,24 @@ async function main() {
     assert.equal(await Notification.countDocuments({ recipient: student._id, eventKey: `request:${booking._id}:${action}` }), 1);
   }
   console.log('PASS: published-only content, scheduled delivery, deduplication, recipient privacy, archived/unenrolled filtering, read persistence and transactional accept/decline alerts.');
+  await require('../models/TeacherProfile').create({ user: teacher._id, degreeTitle: 'Education', subjectToTeach: 'Mathematics', teachingBio: 'Tutoring', hourlyRate: 50 });
+  const slotStart = new Date(Date.now() + 10 * 86400000); slotStart.setUTCMinutes(0, 0, 0);
+  const slot = await require('../models/TutorSlot').create({ teacher: teacher._id, start: slotStart, subjectId: subject._id });
+  const requestBody = { slotId: String(slot._id), subjectId: String(subject._id), expectedPrice: 50 };
+  assert.equal((await call(student, '/tutors/bookings', 'POST', requestBody)).status, 201);
+  assert.equal((await call(student, '/tutors/bookings', 'POST', requestBody)).status, 409);
+  const commentUrl = `/student-subjects/${subject._id}/announcements/${subject.announcements[0]._id}/comments`;
+  assert.equal((await call(outsider, commentUrl, 'POST', { text: 'Unauthorized' })).status, 404);
+  assert.equal((await call(student, commentUrl, 'POST', { text: 'Can you explain the first topic?' })).status, 201);
+  const completed = await Booking.create({ teacher: teacher._id, student: student._id, slot: new mongoose.Types.ObjectId(), start: new Date(Date.now() - 86400000), end: new Date(Date.now() - 82800000), subject: subject.title, subjectId: subject._id, price: 50, status: 'confirmed' });
+  assert.equal((await call(student, `/tutors/bookings/${completed._id}/review`, 'POST', { rating: 5, text: 'Helpful session.' })).status, 201);
+  assert.equal((await call(student, `/tutors/bookings/${completed._id}/review`, 'POST', { rating: 5, text: 'Duplicate' })).status, 409);
+  const teacherAlerts = (await call(teacher, '/notifications')).data;
+  assert.equal(teacherAlerts.unreadCount, 3);
+  assert.deepEqual(teacherAlerts.items.map(n => n.kind).sort(), ['comment', 'review', 'session']);
+  assert.equal((await call(student, `/notifications/${teacherAlerts.items[0]._id}/read`, 'PATCH')).status, 404);
+  assert.equal((await call(teacher, `/notifications/${list.data.items[0]._id}/read`, 'PATCH')).status, 404);
+  console.log('PASS: teacher request/comment/review alerts, duplicate prevention, and cross-role notification privacy.');
   if (process.argv.includes('--browser')) {
     const { chromium } = require(require('path').join(process.env.TEMP, 'turolink-browser-check/node_modules/playwright'));
     browser = await chromium.launch({ channel: 'msedge', headless: true });
@@ -93,12 +111,32 @@ async function main() {
     assert.deepEqual(errors, []);
     await page.unrouteAll({ behavior: 'ignoreErrors' }); await context.close();
     console.log('PASS: browser bell/count, opt-in only, decline/denied fallback, mark-read, material navigation, mobile panel and Escape.');
+    const teacherContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await browserCookie(teacherContext, teacher);
+    const teacherPage = await teacherContext.newPage();
+    await teacherPage.route('**/api/**', async route => { try { const url = new URL(route.request().url()); const response = await route.fetch({ url: origin + url.pathname + url.search }); await route.fulfill({ response }); } catch (e) { if (!/closed|disposed|already handled/.test(e.message)) throw e; } });
+    await teacherPage.goto('http://localhost:5173/teacher/my-subjects');
+    await teacherPage.getByRole('button', { name: 'Notifications, 3 unread' }).click();
+    await teacherPage.getByRole('button', { name: 'Not now', exact: true }).click();
+    await teacherPage.getByRole('button', { name: /New comment/ }).click();
+    await teacherPage.waitForURL(url => url.searchParams.has('post'));
+    await teacherPage.locator(`#teacher-announcement-${subject.announcements[0]._id}`).waitFor();
+    await teacherPage.getByRole('button', { name: 'Notifications, 2 unread' }).click();
+    await teacherPage.getByRole('button', { name: /New student review/ }).click();
+    await teacherPage.waitForURL(url => url.searchParams.get('tab') === 'past');
+    await teacherPage.getByText('Helpful session.', { exact: false }).waitFor();
+    await teacherPage.getByRole('button', { name: 'Notifications, 1 unread' }).click();
+    await teacherPage.getByRole('button', { name: /New tutoring request/ }).click();
+    await teacherPage.getByRole('heading', { name: 'Tutoring Requests' }).waitFor();
+    await teacherPage.getByRole('button', { name: 'Notifications', exact: true }).waitFor();
+    await teacherPage.unrouteAll({ behavior: 'ignoreErrors' }); await teacherContext.close();
+    console.log('PASS: teacher mobile bell, opt-out, comment deep link, past-review navigation, request navigation and read counts.');
   }
 }
 main().catch(e => { console.error(e); process.exitCode = 1; }).finally(async () => {
   if (browser) await browser.close(); if (server) await new Promise(resolve => server.close(resolve));
   if (mongoose.connection.readyState === 1) {
     const ids = users.map(u => u._id);
-    await cleanup(users); await Subject.deleteMany({ teacherId: { $in: ids } }); await Booking.deleteMany({ student: { $in: ids } }); await require('../models/DeclinedRequest').deleteMany({ student: { $in: ids } }); await User.deleteMany({ _id: { $in: ids } }); await mongoose.disconnect();
+    await cleanup(users); await Subject.deleteMany({ teacherId: { $in: ids } }); await Booking.deleteMany({ student: { $in: ids } }); await require('../models/DeclinedRequest').deleteMany({ student: { $in: ids } }); await require('../models/TeacherProfile').deleteMany({ user: { $in: ids } }); await require('../models/TutorSlot').deleteMany({ teacher: { $in: ids } }); await User.deleteMany({ _id: { $in: ids } }); await mongoose.disconnect();
   }
 });

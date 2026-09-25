@@ -31,6 +31,8 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 
 import "../styles/dashboard-layout.css";
+import '../styles/teacher-modern.css';
+import '../styles/student-modern.css';
 
 const DashboardLayout = ({
   role = "student",
@@ -121,7 +123,7 @@ const DashboardLayout = ({
   }, []);
 
   const isActive = (path) =>
-    location.pathname === path;
+    location.pathname === path || location.pathname.startsWith(path + "/") || (path === "/student/find-tutors" && location.pathname.startsWith("/student/tutors/"));
 
   const goTo = (path) => {
     setNavigationNotice("");
@@ -204,19 +206,19 @@ const DashboardLayout = ({
           </>}
           <form className="dashboard-layout-search" onSubmit={(event) => {
             event.preventDefault();
-            if (isTeacher && !onSearchChange) navigate("/teacher/my-subjects?q=" + encodeURIComponent(headerSearch));
+            if (!onSearchChange) navigate((isTeacher ? "/teacher/my-subjects?q=" : "/student/my-subjects?q=") + encodeURIComponent(headerSearch));
           }}>
             <Search size={19} />
 
             <input
               type="text"
-              value={isTeacher && !onSearchChange ? headerSearch : searchValue}
+              value={!onSearchChange ? headerSearch : searchValue}
               aria-label="Search subjects"
               placeholder={
                 searchPlaceholder
               }
               onChange={(event) => {
-                if (isTeacher && !onSearchChange) setHeaderSearch(event.target.value);
+                if (!onSearchChange) setHeaderSearch(event.target.value);
                 if (
                   onSearchChange
                 ) {
@@ -260,7 +262,7 @@ const DashboardLayout = ({
                 SETTINGS
             ================================= */}
 
-            {!isTeacher && <StudentNotifications />}
+            <StudentNotifications />
             <div
               className="dashboard-settings-wrapper"
               ref={settingsRef}

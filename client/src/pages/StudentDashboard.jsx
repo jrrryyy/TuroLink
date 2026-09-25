@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock3, X } from "lucide-react";
+import { BookOpen, CalendarDays, ChevronLeft, ChevronRight, Clock3, ArrowRight, Search, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
@@ -12,6 +12,7 @@ const StudentDashboard = () => {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [revision, setRevision] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
 
   const detailsRef = useRef(null);
@@ -42,7 +43,7 @@ const StudentDashboard = () => {
     };
     loadDashboard();
     return () => { active = false; };
-  }, []);
+  }, [revision]);
 
   const name = data?.student?.name || user?.name || "Student";
   const schedules = data?.upcomingClasses || [];
@@ -64,23 +65,26 @@ const StudentDashboard = () => {
           <div>
             <span className="student-eyebrow">STUDENT DASHBOARD</span>
             <h1>Welcome Back, {firstName}!</h1>
-            <p>Keep building your knowledge one session at a time.</p>
+            <p>A little progress today. A world of possibilities tomorrow.</p>
+            <Link className="student-hero-link" to="/student/find-tutors">Find your next tutor <ArrowRight size={17} /></Link>
           </div>
           <div className="student-welcome-symbol" aria-hidden="true"><BookOpen size={46} strokeWidth={1.7} /></div>
         </section>
 
         {loading ? <div className="student-panel student-empty" role="status">Loading dashboard...</div>
-          : error ? <div className="student-panel student-empty" role="alert">{error}</div>
+          : error ? <div className="student-panel student-empty" role="alert">{error}<button className="student-primary-button" onClick={() => { setError(""); setLoading(true); setRevision(r => r + 1); }}>Try again</button></div>
           : <>
             <section className="student-panel student-next-class" aria-labelledby="student-next-heading">
               <div>
                 <span className="student-eyebrow">YOUR NEXT CLASS</span>
                 <h2 id="student-next-heading">{nextClass?.subject || "No upcoming classes"}</h2>
-                <p>{nextClass ? [nextClass.time, nextClass.tutor].filter(Boolean).join(" ? ") : "Your next tutoring session will appear here."}</p>
+                <p>{nextClass ? [nextClass.time, nextClass.tutor].filter(Boolean).join(" / ") : "Your next tutoring session will appear here."}</p>
               </div>
+              {!nextClass && <Link className="student-primary-button" to="/student/find-tutors">Explore tutors</Link>}
               {nextClass && <button type="button" className="student-primary-button" onClick={() => detailsRef.current.showModal()}>Session Details</button>}
             </section>
 
+            <nav className="student-shortcuts" aria-label="Learning shortcuts"><Link to="/student/find-tutors"><Search size={22} /><div><strong>Find a tutor</strong><span>Learn with someone who understands you</span></div><ArrowRight size={17} /></Link><Link to="/student/schedules"><CalendarDays size={22} /><div><strong>Your schedules</strong><span>Manage sessions and track requests</span></div><ArrowRight size={17} /></Link></nav>
             <div className="student-overview-grid">
               <section className="student-panel student-enrolled" aria-labelledby="student-subjects-heading">
                 <div className="student-panel-heading">
@@ -89,23 +93,21 @@ const StudentDashboard = () => {
                 </div>
                 {filteredSubjects.length === 0 ? <div className="student-empty"><BookOpen size={32} /><h3>{query ? "No subjects found" : "No subjects yet"}</h3><p>{query ? "Try another subject or tutor name." : "Your enrolled subjects will appear here."}</p></div> :
                   <div className="student-course-list">{filteredSubjects.map((subject) => {
-                    const record = data?.enrolledCourses?.find((course) => course.name?.toLowerCase() === subject.title?.toLowerCase());
-                    const progress = typeof record?.progress === "number" ? Math.min(100, Math.max(0, record.progress)) : null;
-                    return <Link to="/student/my-subjects" className="student-course-row" key={subject._id}>
+                    return <Link to={`/student/my-subjects/${subject._id}`} className="student-course-row" key={subject._id}>
                       <span className="student-course-initial">{subject.title?.charAt(0).toUpperCase()}</span>
                       <div className="student-course-info">
-                        <div className="student-course-title"><h3>{subject.title}</h3>{progress !== null && <span>{progress}%</span>}</div>
-                        {progress !== null ? <progress value={progress} max="100" aria-label={subject.title + " progress"} /> : <p>{subject.instructorName || "Tutor"}</p>}
+                        <div className="student-course-title"><h3>{subject.title}</h3></div>
+                        <p>{subject.instructorName || "Tutor"}</p>
                       </div>
                     </Link>;
                   })}</div>}
-                <Link className="student-all-subjects" to="/student/my-subjects">View all subjects <span aria-hidden="true">?</span></Link>
+                <Link className="student-all-subjects" to="/student/my-subjects">View all subjects <ArrowRight size={17} /></Link>
               </section>
 
               <div className="student-activity-column">
                 <section className="student-panel student-history" aria-labelledby="student-history-heading">
                   <span className="student-eyebrow">ACTIVITY</span><h2 id="student-history-heading">Session History</h2>
-                  {sessionHours.length ? <div className="student-history-chart" role="img" aria-label={sessionHours.map((session) => session.month + ": " + session.hours + " hours").join(", ")}>
+                  {sessionHours.some(session => session.hours > 0) ? <div className="student-history-chart" role="img" aria-label={sessionHours.map((session) => session.month + ": " + session.hours + " hours").join(", ")}>
                     {sessionHours.map((session, index) => <div className="student-history-column" key={session.month + index} aria-hidden="true">
                       <div className="student-history-track"><div className="student-history-bar" style={{ height: Math.max(0, Number(session.hours) || 0) / maxHours * 100 + "%" }}><span>{session.hours}h</span></div></div>
                       <span className="student-history-month">{session.month}</span>
@@ -127,7 +129,7 @@ const StudentDashboard = () => {
                       return <span key={day} className={isToday ? "student-calendar-today" : ""} aria-current={isToday ? "date" : undefined}>{day}</span>;
                     })}
                   </div>
-                  <div className="student-calendar-footer"><CalendarDays size={16} /><span>Today ? {today.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span><button type="button" onClick={() => setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1))}>Today</button></div>
+                  <div className="student-calendar-footer"><CalendarDays size={16} /><span>Today / {today.toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span><button type="button" onClick={() => setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1))}>Today</button></div>
                 </section>
               </div>
             </div>

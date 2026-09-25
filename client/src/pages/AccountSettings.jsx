@@ -96,7 +96,7 @@ export default function AccountSettings() {
             </div>
             <dl><dt>Contact Number</dt><dd>{user.phone || 'Not provided'}</dd><dt>Role</dt><dd>{user.role === 'teacher' ? 'Teacher' : 'Student'}</dd></dl>
           </section>
-          {user.role === 'student' && <NotificationPreferences />}
+          <NotificationPreferences />
           <button type="submit" className="account-save">{busy ? 'Saving...' : 'Save Changes'}</button>
         </fieldset>
       </form>

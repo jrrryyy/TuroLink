@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 const schema = new mongoose.Schema({
   recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   eventKey: { type: String, required: true },
-  kind: { type: String, enum: ['announcement', 'material', 'session'], required: true },
+  kind: { type: String, enum: ['announcement', 'material', 'session', 'comment', 'review'], required: true },
+  sourceId: mongoose.Schema.Types.ObjectId,
   title: String,
   message: String,
   url: String,

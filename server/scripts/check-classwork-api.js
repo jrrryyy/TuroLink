@@ -73,7 +73,7 @@ async function main() {
         const response = await route.fetch({ url: origin + url.pathname + url.search });
         await route.fulfill({ response });
       });
-      await page.goto('http://127.0.0.1:5173/teacher/my-subjects');
+      await page.goto('http://localhost:5173/teacher/my-subjects');
       await page.getByRole('heading', { name: 'ITE 314: Advanced Database' }).click();
       await page.getByRole('button', { name: 'Classwork', exact: true }).click();
       await page.getByText('Create', { exact: true }).click();

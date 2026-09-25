@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, Search, Star } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
@@ -9,7 +9,7 @@ import '../styles/tutors.css';
 
 const money = (value) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
 const dayKey = (value) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(value));
-const time = (value) => new Date(value).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit' });
+const time = (value) => new Date(value).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila', hour: '2-digit', minute: '2-digit', hour12: true });
 const dateLabel = (value) => new Date(value).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric' });
 function useData(path) {
   const [result, setResult] = useState(null);
@@ -57,7 +57,7 @@ export function FindTutors() {
   const [rating, setRating] = useState('');
   const tutors = state.data || [];
   const filtered = tutors.filter((t) => `${t.name} ${t.subject}`.toLowerCase().includes(query.trim().toLowerCase()) && (!subject || t.subject === subject) && (!availability || availabilityTags(t.slots).includes(availability)) && (!rating || (t.totalRatings > 0 && t.averageRating >= Number(rating))));
-  return <Shell><section className="tutor-panel"><h1>Find Tutors</h1><p className="tutor-muted">Search by tutor name or subject, then find a time that fits your schedule.</p>
+  return <Shell><section className="tutor-panel"><span className="student-section-label">LEARN TOGETHER</span><h1>Find Tutors</h1><p className="tutor-muted">Search by tutor name or subject, then find a time that fits your schedule.</p>
     <label className="tutor-search"><Search size={18} /><input aria-label="Search tutors by name or subject" placeholder="Search tutors by name or subject" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
     <div className="tutor-filters">
       <select aria-label="Subject" value={subject} onChange={(e) => setSubject(e.target.value)}><option value="">All subjects</option>{[...new Set(tutors.map((t) => t.subject))].sort().map((s) => <option key={s}>{s}</option>)}</select>
@@ -111,7 +111,7 @@ export function TutorDetails() {
     {tutor && <div className="tutor-detail-grid"><div><section className="tutor-panel tutor-profile-heading"><Avatar tutor={tutor} /><div><h1>{tutor.name}</h1><p>{tutor.subject}</p><Rating tutor={tutor} /></div><strong>{tutor.hourlyRate ? `${money(tutor.hourlyRate)}/hr` : 'Rate not set'}</strong></section>
       <section className="tutor-panel"><h2>About {tutor.name.split(' ')[0]}</h2><p className="tutor-bio">{tutor.bio || 'This teacher has not added a bio yet.'}</p></section>
       <section className="tutor-panel"><h2>Student Reviews</h2>{!tutor.reviews.length && <p className="tutor-muted">No reviews yet. Students can review after their session ends.</p>}{tutor.reviews.map((r) => <article className="tutor-review" key={r.id}><div><strong>{r.name}</strong><span>★ {r.rating} · {dateLabel(r.createdAt)}</span></div><p>{r.text}</p></article>)}</section></div>
-      <section className="tutor-panel tutor-booking"><h2>Book a Session</h2><p className="tutor-muted">One hour · Manila time (UTC+8)</p><label>Subject<select aria-label="Session subject" value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setDay(''); setSlotId(''); }}><option value="">{tutor.subjects?.length ? 'Select a subject' : 'No subjects available'}</option>{tutor.subjects?.map((s) => <option key={s._id} value={s._id}>{s.code}: {s.title}</option>)}</select></label><Calendar key={subjectId} slots={availableSlots} selected={day} onSelect={(d) => { setDay(d); setSlotId(''); }} />
+      <section className="tutor-panel tutor-booking"><h2>Book a Session</h2><p className="tutor-muted">Choose a subject and time. Your session is confirmed when the teacher accepts your request.</p><p className="tutor-muted">One hour · Manila time (UTC+8)</p><label>Subject<select aria-label="Session subject" value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setDay(''); setSlotId(''); }}><option value="">{tutor.subjects?.length ? 'Select a subject' : 'No subjects available'}</option>{tutor.subjects?.map((s) => <option key={s._id} value={s._id}>{s.code}: {s.title}</option>)}</select></label><Calendar key={subjectId} slots={availableSlots} selected={day} onSelect={(d) => { setDay(d); setSlotId(''); }} />
         <h3>{day ? `Available slots · ${day}` : 'Select an available date'}</h3><div className="tutor-slot-grid">{availableSlots.filter((s) => dayKey(s.start) === day).map((s) => <button key={s._id} disabled={busy} className={slotId === s._id ? 'selected' : ''} aria-pressed={slotId === s._id} onClick={() => setSlotId(s._id)}>{time(s.start)}</button>)}</div>
         {!availableSlots.length && <p className="tutor-muted">{subjectId ? 'No available slots for this subject. Please check again later.' : 'Choose a subject to see available times.'}</p>}
         {selected && <p>{dateLabel(selected.start)} · {time(selected.start)}–{time(new Date(new Date(selected.start).getTime() + 3600000))}</p>}
@@ -146,10 +146,10 @@ export function TeacherAvailability() {
     catch (e) { setError(e.response?.data?.message || 'Unable to save. Please try again.'); }
     finally { lock.current = false; setBusy(false); }
   };
-  return <Shell><section className="tutor-panel"><h1>Teaching Availability</h1><p className="tutor-muted">Set your hourly rate and publish one-hour slots. Student requests reserve these times until you accept or decline them in Request. All times use Manila time (UTC+8).</p><Status state={state} />
+  return <Shell><section className="tutor-panel"><span className="teacher-eyebrow">MAKE TIME TO TEACH</span><h1>Teaching Availability</h1><p className="tutor-muted">Set your rate, choose a subject, and open a one-hour slot. You decide which requests to accept. All times are in Manila (UTC+8).</p><Status state={state} />
     {notice && <p className="tutor-success" role="status">{notice}</p>}{error && <p className="tutor-alert" role="alert">{error}</p>}
-    <form className="tutor-inline-form" onSubmit={(e) => { e.preventDefault(); action(() => api.put('/tutors/availability/rate', { hourlyRate: Number(rate) }), 'Hourly rate saved. Existing bookings keep their original price.'); }}><label>Hourly rate (PHP)<input type="number" min="1" max="100000" step="0.01" required value={rate} placeholder={state.data?.hourlyRate || 'Enter rate'} onChange={(e) => setRate(e.target.value)} /></label><button className="tutor-button" disabled={busy}>Save Rate</button><span>Current rate: {state.data?.hourlyRate ? money(state.data.hourlyRate) : 'Not set'}</span></form>
-    <form className="tutor-inline-form" onSubmit={(e) => { e.preventDefault(); action(() => api.post('/tutors/availability', { start: `${date}T${hour}:00:00+08:00`, subjectId: offeredSubject }), 'Available slot added.'); }}><label>Subject<select required aria-label="Available subject" value={offeredSubject} onChange={(e) => setOfferedSubject(e.target.value)}><option value="">Select a subject</option>{state.data?.subjects?.map((s) => <option key={s._id} value={s._id}>{s.code}: {s.title}</option>)}</select></label><label>Date<input type="date" required min={today} value={date} onChange={(e) => setDate(e.target.value)} /></label><label>Start time<select value={hour} onChange={(e) => setHour(e.target.value)}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={String(h).padStart(2, '0')}>{h % 12 || 12}:00 {h < 12 ? 'AM' : 'PM'}</option>)}</select></label><button className="tutor-button" disabled={busy || !state.data?.hourlyRate || !offeredSubject}>Add Slot</button></form>
+    <h2>Your teaching rate</h2><form className="tutor-inline-form" onSubmit={(e) => { e.preventDefault(); action(() => api.put('/tutors/availability/rate', { hourlyRate: Number(rate) }), 'Hourly rate saved. Existing bookings keep their original price.'); }}><label>Hourly rate (PHP)<input type="number" min="1" max="100000" step="0.01" required value={rate} placeholder={state.data?.hourlyRate || 'Enter rate'} onChange={(e) => setRate(e.target.value)} /></label><button className="tutor-button" disabled={busy}>Save Rate</button><span>Current rate: {state.data?.hourlyRate ? money(state.data.hourlyRate) : 'Not set'}</span></form>
+    <h2>Open a new time slot</h2><form className="tutor-inline-form" onSubmit={(e) => { e.preventDefault(); action(() => api.post('/tutors/availability', { start: `${date}T${hour}:00:00+08:00`, subjectId: offeredSubject }), 'Available slot added.'); }}><label>Subject<select required aria-label="Available subject" value={offeredSubject} onChange={(e) => setOfferedSubject(e.target.value)}><option value="">Select a subject</option>{state.data?.subjects?.map((s) => <option key={s._id} value={s._id}>{s.code}: {s.title}</option>)}</select></label><label>Date<input type="date" required min={today} value={date} onChange={(e) => setDate(e.target.value)} /></label><label>Start time<select value={hour} onChange={(e) => setHour(e.target.value)}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={String(h).padStart(2, '0')}>{h % 12 || 12}:00 {h < 12 ? 'AM' : 'PM'}</option>)}</select></label><button className="tutor-button" disabled={busy || !state.data?.hourlyRate || !offeredSubject}>Add Slot</button></form>
     {state.data && !state.data.subjects?.length && <p>Create a subject before adding availability. <Link to="/teacher/my-subjects">Go to My Subjects</Link></p>}<h2>Upcoming Availability</h2>{state.data && !state.data.slots.length && <p>No slots yet. Add your first available time above.</p>}
     <div className="tutor-schedule-list">{state.data?.slots.map((s) => <article className="tutor-schedule-row" key={s._id}><span><strong>{s.subjectId ? `${s.subjectId.code}: ${s.subjectId.title}` : 'Subject not assigned'}</strong><br />{dateLabel(s.start)} · {time(s.start)}–{time(new Date(new Date(s.start).getTime() + 3600000))}</span>{s.booked ? <span className="tutor-badge">Reserved</span> : <><AssignSlotSubject slot={s} subjects={state.data.subjects || []} busy={busy} action={action} /><button className="tutor-secondary" disabled={busy} onClick={() => action(() => api.delete(`/tutors/availability/${s._id}`), 'Slot removed.')}>Remove</button></>}</article>)}</div>
   </section></Shell>;
@@ -172,27 +172,30 @@ export function TeacherRequests() {
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
   const [message, setMessage] = useState('');
+  const [pendingAction, setPendingAction] = useState(null);
   const [error, setError] = useState('');
   const decide = async (id, action) => {
     if (lock.current) return;
-    lock.current = true; setBusy(true); setMessage(''); setError('');
+    lock.current = true; setBusy(true); setPendingAction({ id, action }); setMessage(''); setError('');
     try { const response = await api.patch(`/tutors/requests/${id}`, { action }); setMessage(response.data.message); state.reload(); }
     catch (e) { setError(e.response?.data?.message || 'Unable to update the request. Please try again.'); state.reload(); }
     finally { lock.current = false; setBusy(false); }
   };
-  return <Shell><section className="tutor-panel"><h1>Tutoring Requests</h1><p className="tutor-muted">Review student requests below. Accept to confirm a session, or decline to release its time slot.</p>
+  return <Shell><section className="tutor-panel"><div className="teacher-request-header"><div><span className="teacher-eyebrow">YOUR NEXT CONNECTION</span><h1>Tutoring Requests</h1><p className="tutor-muted">Meet your next learner. Review the subject and time before confirming a session.</p></div>{state.data && <span className="teacher-count">{state.data.length} pending</span>}</div>
     <Status state={state} />{message && <p role="status" className="tutor-success">{message}</p>}{error && <p role="alert" className="tutor-alert">{error}</p>}
     {!state.loading && !state.error && !state.data?.length && <div className="tutor-empty">No pending tutoring requests.</div>}
-    {state.data?.map((request) => <article className="tutor-panel" key={request._id}><div className="tutor-schedule-row"><div><h2>{request.student?.name || 'Student'}</h2><p>{request.subject}</p><p>{dateLabel(request.start)} · {time(request.start)}–{time(request.end)} (Manila)</p><strong>{money(request.price)}</strong></div><span className="tutor-badge">Pending approval</span></div>
+    {state.data?.map((request) => <article className="tutor-panel" key={request._id}><div className="tutor-schedule-row"><div><div className="teacher-request-identity"><span className="teacher-person-avatar">{request.student?.name?.charAt(0) || 'S'}</span><div><h2>{request.student?.name || 'Student'}</h2><p>{request.subject}</p></div></div><p>{dateLabel(request.start)} · {time(request.start)}–{time(request.end)} (Manila)</p><strong>{money(request.price)}</strong></div><span className="tutor-badge">Pending approval</span></div>
       {new Date(request.start) <= new Date() && <p className="tutor-muted">This time has passed. Please decline this request.</p>}
-      <div className="tutor-tabs"><button className="tutor-button" disabled={busy || state.loading || new Date(request.start) <= new Date()} onClick={() => decide(request._id, 'accept')}>Accept</button><button className="tutor-secondary" disabled={busy || state.loading} onClick={() => decide(request._id, 'decline')}>Decline</button></div>
+      <div className="tutor-tabs"><button className="tutor-button" disabled={busy || state.loading || new Date(request.start) <= new Date()} onClick={() => decide(request._id, 'accept')}>{busy && pendingAction?.id === request._id && pendingAction.action === 'accept' ? 'Accepting...' : 'Accept'}</button><button className="tutor-secondary" disabled={busy || state.loading} onClick={() => decide(request._id, 'decline')}>{busy && pendingAction?.id === request._id && pendingAction.action === 'decline' ? 'Declining...' : 'Decline'}</button></div>
     </article>)}<Link className="tutor-back" to="/teacher/schedules">View schedules and request history</Link>
   </section></Shell>;
 }
 export function TutorSchedules({ reviewsOnly = false }) {
   const { user } = useAuth();
   const state = useData('/tutors/bookings');
-  const [tab, setTab] = useState('upcoming');
+  const [scheduleParams, setScheduleParams] = useSearchParams();
+  const tab = ['past', 'requests'].includes(scheduleParams.get('tab')) ? scheduleParams.get('tab') : 'upcoming';
+  const setTab = value => setScheduleParams(value === 'upcoming' ? {} : { tab: value });
   const teacher = user.role === 'teacher';
   const bookings = (state.data || []).filter((b) => {
     const confirmed = !b.status || b.status === 'confirmed';
@@ -200,8 +203,8 @@ export function TutorSchedules({ reviewsOnly = false }) {
     if (tab === 'requests') return !confirmed;
     return confirmed && (tab === 'past' ? new Date(b.end) <= new Date() : new Date(b.end) > new Date());
   });
-  return <Shell><section className="tutor-panel"><h1>{reviewsOnly ? 'Rate Tutors' : 'Schedules'}</h1><p className="tutor-muted">{reviewsOnly ? 'Share feedback on your completed sessions.' : 'Your confirmed tutor bookings · Manila time (UTC+8)'}</p>
-    {!reviewsOnly && <div className="tutor-tabs"><button className={tab === 'upcoming' ? 'selected' : ''} onClick={() => setTab('upcoming')}>Upcoming</button><button className={tab === 'requests' ? 'selected' : ''} onClick={() => setTab('requests')}>Requests</button><button className={tab === 'past' ? 'selected' : ''} onClick={() => setTab('past')}>Past sessions</button>{teacher && <Link to="/teacher/availability">Manage availability</Link>}</div>}
+  return <Shell><section className="tutor-panel">{teacher && <span className="teacher-eyebrow">YOUR TEACHING CALENDAR</span>}<h1>{reviewsOnly ? 'Rate Tutors' : 'Schedules'}</h1><p className="tutor-muted">{reviewsOnly ? 'Share feedback on your completed sessions.' : 'Your confirmed tutor bookings · Manila time (UTC+8)'}</p>
+    {!reviewsOnly && <div className="tutor-tabs"><button aria-pressed={tab === 'upcoming'} className={tab === 'upcoming' ? 'selected' : ''} onClick={() => setTab('upcoming')}>Upcoming</button><button aria-pressed={tab === 'requests'} className={tab === 'requests' ? 'selected' : ''} onClick={() => setTab('requests')}>Requests</button><button aria-pressed={tab === 'past'} className={tab === 'past' ? 'selected' : ''} onClick={() => setTab('past')}>Past sessions</button>{teacher && <Link to="/teacher/availability">Manage availability</Link>}</div>}
     <Status state={state} />{!state.loading && !state.error && !bookings.length && <div className="tutor-empty">{reviewsOnly ? 'No completed sessions yet.' : 'No sessions here yet.'} {!teacher && <Link to="/student/find-tutors">Find a tutor</Link>}</div>}
     <div className="tutor-schedule-list">{bookings.map((b) => <article className="tutor-panel" key={b._id}><div className="tutor-schedule-row"><div><h2>{b.subject}</h2><p>{teacher ? b.student?.name : b.teacher?.name}</p><p>{dateLabel(b.start)} · {time(b.start)}–{time(b.end)}</p></div><div><span className="tutor-badge">{b.status === 'pending' ? 'Pending approval' : b.status === 'declined' ? 'Declined' : new Date(b.end) <= new Date() ? 'Completed' : 'Confirmed'}</span><p>{money(b.price)}</p></div></div>
       {b.review?.rating ? <p className="tutor-review">★ {b.review.rating} — {b.review.text}</p> : !teacher && (!b.status || b.status === 'confirmed') && new Date(b.end) <= new Date() && <ReviewForm booking={b} onSaved={state.reload} />}

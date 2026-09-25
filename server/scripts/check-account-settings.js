@@ -72,8 +72,8 @@ async function main() {
         await page.reload(); await page.getByRole('heading', { name: 'Settings & Preferences' }).waitFor();
         assert.equal(await page.locator('textarea[name="bio"]').inputValue(), 'Saved from the browser.');
         await page.locator('input[name="currentPassword"]').fill('wrong');
-        await page.locator('input[name="newPassword"]').fill('browser-password');
-        await page.locator('input[name="confirmPassword"]').fill('browser-password');
+        await page.locator('input[name="newPassword"]').fill('Birch!Ocean!Lantern49');
+        await page.locator('input[name="confirmPassword"]').fill('Birch!Ocean!Lantern49');
         await page.getByRole('button', { name: 'Save Changes' }).click();
         await page.locator('#currentPassword-error').waitFor();
         await page.locator('input[name="currentPassword"]').fill('Cedar!Orbit!Lantern38');

@@ -125,6 +125,11 @@ router.post('/bookings', role('student'), run(async (req, res) => {
       status: 'pending',
       start: slot.start, end: new Date(slot.start.getTime() + 3600000), subject: selectedSubject?.title || profile.subjectToTeach, subjectId: selectedSubject?._id, price: profile.hourlyRate,
     }], { session });
+    await require('../models/Notification').create([{
+      recipient: slot.teacher, eventKey: `booking:${booking._id}`, kind: 'session',
+      title: 'New tutoring request', message: `${req.user.name} requested a ${booking.subject} session on ${slot.start.toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short', hour12: true })} (Manila).`,
+      url: '/teacher/requests',
+    }], { session });
   });
   res.status(201).json({ message: 'Request sent. Waiting for teacher approval.', booking });
 }));
@@ -132,8 +137,11 @@ router.post('/bookings/:id/review', role('student'), run(async (req, res) => {
   if (!validId(req.params.id)) throw fail('Invalid booking.');
   const { rating, text } = req.body;
   if (!Number.isInteger(rating) || rating < 1 || rating > 5 || typeof text !== 'string' || !text.trim() || text.trim().length > 1000) throw fail('Choose 1–5 stars and write a review of 1–1,000 characters.');
-  const booking = await Booking.findOneAndUpdate({ _id: req.params.id, student: req.user._id, status: { $ne: 'pending' }, end: { $lte: new Date() }, 'review.rating': { $exists: false } }, { $set: { review: { rating, text: text.trim(), createdAt: new Date() } } }, { returnDocument: 'after' });
-  if (!booking) throw fail('Only your completed, unreviewed bookings can be rated.', 409);
+  await mongoose.connection.transaction(async session => {
+    const booking = await Booking.findOneAndUpdate({ _id: req.params.id, student: req.user._id, status: { $ne: 'pending' }, end: { $lte: new Date() }, 'review.rating': { $exists: false } }, { $set: { review: { rating, text: text.trim(), createdAt: new Date() } } }, { returnDocument: 'after', session });
+    if (!booking) throw fail('Only your completed, unreviewed bookings can be rated.', 409);
+    await require('../models/Notification').create([{ recipient: booking.teacher, eventKey: `review:${booking._id}`, kind: 'review', title: 'New student review', message: `${req.user.name} rated your ${booking.subject} session ${rating}/5.`, url: '/teacher/schedules?tab=past' }], { session });
+  });
   // Directory ratings are calculated from reviews, avoiding stale cached totals.
   res.status(201).json({ message: 'Thank you! Your review is saved.' });
 }));
