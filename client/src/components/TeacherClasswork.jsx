@@ -251,15 +251,15 @@ export default function TeacherClasswork({ subject, teacherName }) {
     </article>
   );
 
-  return <section className="teacher-classwork" aria-label="Classwork">
-    <div className="classwork-toolbar"><h2>Classwork</h2><details className="classwork-create" ref={createRef}>
+  return <section className="teacher-classwork" aria-label="Materials">
+    <div className="classwork-toolbar"><h2>Materials</h2><details className="classwork-create" ref={createRef}>
       <summary><Plus size={16} />Create</summary>
       <div><button type="button" onClick={() => openEditor('assignment')}><BookOpen size={17} />Assignment</button><button type="button" onClick={() => openEditor('quiz')}><BookOpen size={17} />Quiz Assignment</button></div>
     </details></div>
     {error && <div className="classwork-error" role="alert">{error}</div>}
     {success && <div className="classwork-success" role="status"><CheckCircle2 size={18} />{success}</div>}
     <details className="classwork-saved"><summary>Drafts and Archived <span>{saved.length}</span><ChevronDown size={18} /></summary>
-      {['draft', 'scheduled', 'archived'].map((status) => <section key={status} aria-label={status}><h3>{status === 'draft' ? 'Drafts' : status === 'scheduled' ? 'Scheduled' : 'Archived'}</h3>{saved.filter((item) => item.status === status).map(card)}{!saved.some((item) => item.status === status) && <p className="classwork-muted">No {status === 'draft' ? 'drafts' : status + ' classwork'}.</p>}</section>)}
+      {['draft', 'scheduled', 'archived'].map((status) => <section key={status} aria-label={status}><h3>{status === 'draft' ? 'Drafts' : status === 'scheduled' ? 'Scheduled' : 'Archived'}</h3>{saved.filter((item) => item.status === status).map(card)}{!saved.some((item) => item.status === status) && <p className="classwork-muted">No {status === 'draft' ? 'drafts' : status + ' materials'}.</p>}</section>)}
     </details>
 
     {editing && <form className="classwork-editor" onSubmit={save} ref={editorRef}>
@@ -289,9 +289,9 @@ export default function TeacherClasswork({ subject, teacherName }) {
         </div></div>
       </fieldset>
     </form>}
-    {loading ? <p role="status">Loading classwork...</p> : <div className="classwork-posts">{posted.map(card)}{posted.length === 0 && !editing && <div className="classwork-empty"><BookOpen size={32} /><h3>No classwork posted yet</h3><p>Use Create to add an assignment or quiz assignment.</p></div>}</div>}
+    {loading ? <p role="status">Loading materials...</p> : <div className="classwork-posts">{posted.map(card)}{posted.length === 0 && !editing && <div className="classwork-empty"><BookOpen size={32} /><h3>No materials posted yet</h3><p>Use Create to add an assignment or quiz assignment.</p></div>}</div>}
     <dialog className="classwork-delete-dialog" ref={deleteRef} aria-labelledby="classwork-delete-title" onCancel={(event) => { if (busy) event.preventDefault(); }}>
-      <h2 id="classwork-delete-title">Delete this {deleteTarget ? labelFor(deleteTarget.type).toLowerCase() : 'classwork'}?</h2><p>{deleteTarget?.title}</p><p>This action cannot be undone.</p><div><button type="button" disabled={busy} onClick={() => deleteRef.current.close()}>Cancel</button><button type="button" disabled={busy} className="classwork-danger" onClick={confirmDelete}>{busy ? 'Deleting...' : 'Delete'}</button></div>
+      <h2 id="classwork-delete-title">Delete this {deleteTarget ? labelFor(deleteTarget.type).toLowerCase() : 'material'}?</h2><p>{deleteTarget?.title}</p><p>This action cannot be undone.</p><div><button type="button" disabled={busy} onClick={() => deleteRef.current.close()}>Cancel</button><button type="button" disabled={busy} className="classwork-danger" onClick={confirmDelete}>{busy ? 'Deleting...' : 'Delete'}</button></div>
     </dialog>
 
     <dialog

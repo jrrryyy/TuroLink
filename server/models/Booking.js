@@ -11,7 +11,13 @@ const schema = new mongoose.Schema({
   status: { type: String, enum: ['pending', 'confirmed'], default: 'confirmed' },
   review: {
     rating: { type: Number, min: 1, max: 5 },
-    text: { type: String, maxlength: 1000 },
+    text: { type: String, maxlength: 1000, default: '' },
+    aspects: {
+      teachingQuality: { type: Number, min: 1, max: 5 },
+      communication: { type: Number, min: 1, max: 5 },
+      punctuality: { type: Number, min: 1, max: 5 },
+      professionalism: { type: Number, min: 1, max: 5 },
+    },
     createdAt: Date,
   },
 }, { timestamps: true });

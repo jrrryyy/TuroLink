@@ -5,7 +5,32 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const directory = path.resolve(__dirname, '../uploads/avatars');
 
-const publicUser = (user) => ({ emailVerified: Boolean(user.emailVerifiedAt), hasPassword: Boolean(user.password), id: user._id, name: user.name, email: user.email, phone: user.phone, role: user.role, bio: user.bio || '', sex: user.sex || '', profilePicture: user.profilePicture || '' });
+const defaultNotificationPreferences = {
+  emailNotifications: true,
+  sessionReminders: true,
+  newMessageAlerts: true,
+  pushNotifications: false,
+};
+
+const publicUser = (user) => ({
+  emailVerified: Boolean(user.emailVerifiedAt),
+  hasPassword: Boolean(user.password),
+  id: user._id,
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  phone: user.phone,
+  role: user.role,
+  bio: user.bio || '',
+  sex: user.sex || '',
+  profilePicture: user.profilePicture || '',
+  notificationPreferences: user.notificationPreferences ? {
+    emailNotifications: user.notificationPreferences.emailNotifications ?? true,
+    sessionReminders: user.notificationPreferences.sessionReminders ?? true,
+    newMessageAlerts: user.notificationPreferences.newMessageAlerts ?? true,
+    pushNotifications: user.notificationPreferences.pushNotifications ?? false,
+  } : defaultNotificationPreferences,
+});
 async function removePicture(url) {
   if (!/^\/uploads\/avatars\/[a-f0-9-]+\.(png|jpg|webp)$/.test(url || '')) return;
   await fs.unlink(path.join(directory, path.basename(url))).catch(() => {});

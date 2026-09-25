@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, Search, Star } from 'lucide-react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, Search, Star } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { profilePictureUrl } from '../services/profile';
+import TutorProfileModal from '../components/TutorProfileModal';
 import '../styles/tutors.css';
 
 const money = (value) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
@@ -55,6 +56,7 @@ export function FindTutors() {
   const [subject, setSubject] = useState('');
   const [availability, setAvailability] = useState('');
   const [rating, setRating] = useState('');
+  const [selectedTutorId, setSelectedTutorId] = useState(null);
   const tutors = state.data || [];
   const filtered = tutors.filter((t) => `${t.name} ${t.subject}`.toLowerCase().includes(query.trim().toLowerCase()) && (!subject || t.subject === subject) && (!availability || availabilityTags(t.slots).includes(availability)) && (!rating || (t.totalRatings > 0 && t.averageRating >= Number(rating))));
   return <Shell searchValue={query} onSearchChange={setQuery} searchPlaceholder="Search tutors by name or subject..."><section className="tutor-panel"><span className="student-section-label">LEARN TOGETHER</span><h1>Find Tutors</h1><p className="tutor-muted">Search by tutor name or subject, then find a time that fits your schedule.</p>
@@ -67,11 +69,12 @@ export function FindTutors() {
       {(query || subject || availability || rating) && <button className="tutor-secondary" onClick={() => { setQuery(''); setSubject(''); setAvailability(''); setRating(''); }}>Clear filters</button>}
     </div><Status state={state} />
     {!state.loading && !state.error && !filtered.length && <div className="tutor-empty">No tutors match yet. Try another subject or clear your filters.</div>}
-    <div className="tutor-grid">{filtered.map((tutor) => <article className="tutor-card" key={tutor.id}><div className="tutor-identity"><Avatar tutor={tutor} /><div><h2>{tutor.name}</h2><p>{tutor.subject}</p><Rating tutor={tutor} /></div></div>
+    <div className="tutor-grid">{filtered.map((tutor) => <article className="tutor-card" key={tutor.id}><div className="tutor-identity"><button type="button" className="clickable-profile-trigger" onClick={() => setSelectedTutorId(tutor.id)} aria-label={`View profile for ${tutor.name}`}><Avatar tutor={tutor} /></button><div><h2 className="clickable-profile-name" role="button" tabIndex={0} onClick={() => setSelectedTutorId(tutor.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedTutorId(tutor.id); }}>{tutor.name}</h2><p>{tutor.subject}</p><Rating tutor={tutor} /></div></div>
       <div className="tutor-tags">{availabilityTags(tutor.slots).map((tag) => <span key={tag}>{tag}</span>)}</div>
       <div className="tutor-card-bottom"><div><small>Hourly rate</small><strong>{tutor.hourlyRate ? `${money(tutor.hourlyRate)}/hr` : 'Not set yet'}</strong></div><Link className="tutor-button" to={`/student/tutors/${tutor.id}`}>{tutor.hourlyRate && tutor.slots.length ? 'Book Now' : 'View Profile'}</Link></div>
       {!tutor.slots.length && <small className="tutor-muted">No available slots yet</small>}
     </article>)}</div>
+    <TutorProfileModal tutorId={selectedTutorId} isOpen={Boolean(selectedTutorId)} onClose={() => setSelectedTutorId(null)} />
   </section></Shell>;
 }
 
@@ -88,11 +91,13 @@ function Calendar({ slots, selected, onSelect }) {
 }
 export function TutorDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const state = useData(`/tutors/${id}`);
   const [day, setDay] = useState('');
   const [slotId, setSlotId] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [busy, setBusy] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
   const lock = useRef(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
@@ -106,9 +111,21 @@ export function TutorDetails() {
     catch (e) { setError(e.response?.data?.message || 'Booking failed. Check Schedules before retrying if your connection was interrupted.'); await state.reload(); }
     finally { lock.current = false; setBusy(false); }
   };
+  const startChat = async () => {
+    if (!tutor?.id || chatLoading) return;
+    setChatLoading(true);
+    try {
+      const res = await api.post('/messages/conversations', { recipientId: tutor.id });
+      navigate(`/student/messages?conversationId=${res.data._id}`);
+    } catch {
+      navigate(`/student/messages?recipientId=${tutor.id}`);
+    } finally {
+      setChatLoading(false);
+    }
+  };
   return <Shell><Link className="tutor-back" to="/student/find-tutors"><ArrowLeft size={16} />Back to Find Tutors</Link><Status state={state} />
     {notice && <div className="tutor-success" role="status">{notice} <Link to="/student/schedules">View schedules</Link></div>}{error && <p className="tutor-alert" role="alert">{error}</p>}
-    {tutor && <div className="tutor-detail-grid"><div><section className="tutor-panel tutor-profile-heading"><Avatar tutor={tutor} /><div><h1>{tutor.name}</h1><p>{tutor.subject}</p><Rating tutor={tutor} /></div><strong>{tutor.hourlyRate ? `${money(tutor.hourlyRate)}/hr` : 'Rate not set'}</strong></section>
+    {tutor && <div className="tutor-detail-grid"><div><section className="tutor-panel tutor-profile-heading"><Avatar tutor={tutor} /><div><h1>{tutor.name}</h1><p>{tutor.subject}</p><Rating tutor={tutor} /><div style={{ marginTop: '10px' }}><button type="button" className="tutor-chat-btn" onClick={startChat} disabled={chatLoading}><MessageCircle size={16} />{chatLoading ? 'Connecting…' : `Chat with ${tutor.name.split(' ')[0]}`}</button></div></div><strong>{tutor.hourlyRate ? `${money(tutor.hourlyRate)}/hr` : 'Rate not set'}</strong></section>
       <section className="tutor-panel"><h2>About {tutor.name.split(' ')[0]}</h2><p className="tutor-bio">{tutor.bio || 'This teacher has not added a bio yet.'}</p></section>
       <section className="tutor-panel"><h2>Student Reviews</h2>{!tutor.reviews.length && <p className="tutor-muted">No reviews yet. Students can review after their session ends.</p>}{tutor.reviews.map((r) => <article className="tutor-review" key={r.id}><div><strong>{r.name}</strong><span>★ {r.rating} · {dateLabel(r.createdAt)}</span></div><p>{r.text}</p></article>)}</section></div>
       <section className="tutor-panel tutor-booking"><h2>Book a Session</h2><p className="tutor-muted">Choose a subject and time. Your session is confirmed when the teacher accepts your request.</p><p className="tutor-muted">One hour · Manila time (UTC+8)</p><label>Subject<select aria-label="Session subject" value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setDay(''); setSlotId(''); }}><option value="">{tutor.subjects?.length ? 'Select a subject' : 'No subjects available'}</option>{tutor.subjects?.map((s) => <option key={s._id} value={s._id}>{s.code}: {s.title}</option>)}</select></label><Calendar key={subjectId} slots={availableSlots} selected={day} onSelect={(d) => { setDay(d); setSlotId(''); }} />

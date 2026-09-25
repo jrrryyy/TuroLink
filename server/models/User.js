@@ -112,6 +112,13 @@ const userSchema = new mongoose.Schema(
         },
       ],
     },
+    notificationPreferences: {
+      emailNotifications: { type: Boolean, default: true },
+      sessionReminders: { type: Boolean, default: true },
+      newMessageAlerts: { type: Boolean, default: true },
+      pushNotifications: { type: Boolean, default: false },
+    },
+    blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   },
   {
     timestamps: true,

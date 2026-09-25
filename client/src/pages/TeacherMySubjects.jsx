@@ -1355,7 +1355,7 @@ const TeacherMySubjects = () => {
                   )
                 }
               >
-                Classwork
+                Materials
               </button>
 
             </div>

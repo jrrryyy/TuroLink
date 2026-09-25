@@ -79,11 +79,27 @@ const comment = handler(async (req, res) => {
     const commentId = new mongoose.Types.ObjectId();
     const subject = await Subject.findOneAndUpdate({ _id: req.params.id, ...interactionAccess(req), announcements: { $elemMatch: announcementFilter(req.params.announcementId) } }, { $push: { 'announcements.$[post].comments': { _id: commentId, author: req.user._id, text } } }, { arrayFilters: [{ 'post._id': new mongoose.Types.ObjectId(req.params.announcementId) }], returnDocument: 'after', session });
     if (!subject) throw fail('Announcement not available.', 404);
-    if (req.user.role === 'student') await require('../models/Notification').create([{
-      recipient: subject.teacherId, eventKey: `comment:${commentId}`, sourceId: req.params.announcementId, kind: 'comment',
-      title: `New comment · ${subject.code}`, message: `${req.user.name}: ${text.slice(0, 200)}`,
-      url: `/teacher/my-subjects?subject=${subject._id}&post=${req.params.announcementId}`,
-    }], { session });
+    if (req.user.role === 'student') {
+      await require('../models/Notification').create([{
+        recipient: subject.teacherId, eventKey: `comment:${commentId}`, sourceId: req.params.announcementId, kind: 'comment',
+        title: `New comment · ${subject.code}`, message: `${req.user.name}: ${text.slice(0, 200)}`,
+        url: `/teacher/my-subjects?subject=${subject._id}&post=${req.params.announcementId}`,
+      }], { session });
+    } else if (req.user.role === 'teacher') {
+      const studentRecipients = (subject.enrolledStudents || []).filter(sId => sId.toString() !== req.user._id.toString());
+      if (studentRecipients.length > 0) {
+        const notifs = studentRecipients.map(sId => ({
+          recipient: sId,
+          eventKey: `comment:${commentId}:${sId}`,
+          sourceId: req.params.announcementId,
+          kind: 'comment',
+          title: `Teacher comment · ${subject.code}`,
+          message: `${req.user.name}: ${text.slice(0, 200)}`,
+          url: `/student/my-subjects/${subject._id}?tab=stream&post=${req.params.announcementId}`,
+        }));
+        await require('../models/Notification').insertMany(notifs, { session });
+      }
+    }
   });
   res.status(201).json({ message: 'Comment posted.' });
 });

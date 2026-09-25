@@ -56,6 +56,7 @@ app.use("/api/subjects",subjectRoutes);
 app.use('/api/tutors', require('./routes/tutorRoutes'));
 app.use('/api/student-subjects', require('./routes/studentSubjectRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/messages', require('./routes/messageRoutes'));
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);
   console.error('API request failed:', error.name);
@@ -71,11 +72,13 @@ async function start() {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 start().catch(error => { console.error('Unable to initialize authentication:', error.name); process.exitCode = 1; });
-// Publish scheduled classwork every 30 seconds; reads also catch up after downtime.
+// Publish scheduled classwork and check session reminders every 30 seconds
 const { publishDueMaterials } = require('./controllers/materialController');
+const { checkUpcomingSessionReminders } = require('./services/sessionReminderService');
 const materialPublisher = setInterval(() => {
   if (require('mongoose').connection.readyState === 1) {
     publishDueMaterials().catch((error) => console.error('Classwork scheduler:', error.name));
+    checkUpcomingSessionReminders().catch((error) => console.error('Session reminder scheduler:', error.name));
   }
 }, 30000);
 materialPublisher.unref();

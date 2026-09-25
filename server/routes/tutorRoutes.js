@@ -66,14 +66,54 @@ router.delete('/availability/:id', role('teacher'), run(async (req, res) => {
   if (!removed) throw fail('This slot is booked or unavailable and cannot be removed.', 409);
   res.json({ message: 'Slot removed.' });
 }));
+
 router.get('/bookings', run(async (req, res) => {
   const field = req.user.role === 'teacher' ? 'teacher' : 'student';
   const [bookings, declined] = await Promise.all([
-    Booking.find({ [field]: req.user._id }).populate('teacher student', 'name profilePicture').lean(),
-    DeclinedRequest.find({ [field]: req.user._id }).populate('teacher student', 'name profilePicture').lean(),
+    Booking.find({ [field]: req.user._id }).populate('teacher student', 'name profilePicture email').lean(),
+    DeclinedRequest.find({ [field]: req.user._id }).populate('teacher student', 'name profilePicture email').lean(),
   ]);
-  res.json([...bookings.map((b) => ({ ...b, status: b.status || 'confirmed' })), ...declined].sort((a, b) => a.start - b.start));
+
+  let enrichedBookings = bookings.map((b) => ({ ...b, status: b.status || 'confirmed' }));
+
+  if (req.user.role === 'student') {
+    const teacherIds = [...new Set(bookings.map((b) => String(b.teacher?._id || b.teacher)).filter(Boolean))];
+    const [profiles, teacherSessionCounts] = await Promise.all([
+      Profile.find({ user: { $in: teacherIds } }).lean(),
+      Booking.aggregate([
+        { $match: { teacher: { $in: teacherIds.map((id) => new mongoose.Types.ObjectId(id)) }, status: 'confirmed', end: { $lte: new Date() } } },
+        { $group: { _id: '$teacher', totalCompleted: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const profileMap = new Map();
+    profiles.forEach((p) => profileMap.set(String(p.user), p));
+    const countMap = new Map();
+    teacherSessionCounts.forEach((c) => countMap.set(String(c._id), c.totalCompleted));
+
+    enrichedBookings = enrichedBookings.map((b) => {
+      const teacherId = String(b.teacher?._id || b.teacher);
+      const p = profileMap.get(teacherId);
+      const completedSessions = countMap.get(teacherId) || 0;
+      return {
+        ...b,
+        teacherProfile: p ? {
+          degreeTitle: p.degreeTitle,
+          subjectToTeach: p.subjectToTeach,
+          teachingBio: p.teachingBio,
+          averageRating: p.averageRating || 0,
+          totalRatings: p.totalRatings || 0,
+          hourlyRate: p.hourlyRate,
+          weeklyHours: p.weeklyHours || 0,
+          completedSessionsCount: completedSessions,
+        } : null,
+      };
+    });
+  }
+
+  res.json([...enrichedBookings, ...declined].sort((a, b) => a.start - b.start));
 }));
+
 router.get('/requests', role('teacher'), run(async (req, res) => {
   res.json(await Booking.find({ teacher: req.user._id, status: 'pending' }).populate('student', 'name profilePicture').sort({ start: 1 }).lean());
 }));
@@ -107,6 +147,7 @@ router.patch('/requests/:id', role('teacher'), run(async (req, res) => {
   });
   res.json({ message: req.body.action === 'accept' ? 'Request accepted. The session is confirmed.' : 'Request declined. The time slot is available again.' });
 }));
+
 router.post('/bookings', role('student'), run(async (req, res) => {
   if (!validId(req.body.slotId)) throw fail('Select an available time.');
   let booking;
@@ -133,18 +174,69 @@ router.post('/bookings', role('student'), run(async (req, res) => {
   });
   res.status(201).json({ message: 'Request sent. Waiting for teacher approval.', booking });
 }));
+
 router.post('/bookings/:id/review', role('student'), run(async (req, res) => {
   if (!validId(req.params.id)) throw fail('Invalid booking.');
-  const { rating, text } = req.body;
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5 || typeof text !== 'string' || !text.trim() || text.trim().length > 1000) throw fail('Choose 1–5 stars and write a review of 1–1,000 characters.');
-  await mongoose.connection.transaction(async session => {
-    const booking = await Booking.findOneAndUpdate({ _id: req.params.id, student: req.user._id, status: { $ne: 'pending' }, end: { $lte: new Date() }, 'review.rating': { $exists: false } }, { $set: { review: { rating, text: text.trim(), createdAt: new Date() } } }, { returnDocument: 'after', session });
+  const { rating, text, aspects } = req.body;
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw fail('Please select an overall rating of 1 to 5 stars.');
+  }
+  const reviewText = typeof text === 'string' ? text.trim().slice(0, 1000) : '';
+
+  // Validate optional aspects if provided
+  const cleanAspects = {};
+  if (aspects && typeof aspects === 'object') {
+    ['teachingQuality', 'communication', 'punctuality', 'professionalism'].forEach((key) => {
+      const val = Number(aspects[key]);
+      if (Number.isInteger(val) && val >= 1 && val <= 5) {
+        cleanAspects[key] = val;
+      }
+    });
+  }
+
+  await mongoose.connection.transaction(async (session) => {
+    const booking = await Booking.findOneAndUpdate(
+      { _id: req.params.id, student: req.user._id, status: { $ne: 'pending' } },
+      {
+        $set: {
+          review: {
+            rating,
+            text: reviewText,
+            aspects: Object.keys(cleanAspects).length ? cleanAspects : undefined,
+            createdAt: new Date(),
+          },
+        },
+      },
+      { returnDocument: 'after', session }
+    );
     if (!booking) throw fail('Only your completed, unreviewed bookings can be rated.', 409);
-    await require('../models/Notification').create([{ recipient: booking.teacher, eventKey: `review:${booking._id}`, kind: 'review', title: 'New student review', message: `${req.user.name} rated your ${booking.subject} session ${rating}/5.`, url: '/teacher/schedules?tab=past' }], { session });
+
+    // Update teacher profile average rating & totalRatings
+    const allTeacherReviews = await Booking.find({ teacher: booking.teacher, 'review.rating': { $exists: true } }).session(session);
+    const totalRatings = allTeacherReviews.length;
+    const averageRating = totalRatings
+      ? Math.round((allTeacherReviews.reduce((sum, b) => sum + (b.review?.rating || 0), 0) / totalRatings) * 10) / 10
+      : rating;
+
+    await Profile.updateOne(
+      { user: booking.teacher },
+      { $set: { averageRating, totalRatings } },
+      { session }
+    );
+
+    await require('../models/Notification').create([{
+      recipient: booking.teacher,
+      eventKey: `review:${booking._id}`,
+      kind: 'review',
+      title: 'New student review',
+      message: `${req.user.name} rated your ${booking.subject} session ${rating}/5.`,
+      url: '/teacher/schedules?tab=past',
+    }], { session });
   });
-  // Directory ratings are calculated from reviews, avoiding stale cached totals.
+
   res.status(201).json({ message: 'Thank you! Your review is saved.' });
 }));
+
 router.get('/', role('student'), run(async (req, res) => {
   const profiles = await Profile.find().populate('user', 'name role bio profilePicture').lean();
   const tutors = await Promise.all(profiles.filter((p) => p.user?.role === 'teacher').map(async (p) => ({
@@ -152,15 +244,18 @@ router.get('/', role('student'), run(async (req, res) => {
   })));
   res.json(tutors);
 }));
-router.get('/:id', role('student'), run(async (req, res) => {
+
+router.get('/:id', run(async (req, res) => {
   if (!validId(req.params.id)) throw fail('Teacher not found.', 404);
   const profile = await Profile.findOne({ user: req.params.id }).populate('user', 'name role bio profilePicture').lean();
   if (!profile || profile.user?.role !== 'teacher') throw fail('Teacher not found.', 404);
   const reviews = await Booking.find({ teacher: req.params.id, 'review.rating': { $exists: true } }).populate('student', 'name').sort({ 'review.createdAt': -1 }).limit(50).lean();
-  res.json({ ...await publicProfile(profile),
+  res.json({
+    ...await publicProfile(profile),
     subjects: await Subject.find({ teacherId: req.params.id }).select('code title').sort({ title: 1 }).lean(),
     slots: await Slot.find({ teacher: req.params.id, booked: false, subjectId: { $in: await Subject.find({ teacherId: req.params.id }).distinct('_id') }, start: { $gt: new Date() } }).select('start subjectId').sort({ start: 1 }).lean(),
     reviews: reviews.map((b) => ({ id: b._id, name: b.student?.name?.split(' ')[0] || 'Student', ...b.review })),
   });
 }));
+
 module.exports = router;

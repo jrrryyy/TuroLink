@@ -1,0 +1,667 @@
+/* Modernized Rate Your Tutors Styles (Student Role)
+   Aligned with reference image and design system tokens */
+
+.rate-tutors-page {
+  padding: 30px 40px 48px;
+  max-width: 1440px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  color: var(--layout-text);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Main Two-Column Layout ── */
+.rate-tutors-layout {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+/* ── Left Column ── */
+.rate-tutors-main-col {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.rate-tutors-header h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.6px;
+  color: var(--layout-text);
+}
+
+.rate-tutors-header p {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--layout-muted);
+}
+
+/* ── Top 3-Stat Summary Card ── */
+.rate-tutors-summary-card {
+  background: #edf5ea;
+  border: 1px solid #d5e5cf;
+  border-radius: 18px;
+  padding: 22px 28px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(41, 77, 56, 0.04);
+}
+
+.dark-dashboard-layout .rate-tutors-summary-card {
+  background: #1c2b23;
+  border-color: #2e4437;
+}
+
+.rate-summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  position: relative;
+}
+
+.rate-summary-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 15%;
+  height: 70%;
+  width: 1px;
+  background: #cfe0c9;
+}
+
+.dark-dashboard-layout .rate-summary-item:not(:last-child)::after {
+  background: #2e4437;
+}
+
+.rate-summary-value-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #254632;
+}
+
+.dark-dashboard-layout .rate-summary-value-wrap {
+  color: #b5d5a6;
+}
+
+.rate-summary-icon {
+  fill: #254632;
+  color: #254632;
+}
+
+.dark-dashboard-layout .rate-summary-icon {
+  fill: #b5d5a6;
+  color: #b5d5a6;
+}
+
+.rate-summary-big {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.rate-summary-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #556c5c;
+  text-transform: capitalize;
+}
+
+.dark-dashboard-layout .rate-summary-label {
+  color: #8fa596;
+}
+
+/* ── "Your Tutors" Section ── */
+.rate-tutors-list-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rate-section-title-wrap h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  color: var(--layout-text);
+}
+
+.rate-section-title-wrap p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--layout-muted);
+}
+
+.rate-tutors-card-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+/* Tutor Card */
+.rate-tutor-item-card {
+  background: var(--layout-card);
+  border: 1px solid var(--layout-border);
+  border-radius: 16px;
+  padding: 18px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--layout-shadow);
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  cursor: pointer;
+}
+
+.rate-tutor-item-card:hover {
+  transform: translateY(-2px);
+  border-color: #8dac74;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.rate-tutor-item-card.selected {
+  border-color: var(--layout-green);
+  box-shadow: 0 0 0 2px rgba(53, 92, 66, 0.2), var(--layout-shadow);
+}
+
+.rate-tutor-left-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+/* Avatar stylings */
+.rate-tutor-avatar-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.rate-tutor-avatar-wrap.yellow-avatar {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #fff;
+}
+
+.rate-tutor-avatar-wrap.green-avatar {
+  background: #254632;
+  color: #fff;
+}
+
+.rate-tutor-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.rate-tutor-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rate-tutor-name {
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--layout-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rate-tutor-subject {
+  font-size: 13px;
+  color: var(--layout-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rate-tutor-right-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* Star Row */
+.rate-stars-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rate-star-icon {
+  color: #fbbf24;
+  fill: #fbbf24;
+}
+
+.rate-star-icon.empty {
+  color: var(--layout-border);
+  fill: transparent;
+}
+
+.rate-star-num {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--layout-muted);
+  margin-left: 5px;
+}
+
+/* Card Action Buttons */
+.rate-tutor-btn {
+  border: 0;
+  background: #294d38;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.16s ease;
+  white-space: nowrap;
+}
+
+.rate-tutor-btn:hover {
+  background: #1f3b2b;
+  transform: translateY(-1px);
+}
+
+.already-rated-btn {
+  border: 1px solid #294d38;
+  background: transparent;
+  color: #294d38;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.16s ease;
+}
+
+.already-rated-btn:hover {
+  background: rgba(41, 77, 56, 0.06);
+}
+
+.dark-dashboard-layout .already-rated-btn {
+  border-color: #b5d5a6;
+  color: #b5d5a6;
+}
+
+/* ── Right Column: Sticky Rating Panel ── */
+.rate-tutors-panel-col {
+  position: sticky;
+  top: calc(var(--dashboard-header-height, 88px) + 20px);
+}
+
+.rate-form-card {
+  background: var(--layout-card);
+  border: 1px solid var(--layout-border);
+  border-radius: 22px;
+  padding: 28px 30px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Tutor Panel Header */
+.rate-form-tutor-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rate-form-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.25);
+  overflow: hidden;
+}
+
+.rate-form-tutor-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rate-form-tutor-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--layout-text);
+  line-height: 1.2;
+}
+
+.rate-form-tutor-subject {
+  font-size: 13.5px;
+  color: var(--layout-muted);
+}
+
+.rate-form-reviews-count {
+  font-size: 12px;
+  color: var(--layout-muted);
+  margin-left: 4px;
+}
+
+/* Mini Stats Pill */
+.rate-form-stats-pill {
+  background: #edf5ea;
+  border: 1px solid #d5e5cf;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  font-size: 12px;
+  color: #254632;
+}
+
+.dark-dashboard-layout .rate-form-stats-pill {
+  background: #1c2b23;
+  border-color: #2e4437;
+  color: #b5d5a6;
+}
+
+.rate-stat-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.rate-stat-metric strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.rate-stat-metric span {
+  font-size: 11px;
+  color: #556c5c;
+}
+
+.dark-dashboard-layout .rate-stat-metric span {
+  color: #8fa596;
+}
+
+.rate-stat-divider {
+  width: 1px;
+  height: 24px;
+  background: #cfe0c9;
+}
+
+.dark-dashboard-layout .rate-stat-divider {
+  background: #2e4437;
+}
+
+/* Rate Your Experience */
+.rate-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rate-form-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--layout-text);
+  margin: 0;
+}
+
+.rate-form-subtext {
+  font-size: 12px;
+  color: var(--layout-muted);
+  margin: 0;
+}
+
+/* Interactive Star Picker */
+.rate-interactive-stars {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.rate-star-btn {
+  background: none;
+  border: 0;
+  padding: 3px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: transform 0.14s ease;
+}
+
+.rate-star-btn:hover {
+  transform: scale(1.18);
+}
+
+.rate-star-btn:disabled {
+  cursor: default;
+  transform: none;
+}
+
+/* Review Textarea */
+.rate-textarea-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rate-review-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 96px;
+  border: 1px solid var(--layout-border);
+  background: var(--layout-bg);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--layout-text);
+  resize: vertical;
+  line-height: 1.5;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.rate-review-textarea:focus {
+  outline: none;
+  border-color: #8dac74;
+  box-shadow: 0 0 0 3px rgba(141, 172, 116, 0.2);
+}
+
+.rate-char-counter {
+  align-self: flex-end;
+  font-size: 11px;
+  color: var(--layout-muted);
+}
+
+/* Aspects Section */
+.rate-aspects-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rate-aspect-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--layout-border);
+}
+
+.rate-aspect-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.rate-aspect-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--layout-muted);
+}
+
+.rate-aspect-stars {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Submit Rating Button */
+.rate-submit-btn {
+  width: 100%;
+  border: 0;
+  background: #254632;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 14px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.rate-submit-btn:hover:not(:disabled) {
+  background: #1c3626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(37, 70, 50, 0.25);
+}
+
+.rate-submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Alerts & Toasts */
+.rate-form-alert {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  margin: 0;
+}
+
+.rate-form-alert.error {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.rate-form-alert.success {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.dark-dashboard-layout .rate-form-alert.error {
+  background: #7f1d1d;
+  color: #fecaca;
+  border-color: #991b1b;
+}
+
+.dark-dashboard-layout .rate-form-alert.success {
+  background: #14532d;
+  color: #bbf7d0;
+  border-color: #166534;
+}
+
+/* Empty State */
+.rate-tutors-empty {
+  background: var(--layout-card);
+  border: 1px dashed var(--layout-border);
+  border-radius: 18px;
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.rate-tutors-empty h3 {
+  margin: 0;
+  font-size: 17px;
+  color: var(--layout-text);
+}
+
+.rate-tutors-empty p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--layout-muted);
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+/* Responsive */
+@media (max-width: 1080px) {
+  .rate-tutors-layout {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .rate-tutors-panel-col {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .rate-tutors-page {
+    padding: 20px 16px 36px;
+    gap: 20px;
+  }
+  .rate-tutors-summary-card {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 18px;
+  }
+  .rate-summary-item:not(:last-child)::after {
+    display: none;
+  }
+  .rate-tutor-item-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .rate-tutor-right-actions {
+    align-items: flex-start;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  .rate-form-card {
+    padding: 22px 18px;
+  }
+}

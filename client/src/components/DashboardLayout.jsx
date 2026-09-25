@@ -1,5 +1,7 @@
 import { profilePictureUrl } from "../services/profile";
 import StudentNotifications from './StudentNotifications';
+import UserProfileModal from './UserProfileModal';
+import '../styles/view-profile-modal.css';
 import {
   useEffect,
   useRef,
@@ -19,6 +21,7 @@ import {
   Search,
   Star,
   Settings,
+  Bell,
   Sun,
 } from "lucide-react";
 
@@ -57,6 +60,11 @@ const DashboardLayout = ({
   const [
     showSettings,
     setShowSettings,
+  ] = useState(false);
+
+  const [
+    showUserProfile,
+    setShowUserProfile,
   ] = useState(false);
 
   const [
@@ -159,7 +167,7 @@ const DashboardLayout = ({
           {[
             { label: "Dashboard", icon: LayoutDashboard, path: isTeacher ? "/teacher/dashboard" : "/dashboard" },
             { label: "My Subjects", icon: BookOpen, path: isTeacher ? "/teacher/my-subjects" : "/student/my-subjects" },
-            { label: "Messages", icon: MessageCircle },
+            { label: "Messages", icon: MessageCircle, path: isTeacher ? '/teacher/messages' : '/student/messages' },
             { label: "Schedules", icon: CalendarDays, path: isTeacher ? '/teacher/schedules' : '/student/schedules' },
             ...(isTeacher ? [{ label: 'Request', icon: ClipboardList, path: '/teacher/requests' }] : []),
             ...(isTeacher ? [{ label: 'Availability', icon: CalendarDays, path: '/teacher/availability' }] : [
@@ -307,6 +315,18 @@ const DashboardLayout = ({
                     Account Settings
                   </button>
 
+                  <button
+                    type="button"
+                    className="dashboard-settings-menu-item"
+                    onClick={() => { setShowSettings(false); goTo(isTeacher ? "/teacher/settings?tab=notifications" : "/student/settings?tab=notifications"); }}
+                  >
+                    <Bell
+                      size={17}
+                    />
+
+                    Notification Settings
+                  </button>
+
                   <div className="dashboard-settings-menu-divider" />
 
                   <button
@@ -334,21 +354,28 @@ const DashboardLayout = ({
 
             {/* PROFILE */}
 
-            <div className="dashboard-layout-avatar">
-              {user?.profilePicture ? <img src={profilePictureUrl(user.profilePicture)} alt="" /> : firstLetter}
-            </div>
+            <button
+              type="button"
+              className="dashboard-layout-user-btn"
+              onClick={() => setShowUserProfile(true)}
+              aria-label="View your profile"
+            >
+              <div className="dashboard-layout-avatar">
+                {user?.profilePicture ? <img src={profilePictureUrl(user.profilePicture)} alt="" /> : firstLetter}
+              </div>
 
-            <div className="dashboard-layout-profile">
-              <strong>
-                {displayName}
-              </strong>
+              <div className="dashboard-layout-profile">
+                <strong>
+                  {displayName}
+                </strong>
 
-              <span>
-                {isTeacher
-                  ? "Teacher"
-                  : "Student"}
-              </span>
-            </div>
+                <span>
+                  {isTeacher
+                    ? "Teacher"
+                    : "Student"}
+                </span>
+              </div>
+            </button>
           </div>
         </header>
 
@@ -433,6 +460,12 @@ const DashboardLayout = ({
           </div>
         </div>
       )}
+
+      <UserProfileModal
+        user={user}
+        isOpen={showUserProfile}
+        onClose={() => setShowUserProfile(false)}
+      />
     </div>
   );
 };
