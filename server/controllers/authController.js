@@ -5,12 +5,14 @@ const Session = require('../models/AuthSession');
 const bcrypt = require('bcryptjs');
 const { cookie, hash, cookieOptions, startSession } = require('../services/authSecurity');
 const { sendVerification, assertMailConfigured } = require('../services/verificationEmail');
+const { loadValidators } = require('../config/validators');
+
 async function createAccount(req, res, role = 'student', google) {
   let user;
   let profileComplete = false;
   try {
     assertMailConfigured();
-    const { normalizeEmail, normalizePhone } = await import('../../shared/validation.mjs');
+    const { normalizeEmail, normalizePhone } = await loadValidators();
     const email = normalizeEmail(google?.email || req.body.email);
     const phone = normalizePhone(req.body.phone);
     if (await User.exists({ email })) return res.status(409).json({ message: 'This email already has an account. Sign in or resend verification.', errors: { email: 'This email already has an account.' } });
@@ -49,7 +51,7 @@ async function verifyEmail(req, res) {
   res.json({ message: 'Email verified. You can now sign in.' });
 }
 async function resend(req, res) {
-  const { normalizeEmail } = await import('../../shared/validation.mjs');
+  const { normalizeEmail } = await loadValidators();
   try {
     assertMailConfigured();
     const user = await User.findOne({ email: normalizeEmail(req.body.email), emailVerifiedAt: null });

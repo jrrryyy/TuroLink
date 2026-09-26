@@ -45,7 +45,7 @@ app.use(
 );
 
 app.use(express.json());
-app.use('/api', require('./services/authSecurity').csrf);
+app.use(['/api', '/auth', '/teacher', '/student', '/courses', '/subjects', '/tutors', '/student-subjects', '/notifications', '/messages'], require('./services/authSecurity').csrf);
 
 app.get("/", (req, res) => {
   res.json({
@@ -58,15 +58,16 @@ app.use(
   express.static(uploadBaseDir)
 );
 
-app.use("/api/teacher", teacherRoutes);
-app.use("/api/auth", authRoutes);
-app.use("/api/student", studentRoutes);
-app.use("/api/courses", courseRoutes);
-app.use("/api/subjects", subjectRoutes);
-app.use('/api/tutors', require('./routes/tutorRoutes'));
-app.use('/api/student-subjects', require('./routes/studentSubjectRoutes'));
-app.use('/api/notifications', require('./routes/notificationRoutes'));
-app.use('/api/messages', require('./routes/messageRoutes'));
+// Mount with and without /api prefix for bulletproof client compatibility
+app.use(["/api/teacher", "/teacher"], teacherRoutes);
+app.use(["/api/auth", "/auth"], authRoutes);
+app.use(["/api/student", "/student"], studentRoutes);
+app.use(["/api/courses", "/courses"], courseRoutes);
+app.use(["/api/subjects", "/subjects"], subjectRoutes);
+app.use(["/api/tutors", "/tutors"], require('./routes/tutorRoutes'));
+app.use(["/api/student-subjects", "/student-subjects"], require('./routes/studentSubjectRoutes'));
+app.use(["/api/notifications", "/notifications"], require('./routes/notificationRoutes'));
+app.use(["/api/messages", "/messages"], require('./routes/messageRoutes'));
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);

@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const { random, hash, cookie, cookieOptions, startSession } = require('../services/authSecurity');
 const { publicUser } = require('./accountController');
 const { createAccount } = require('./authController');
+const { loadValidators } = require('../config/validators');
 async function challenge(res, kind, data) {
   const token = random();
   await Challenge.create({ tokenHash: hash(token), kind, data, expiresAt: new Date(Date.now() + 600000) });
@@ -66,7 +67,7 @@ async function complete(req, res) {
     await startSession(req, res, linked);
     return res.json({ user: publicUser(linked) });
   }
-  const { validateRegistration } = await import('../../shared/validation.mjs');
+  const { validateRegistration } = await loadValidators();
   const role = req.body.role === 'teacher' ? 'teacher' : 'student';
   const placeholder = random();
   const errors = validateRegistration({ ...req.body, email: pending.data.email, password: placeholder, confirmPassword: placeholder }, { teacher: role === 'teacher' });

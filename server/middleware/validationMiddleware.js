@@ -1,12 +1,12 @@
 const fs = require('node:fs/promises');
-const validators = import('../../shared/validation.mjs');
+const { loadValidators } = require('../config/validators');
 
 const validation = (task) => async (req, res, next) => {
   try {
     if (task === "teacher" && req.file?.path) res.on("finish", () => {
       if (res.statusCode >= 400) fs.unlink(req.file.path).catch(() => {});
     });
-    const rules = await validators;
+    const rules = await loadValidators();
     const body = req.body || {};
     let errors;
     if (task === 'login') errors = rules.validateLogin(body);

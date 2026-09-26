@@ -128,7 +128,8 @@ const userSchema = new mongoose.Schema(
 // Canonical key prevents concurrent registrations from claiming the same number.
 userSchema.pre('validate', async function () {
   if (this.isNew || this.isModified('phone')) {
-    const { normalizePhone } = await import('../../shared/validation.mjs');
+    const { loadValidators } = require("../config/validators");
+    const { normalizePhone } = await loadValidators();
     this.phone = normalizePhone(this.phone);
     if (this.phone) this.phoneKey = this.phone;
   }

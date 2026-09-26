@@ -3,7 +3,9 @@ const bcrypt = require('bcryptjs');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
-const directory = path.resolve(__dirname, '../uploads/avatars');
+const { getUploadPath } = require('../config/storage');
+const { loadValidators } = require('../config/validators');
+const directory = getUploadPath('avatars');
 
 const defaultNotificationPreferences = {
   emailNotifications: true,
@@ -39,7 +41,7 @@ async function removePicture(url) {
 const updateAccount = async (req, res) => {
   let uploaded;
   try {
-    const { validateProfile } = await import('../../shared/validation.mjs');
+    const { validateProfile } = await loadValidators();
     const errors = validateProfile(req.body || {});
     if (Object.keys(errors).length) return res.status(400).json({ message: 'Please correct the highlighted fields.', errors });
     const user = await User.findById(req.user._id);
