@@ -8,30 +8,14 @@ const fs =
   require("fs");
 
 
+const { getUploadPath } = require("../config/storage");
+
 // ============================================
 // UPLOAD DIRECTORY
 // ============================================
 
-const uploadDirectory =
-  path.join(
-    __dirname,
-    "../uploads/announcements"
-  );
+const uploadDirectory = getUploadPath("announcements");
 
-
-// Create folder automatically
-if (
-  !fs.existsSync(
-    uploadDirectory
-  )
-) {
-  fs.mkdirSync(
-    uploadDirectory,
-    {
-      recursive: true,
-    }
-  );
-}
 
 
 // ============================================

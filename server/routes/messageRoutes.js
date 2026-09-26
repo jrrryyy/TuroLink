@@ -14,11 +14,10 @@ const TeacherProfile = require('../models/TeacherProfile');
 const Booking = require('../models/Booking');
 const Notification = require('../models/Notification');
 
+const { getUploadPath } = require('../config/storage');
+
 // Ensure upload directory exists
-const uploadDir = path.join(__dirname, '..', 'uploads', 'messages');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+const uploadDir = getUploadPath('messages');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
