@@ -526,4 +526,22 @@ router.get('/contacts', async (req, res) => {
   }
 });
 
+// ── GET /download/:filename ───────────────────────────────────────────────────
+router.get('/download/:filename', async (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const filePath = path.join(uploadDir, filename);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: 'Attachment file not found.' });
+    }
+
+    const downloadName = req.query.name || filename;
+    res.download(filePath, downloadName);
+  } catch (err) {
+    res.status(500).json({ message: 'Unable to download attachment.' });
+  }
+});
+
 module.exports = router;
+

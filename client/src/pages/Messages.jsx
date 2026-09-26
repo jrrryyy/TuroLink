@@ -19,6 +19,10 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle,
+  Download,
+  Eye,
+  FileText,
+  Image as ImageIcon,
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import TutorProfileModal from '../components/TutorProfileModal';
@@ -26,6 +30,7 @@ import UserProfileModal from '../components/UserProfileModal';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { profilePictureUrl } from '../services/profile';
+import { resolveAttachmentUrl, isImageAttachment, downloadAttachment } from '../services/attachment';
 import '../styles/messages.css';
 
 const formatTime = (dateStr) => {
@@ -83,7 +88,8 @@ function extractSharedLinks(msgs = []) {
     }
     if (m.attachment?.url) {
       links.push({
-        url: m.attachment.url,
+        url: resolveAttachmentUrl(m.attachment.url),
+        rawAttachment: m.attachment,
         title: m.attachment.originalName || 'Shared Attachment',
         snippet: m.attachment.originalName || 'File',
         senderName: m.sender?.name || 'Contact',
@@ -128,6 +134,29 @@ export default function Messages() {
   const [viewTutorId, setViewTutorId] = useState(null);
   const [viewUser, setViewUser] = useState(null);
   const [toastMessage, setToastMessage] = useState('');
+  const [previewImage, setPreviewImage] = useState(null);
+  const [downloadingAttachment, setDownloadingAttachment] = useState(false);
+
+  // Close preview on Escape key
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setPreviewImage(null);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
+  const handleDownloadAttachment = async (attachment) => {
+    if (!attachment || downloadingAttachment) return;
+    setDownloadingAttachment(true);
+    try {
+      await downloadAttachment(attachment);
+    } catch {
+      alert('Unable to download attachment.');
+    } finally {
+      setDownloadingAttachment(false);
+    }
+  };
 
   const chatScrollRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -600,26 +629,61 @@ export default function Messages() {
                                   </div>
                                 ) : (
                                   <div className="messages-links-list">
-                                    {sharedLinks.map((item, idx) => (
-                                      <a
-                                        key={idx}
-                                        href={item.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="messages-link-entry"
-                                        title={item.url}
-                                      >
-                                        <div className="messages-link-entry-icon">
-                                          <ExternalLink size={14} />
-                                        </div>
-                                        <div className="messages-link-entry-info">
-                                          <span className="messages-link-title">{item.title}</span>
-                                          <small className="messages-link-meta">
-                                            {item.senderName} · {formatTime(item.createdAt)}
-                                          </small>
-                                        </div>
-                                      </a>
-                                    ))}
+                                {sharedLinks.map((item, idx) => (
+                                  item.isAttachment ? (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      className="messages-link-entry"
+                                      onClick={() => {
+                                        if (isImageAttachment(item.rawAttachment)) {
+                                          setPreviewImage({
+                                            url: resolveAttachmentUrl(item.rawAttachment.url),
+                                            name: item.rawAttachment.originalName || 'Image',
+                                            size: item.rawAttachment.size,
+                                            attachment: item.rawAttachment,
+                                          });
+                                        } else {
+                                          handleDownloadAttachment(item.rawAttachment);
+                                        }
+                                      }}
+                                      title={item.title}
+                                    >
+                                      <div className="messages-link-entry-icon">
+                                        {isImageAttachment(item.rawAttachment) ? (
+                                          <ImageIcon size={14} />
+                                        ) : (
+                                          <Download size={14} />
+                                        )}
+                                      </div>
+                                      <div className="messages-link-entry-info">
+                                        <span className="messages-link-title">{item.title}</span>
+                                        <small className="messages-link-meta">
+                                          {item.senderName} · {formatTime(item.createdAt)}
+                                        </small>
+                                      </div>
+                                    </button>
+                                  ) : (
+                                    <a
+                                      key={idx}
+                                      href={item.url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="messages-link-entry"
+                                      title={item.url}
+                                    >
+                                      <div className="messages-link-entry-icon">
+                                        <ExternalLink size={14} />
+                                      </div>
+                                      <div className="messages-link-entry-info">
+                                        <span className="messages-link-title">{item.title}</span>
+                                        <small className="messages-link-meta">
+                                          {item.senderName} · {formatTime(item.createdAt)}
+                                        </small>
+                                      </div>
+                                    </a>
+                                  )
+                                ))}
                                   </div>
                                 )}
                               </div>
@@ -726,15 +790,63 @@ export default function Messages() {
                               <div className="messages-bubble">
                                 {msg.text}
                                 {msg.attachment && (
-                                  <a
-                                    href={msg.attachment.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="messages-attachment-card"
-                                  >
-                                    <Paperclip size={14} />
-                                    <span>{msg.attachment.originalName || 'Attachment'}</span>
-                                  </a>
+                                  isImageAttachment(msg.attachment) ? (
+                                    <div className="messages-image-attachment-wrapper">
+                                      <button
+                                        type="button"
+                                        className="messages-image-attachment-preview"
+                                        onClick={() => setPreviewImage({
+                                          url: resolveAttachmentUrl(msg.attachment.url),
+                                          name: msg.attachment.originalName || 'Image',
+                                          size: msg.attachment.size,
+                                          attachment: msg.attachment,
+                                        })}
+                                        title="Click to view full image"
+                                      >
+                                        <img
+                                          src={resolveAttachmentUrl(msg.attachment.url)}
+                                          alt={msg.attachment.originalName || 'Image attachment'}
+                                          loading="lazy"
+                                        />
+                                        <div className="messages-image-attachment-overlay">
+                                          <Eye size={18} />
+                                          <span>View</span>
+                                        </div>
+                                      </button>
+                                      <div className="messages-image-attachment-caption">
+                                        <span className="messages-image-name" title={msg.attachment.originalName}>
+                                          {msg.attachment.originalName || 'Image'}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          className="messages-attachment-download-btn"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDownloadAttachment(msg.attachment);
+                                          }}
+                                          title="Download image"
+                                          aria-label="Download image"
+                                        >
+                                          <Download size={13} />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="messages-attachment-card interactive"
+                                      onClick={() => handleDownloadAttachment(msg.attachment)}
+                                      title={`Click to download ${msg.attachment.originalName || 'file'}`}
+                                    >
+                                      <FileText size={15} />
+                                      <span className="messages-attachment-title">
+                                        {msg.attachment.originalName || 'Attachment'}
+                                      </span>
+                                      <span className="messages-attachment-action" title="Download">
+                                        <Download size={13} />
+                                      </span>
+                                    </button>
+                                  )
                                 )}
                               </div>
 
@@ -1076,6 +1188,71 @@ export default function Messages() {
               >
                 {deleteLoading ? 'Deleting…' : 'Delete Conversation'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Image Preview Lightbox Modal ──────────────────────────────────── */}
+      {previewImage && (
+        <div
+          className="messages-image-modal-backdrop"
+          onClick={() => setPreviewImage(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image preview"
+        >
+          <div
+            className="messages-image-modal-content"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="messages-image-modal-header">
+              <div className="messages-image-modal-info">
+                <span className="messages-image-modal-title" title={previewImage.name}>
+                  {previewImage.name}
+                </span>
+                {previewImage.size ? (
+                  <span className="messages-image-modal-size">
+                    {Math.max(1, Math.round(previewImage.size / 1024))} KB
+                  </span>
+                ) : null}
+              </div>
+              <div className="messages-image-modal-actions">
+                <button
+                  type="button"
+                  className="messages-image-modal-btn download"
+                  onClick={() => handleDownloadAttachment(previewImage.attachment || { url: previewImage.url, originalName: previewImage.name })}
+                  title="Download image"
+                >
+                  <Download size={15} />
+                  <span>Download</span>
+                </button>
+                <a
+                  href={previewImage.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="messages-image-modal-btn external"
+                  title="Open full image in new tab"
+                >
+                  <ExternalLink size={15} />
+                </a>
+                <button
+                  type="button"
+                  className="messages-image-modal-btn close"
+                  onClick={() => setPreviewImage(null)}
+                  title="Close"
+                  aria-label="Close image preview"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="messages-image-modal-body">
+              <img
+                src={previewImage.url}
+                alt={previewImage.name}
+                className="messages-image-modal-img"
+              />
             </div>
           </div>
         </div>

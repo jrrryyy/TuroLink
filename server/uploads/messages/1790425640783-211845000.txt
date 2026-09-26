@@ -1,0 +1,17 @@
+GigabitEthernet0/0     172.16.31.1     YES manual up                    up 
+GigabitEthernet0/1     192.168.0.2     YES manual up                    up 
+GigabitEthernet0/2     unassigned      YES unset  administratively down down 
+Serial0/0/0            unassigned      YES unset  administratively down down 
+Serial0/0/1            unassigned      YES unset  administratively down down 
+Vlan1                  unassigned      YES unset  administratively down down
+Router#conf 
+
+
+sh ip int br
+
+en - enable
+conf t - configure terminal
+int - interface
+ip add - ip address 0.0.0.0 0.0.0.0
+end - e
+wr - write memory
