@@ -11,6 +11,7 @@ import {
   Heart,
   MessageSquare,
   Paperclip,
+  Search,
   Upload,
   X,
 } from 'lucide-react';
@@ -322,8 +323,53 @@ export default function StudentMySubjects() {
   return <DashboardLayout role="student" userName={user.name} searchValue={query} onSearchChange={setQuery} searchPlaceholder="Search your subjects…"><div className="subject-feed-page">
     {id && <Link className="subject-feed-back" to="/student/my-subjects"><ArrowLeft size={16} />Back to My Subjects</Link>}
     {error ? <div className="subject-feed-error" role="alert">{error} <button onClick={() => { setError(''); setLoading(true); setRevision((r) => r + 1); }}>Try again</button></div> : (loading || !data) && <p role="status">Loading subjects…</p>}
-    {!id && data && <><span className="student-section-label">YOUR CLASSROOM</span><h1>My Subjects</h1><p className="subject-feed-muted">Everything you need for your next lesson, all in one place.</p><div className="subject-feed-grid">{filtered.map((s) => <article className="subject-feed-card" key={s._id}><header><Avatar subject={s} /><div><strong>{s.title}</strong><small>{s.instructorName}</small></div></header><div className="subject-feed-card-body"><span>Upcoming topic:</span><p>{s.upcomingTopic || 'No upcoming topic yet'}</p></div><Link className="subject-feed-primary" to={`/student/my-subjects/${s._id}`}>View Announcements</Link></article>)}</div>
-      {!filtered.length && <div className="subject-feed-empty"><BookOpen size={36} /><h2>{query ? 'No matching subjects' : 'No enrolled subjects yet'}</h2><p>{query ? 'Try a different subject or teacher name.' : 'Choose a subject when requesting a tutor. It appears here after the teacher accepts.'}</p><Link to="/student/find-tutors">Find a tutor</Link></div>}</>}
+    {!id && data && (
+      <>
+        <div className="student-subjects-header-row">
+          <div>
+            <span className="student-section-label">YOUR CLASSROOM</span>
+            <h1>My Subjects</h1>
+            <p className="subject-feed-muted">Everything you need for your next lesson, all in one place.</p>
+          </div>
+
+          <div className="student-subject-search-wrapper">
+            <Search size={18} className="student-subject-search-icon" />
+            <input
+              type="text"
+              className="student-subject-search-input"
+              placeholder="Search by subject, teacher, or topic..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search your subjects"
+            />
+            {query && (
+              <button
+                type="button"
+                className="student-subject-search-clear"
+                onClick={() => setQuery('')}
+                aria-label="Clear search"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {query && (
+          <div className="student-subject-search-status">
+            <span>
+              {filtered.length === 1
+                ? `1 subject matching "${query}"`
+                : `${filtered.length} subjects matching "${query}"`}
+            </span>
+            <button type="button" onClick={() => setQuery('')}>Clear filter</button>
+          </div>
+        )}
+
+        <div className="subject-feed-grid">{filtered.map((s) => <article className="subject-feed-card" key={s._id}><header><Avatar subject={s} /><div><strong>{s.title}</strong><small>{s.instructorName}</small></div></header><div className="subject-feed-card-body"><span>Upcoming topic:</span><p>{s.upcomingTopic || 'No upcoming topic yet'}</p></div><Link className="subject-feed-primary" to={`/student/my-subjects/${s._id}`}>View Announcements</Link></article>)}</div>
+        {!filtered.length && <div className="subject-feed-empty"><BookOpen size={36} /><h2>{query ? 'No matching subjects' : 'No enrolled subjects yet'}</h2><p>{query ? 'Try a different subject or teacher name.' : 'Choose a subject when requesting a tutor. It appears here after the teacher accepts.'}</p><Link to="/student/find-tutors">Find a tutor</Link></div>}
+      </>
+    )}
     {id && data && <><span className="student-section-label">SUBJECT CLASSROOM</span><h1>{data.code}: {data.title}</h1><p className="subject-feed-muted">Enrolled Students: {data.enrolledCount} · Subject Rating: {data.rating ? `${data.rating}/5` : 'Not rated yet'}</p><nav className="subject-feed-tabs" aria-label="Subject content"><button aria-pressed={tab === 'announcements'} className={tab === 'announcements' ? 'active' : ''} onClick={() => setTab('announcements')}>Announcements</button><button aria-pressed={tab === 'materials'} className={tab === 'materials' ? 'active' : ''} onClick={() => setTab('materials')}>Classwork</button></nav>
       {tab === 'announcements' ? <>{!data.announcements.length && <div className="subject-feed-empty">No announcements posted yet.</div>}{data.announcements.map((p) => <Announcement key={p._id} subject={data} post={p} reload={reload} />)}</> : <>{!data.materials.length && <div className="subject-feed-empty">No classwork published yet.</div>}{data.materials.map((m) => <article id={`material-${m._id}`} className="subject-feed-post" key={m._id}><small>{m.type === 'quiz' ? 'Quiz Assignment' : 'Assignment'}</small><h2>{m.title}</h2><p className="subject-feed-muted">{m.points == null ? 'Ungraded' : `${m.points} points`}{m.dueAt ? ` · Due ${date(m.dueAt)} (Manila)` : ' · No due date'}</p><p className="subject-feed-content">{m.instructions}</p>{m.link && <p><a href={m.link} target="_blank" rel="noreferrer">Open classwork link</a></p>}{m.attachmentName && <Attachment name={m.attachmentName} endpoint={`/student-subjects/${id}/materials/${m._id}/attachment`} />}<MaterialSubmission subject={data} material={m} reload={reload} /></article>)}</>}
     </>}

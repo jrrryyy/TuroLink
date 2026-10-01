@@ -156,48 +156,86 @@
    SEARCH
 ========================================================= */
 
-.teacher-subject-search {
-  width:
-    min(430px, 38vw);
-
-  height: 43px;
-
-  padding: 0 15px;
-
-  border-radius: 999px;
-
-  background:
-    var(--ts-card);
-
-  color:
-    var(--ts-muted);
-
+.teacher-subject-toolbar-row {
   display: flex;
   align-items: center;
-
-  gap: 9px;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 18px 0 22px;
 }
 
+.teacher-subject-search {
+  width: min(440px, 100%);
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--ts-card);
+  border: 1.5px solid var(--ts-border);
+  color: var(--ts-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.teacher-subject-search:focus-within {
+  border-color: var(--ts-green);
+  box-shadow: 0 0 0 3px rgba(51, 80, 53, 0.12);
+}
 
 .teacher-subject-search input {
   width: 100%;
-
   border: 0;
   outline: 0;
-
-  background:
-    transparent;
-
-  color:
-    var(--ts-text);
-
-  font-size: 12px;
+  background: transparent;
+  color: var(--ts-text);
+  font: inherit;
+  font-size: 13px;
 }
 
-
 .teacher-subject-search input::placeholder {
-  color:
-    var(--ts-muted);
+  color: var(--ts-muted);
+}
+
+.teacher-subject-search-clear {
+  border: 0;
+  background: var(--ts-hover);
+  color: var(--ts-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.teacher-subject-search-clear:hover {
+  background: var(--ts-border);
+  color: var(--ts-text);
+}
+
+.teacher-subject-filter-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ts-muted);
+  font-weight: 500;
+}
+
+.teacher-subject-filter-status button {
+  border: 0;
+  background: transparent;
+  color: var(--ts-green);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
 }
 
 

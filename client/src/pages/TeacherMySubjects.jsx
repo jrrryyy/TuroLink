@@ -19,6 +19,7 @@ import {
   MessageCircle,
   Paperclip,
   Plus,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -1091,16 +1092,52 @@ const TeacherMySubjects = () => {
 
             {successMessage && (
               <div className="teacher-subject-success">
-
-                <CheckCircle2
-                  size={17}
-                />
-
+                <CheckCircle2 size={17} />
                 {successMessage}
-
               </div>
             )}
 
+            <div className="teacher-subject-toolbar-row">
+              <div className="teacher-subject-search">
+                <Search size={16} />
+                <input
+                  type="text"
+                  placeholder="Search subjects by code, title, or description..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSearchParams(val ? { q: val } : {}, { replace: true });
+                  }}
+                  aria-label="Search subjects"
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    className="teacher-subject-search-clear"
+                    onClick={() => setSearchParams({}, { replace: true })}
+                    aria-label="Clear search"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {searchTerm && (
+                <div className="teacher-subject-filter-status">
+                  <span>
+                    {filteredSubjects.length === 1
+                      ? `1 subject matching "${searchTerm}"`
+                      : `${filteredSubjects.length} subjects matching "${searchTerm}"`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSearchParams({}, { replace: true })}
+                  >
+                    Clear filter
+                  </button>
+                </div>
+              )}
+            </div>
 
             <div className="teacher-subject-list">
 

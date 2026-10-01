@@ -1003,3 +1003,34 @@
     display: none;
   }
 }
+
+/* =====================================================
+   TEACHER SIGN IN CARD
+===================================================== */
+
+.teacher-signin-card {
+  margin-top: 24px;
+  padding: 16px 20px;
+  background: #ffffff;
+  border: 1px solid rgba(51, 80, 53, 0.14);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #617362;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.teacher-signin-link {
+  color: #2e7d32;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.15s ease, text-decoration 0.15s ease;
+}
+
+.teacher-signin-link:hover {
+  color: #1b5e20;
+  text-decoration: underline;
+}

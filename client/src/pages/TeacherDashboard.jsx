@@ -5,6 +5,8 @@ import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/DashboardLayout';
 
+import TeacherCompletedSessionsGraph from '../components/TeacherCompletedSessionsGraph';
+
 export default function TeacherDashboard() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
@@ -32,6 +34,7 @@ export default function TeacherDashboard() {
       {error && <div role="alert" className="teacher-ui-feedback">{error}<button type="button" onClick={() => { setError(''); setRevision(v => v + 1); }}>Try again</button></div>}
       {!data && !error ? <div className="teacher-overview-loading" role="status">Loading your teaching overview...</div> : data && <>
         <section className="teacher-metrics" aria-label="Teaching overview">{cards.map(({ label, value, note, icon: Icon }) => <article key={label}><div><span>{label}</span><Icon size={19} /></div><strong>{value}</strong><p>{note}</p></article>)}</section>
+        <TeacherCompletedSessionsGraph analytics={data?.completedAnalytics} />
         <div className="teacher-overview-grid"><section className="teacher-ui-card"><header><div><span className="teacher-eyebrow">PLAN YOUR DAY</span><h2>Upcoming sessions</h2></div><Link to="/teacher/schedules">View calendar<ArrowRight size={16} /></Link></header>
           {schedules.length ? <div className="teacher-agenda">{schedules.slice(0, 5).map((session, i) => <article key={session._id || i}><span className="teacher-agenda-icon"><BookOpen size={20} /></span><div><h3>{session.subject}</h3><p>{session.time}</p>{session.students?.length > 0 && <small>{session.students.map(s => s.name || 'Student').join(', ')}</small>}</div><Link to="/teacher/schedules" aria-label={`View ${session.subject} session`}><ArrowRight size={18} /></Link></article>)}</div> : <div className="teacher-ui-empty"><CalendarDays size={30} /><h3>Your next lesson starts here</h3><p>Add available times. Confirmed student requests will appear in your schedule.</p><Link className="teacher-ui-button" to="/teacher/availability"><Plus size={16} />Add availability</Link></div>}
         </section><section className="teacher-ui-card"><header><div><span className="teacher-eyebrow">CONNECT WITH LEARNERS</span><h2>Tutoring requests <span className="teacher-count">{requests.length}</span></h2></div></header>

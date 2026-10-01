@@ -1,5 +1,6 @@
 import PasswordStrength from '../components/PasswordStrength';
 import GoogleSignIn from '../components/GoogleSignIn';
+import LegalModals from '../components/LegalModals';
 import { validateRegistration } from "../../../shared/validation.mjs";
 import FieldError from "../components/FieldError";
 import "../styles/validation.css";
@@ -9,6 +10,8 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
+  ArrowRight,
+  GraduationCap,
 } from "lucide-react";
 
 import {
@@ -41,6 +44,7 @@ const Register = () => {
     useState(false);
 
   const [terms, setTerms] = useState(false);
+  const [activeLegalModal, setActiveLegalModal] = useState(null);
 
   const [error, setError] = useState("");
 
@@ -156,7 +160,9 @@ const Register = () => {
             className="auth-form"
           >
             <label>
-              Full Name
+              <span className="auth-field-label">
+                Full Name <span className="required-asterisk">*</span>
+              </span>
 
               <input
                 type="text"
@@ -169,7 +175,9 @@ const Register = () => {
             </label>
 
             <label>
-              Email Address
+              <span className="auth-field-label">
+                Email Address <span className="required-asterisk">*</span>
+              </span>
 
               <input
                 type="email"
@@ -182,7 +190,9 @@ const Register = () => {
             </label>
 
             <label>
-              Phone Number
+              <span className="auth-field-label">
+                Phone Number <span className="required-asterisk">*</span>
+              </span>
 
               <input
                 type="tel"
@@ -195,7 +205,9 @@ const Register = () => {
             </label>
 
             <label>
-              Password
+              <span className="auth-field-label">
+                Password <span className="required-asterisk">*</span>
+              </span>
 
               <div className="password-field">
                 <input
@@ -230,7 +242,9 @@ const Register = () => {
             </label>
 
             <label>
-              Confirm Password
+              <span className="auth-field-label">
+                Confirm Password <span className="required-asterisk">*</span>
+              </span>
 
               <div className="password-field">
                 <input
@@ -276,8 +290,23 @@ const Register = () => {
               />
 
               <span>
-                I agree to the Terms and Conditions
-                and Privacy Policy.
+                I agree to the{" "}
+                <button
+                  type="button"
+                  className="auth-legal-link"
+                  onClick={() => setActiveLegalModal("terms")}
+                >
+                  Terms and Conditions
+                </button>{" "}
+                and{" "}
+                <button
+                  type="button"
+                  className="auth-legal-link"
+                  onClick={() => setActiveLegalModal("privacy")}
+                >
+                  Privacy Policy
+                </button>
+                <span className="required-asterisk">*</span>
               </span>
             <FieldError errors={fieldErrors} name="terms" />
             </label>
@@ -293,19 +322,39 @@ const Register = () => {
             </button>
           </form>
 
-          <div className="auth-footer-card signup-choice-card">
-
-            <div className="signup-choice-buttons">
-              <Link
-                to="/teacher/register"
-                className="signup-choice-btn teacher"
-              >
-                Sign Up as Teacher
-              </Link>
+          <div className="auth-educator-invite">
+            <div className="auth-educator-info">
+              <div className="auth-educator-icon">
+                <GraduationCap size={22} />
+              </div>
+              <div className="auth-educator-text">
+                <strong>Want to teach on TuroLink?</strong>
+                <p>Inspire learners, share knowledge, and earn locally.</p>
+              </div>
             </div>
+            <Link
+              to="/teacher/register"
+              className="auth-educator-btn"
+            >
+              <span>Apply as Teacher</span>
+              <ArrowRight size={15} />
+            </Link>
+          </div>
+
+          <div className="auth-switch-prompt">
+            <span>Already have an account?</span>
+            <Link to="/login" className="auth-switch-link">
+              Sign In
+            </Link>
           </div>
         </div>
       </section>
+
+      <LegalModals
+        activeModal={activeLegalModal}
+        onClose={() => setActiveLegalModal(null)}
+        onAccept={() => setTerms(true)}
+      />
     </div>
   );
 };

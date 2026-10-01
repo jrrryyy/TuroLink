@@ -892,7 +892,6 @@
   gap: 24px;
 }
 .student-enrolled {
-  min-height: 380px;
   display: flex;
   flex-direction: column;
 }
@@ -982,8 +981,8 @@
   color: var(--layout-green);
 }
 .student-all-subjects {
-  margin-top: auto;
-  padding-top: 18px;
+  margin-top: 16px;
+  padding-top: 16px;
   font-size: 13px;
   font-weight: 600;
   color: var(--layout-green);
@@ -997,6 +996,58 @@
   text-decoration: underline;
 }
 
+/* ── Suggested prompt when few subjects ── */
+.student-subject-suggest-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px dashed var(--layout-border);
+  background: var(--layout-hover);
+  margin-top: 6px;
+}
+.student-suggest-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.student-suggest-icon {
+  color: var(--layout-green);
+  flex-shrink: 0;
+}
+.student-suggest-content strong {
+  display: block;
+  font-size: 13px;
+  color: var(--layout-text);
+  font-weight: 600;
+}
+.student-suggest-content p {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--layout-muted);
+}
+.student-suggest-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--layout-green);
+  text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--layout-card);
+  border: 1px solid var(--layout-border);
+  white-space: nowrap;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+.student-suggest-link:hover {
+  background: var(--layout-hover);
+  transform: translateX(2px);
+}
+
 /* ── Activity column ── */
 .student-activity-column {
   display: grid;
@@ -1004,12 +1055,123 @@
   min-width: 0;
 }
 
+/* ── Upcoming sessions panel ── */
+.student-upcoming-panel {
+  display: flex;
+  flex-direction: column;
+}
+.student-upcoming-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+.student-upcoming-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--layout-border);
+  background: var(--layout-card);
+  transition: transform 0.16s ease, border-color 0.16s ease;
+}
+.student-upcoming-row:hover {
+  transform: translateY(-1px);
+  border-color: #8dac74;
+}
+.student-upcoming-icon-wrap {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--layout-hover);
+  color: var(--layout-green);
+}
+.student-upcoming-info {
+  flex: 1;
+  min-width: 0;
+}
+.student-upcoming-info strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--layout-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.student-upcoming-info p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--layout-muted);
+}
+.student-upcoming-tutor {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--layout-green);
+}
+.student-upcoming-details-btn {
+  border: 0;
+  background: var(--layout-hover);
+  color: var(--layout-text);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.student-upcoming-details-btn:hover {
+  background: var(--layout-green);
+  color: #fff;
+}
+.student-upcoming-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--layout-muted);
+}
+.student-upcoming-empty-icon {
+  color: var(--layout-muted);
+  opacity: 0.6;
+  margin-bottom: 8px;
+}
+.student-upcoming-empty-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--layout-text);
+}
+.student-upcoming-empty-sub {
+  margin: 4px 0 14px;
+  font-size: 12px;
+  color: var(--layout-muted);
+  max-width: 240px;
+  line-height: 1.5;
+}
+.student-primary-button.compact {
+  min-height: 34px;
+  padding: 6px 14px;
+  font-size: 12.5px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
 /* ── Session history chart ── */
 .student-history-chart {
   display: flex;
   gap: 14px;
-  height: 190px;
-  padding-top: 30px;
+  height: 170px;
+  padding-top: 26px;
   margin-top: 14px;
 }
 .student-history-column {
@@ -1051,80 +1213,6 @@
   font-size: 11px;
   font-weight: 500;
   color: var(--layout-muted);
-}
-
-/* ── Calendar widget ── */
-.student-calendar-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-}
-.student-calendar-heading h2 {
-  margin: 0;
-  font-family: inherit;
-  font-size: 15px;
-  font-weight: 700;
-}
-.student-calendar-heading > div {
-  display: flex;
-  gap: 6px;
-}
-.student-calendar button,
-.student-session-dialog button {
-  border: 0;
-  background: var(--layout-hover);
-  color: var(--layout-text);
-  border-radius: 8px;
-  padding: 7px;
-  display: inline-flex;
-  align-items: center;
-  cursor: pointer;
-  transition: background 0.16s ease;
-}
-.student-calendar button:hover {
-  background: var(--layout-border);
-}
-.student-calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 18px;
-  text-align: center;
-  font-size: 12.5px;
-}
-.student-calendar-grid > span {
-  display: grid;
-  place-items: center;
-  min-height: 32px;
-  border-radius: 8px;
-  font-weight: 500;
-}
-.student-calendar-weekday {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--layout-muted);
-}
-.student-calendar-grid .student-calendar-today {
-  background: var(--layout-green);
-  color: #fff;
-  font-weight: 700;
-  box-shadow: 0 4px 10px rgba(53, 92, 66, 0.3);
-}
-.student-calendar-footer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border-top: 1px solid var(--layout-border);
-  margin-top: 16px;
-  padding-top: 14px;
-  font-size: 11.5px;
-  color: var(--layout-muted);
-}
-.student-calendar-footer button {
-  margin-left: auto;
-  font-size: 11px;
-  font-weight: 600;
 }
 
 /* ── Empty state ── */

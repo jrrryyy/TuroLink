@@ -2,8 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   BookOpen,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
   ArrowRight,
   Search,
@@ -35,12 +33,7 @@ const StudentDashboard = () => {
   const [hoveredPoint, setHoveredPoint] = useState(null);
 
   const detailsRef = useRef(null);
-  const [calendarMonth, setCalendarMonth] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const today = new Date();
-  const monthLabel = calendarMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  const monthDays = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0).getDate();
-  const monthOffset = calendarMonth.getDay();
-  const changeMonth = (offset) => setCalendarMonth((month) => new Date(month.getFullYear(), month.getMonth() + offset, 1));
 
   useEffect(() => {
     let active = true;
@@ -743,6 +736,9 @@ const StudentDashboard = () => {
                     <BookOpen size={32} />
                     <h3>{query ? "No subjects found" : "No subjects yet"}</h3>
                     <p>{query ? "Try another subject or tutor name." : "Your enrolled subjects will appear here."}</p>
+                    <Link to="/student/find-tutors" className="student-primary-button compact">
+                      <Search size={14} /> Find a tutor
+                    </Link>
                   </div>
                 ) : (
                   <div className="student-course-list">
@@ -781,6 +777,21 @@ const StudentDashboard = () => {
                         </Link>
                       );
                     })}
+
+                    {filteredSubjects.length <= 2 && (
+                      <div className="student-subject-suggest-card">
+                        <div className="student-suggest-content">
+                          <Sparkles size={16} className="student-suggest-icon" />
+                          <div>
+                            <strong>Expand your learning</strong>
+                            <p>Discover expert 1-on-1 tutors in other topics and subjects.</p>
+                          </div>
+                        </div>
+                        <Link to="/student/find-tutors" className="student-suggest-link">
+                          <span>Browse</span> <ArrowRight size={13} />
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
                 <Link className="student-all-subjects" to="/student/my-subjects">
@@ -789,8 +800,64 @@ const StudentDashboard = () => {
                 </Link>
               </section>
 
-              {/* Right Column: Activity & Calendar */}
+              {/* Right Column: Upcoming Sessions & Activity */}
               <div className="student-activity-column">
+                <section className="student-panel student-upcoming-panel" aria-labelledby="student-upcoming-heading">
+                  <div className="student-panel-heading">
+                    <div>
+                      <span className="student-eyebrow">YOUR SCHEDULE</span>
+                      <h2 id="student-upcoming-heading">Upcoming Sessions</h2>
+                    </div>
+                    <Link
+                      to="/student/schedules"
+                      aria-label="Manage schedules"
+                      title="Manage schedules"
+                      className="student-panel-header-action"
+                    >
+                      <CalendarDays size={18} />
+                    </Link>
+                  </div>
+
+                  {schedules.length > 0 ? (
+                    <div className="student-upcoming-list">
+                      {schedules.slice(0, 3).map((schedule, idx) => (
+                        <div key={schedule._id || idx} className="student-upcoming-row">
+                          <div className="student-upcoming-icon-wrap">
+                            <Clock3 size={15} />
+                          </div>
+                          <div className="student-upcoming-info">
+                            <strong>{schedule.subject}</strong>
+                            <p>{schedule.time}</p>
+                            {schedule.tutor && <span className="student-upcoming-tutor">With {schedule.tutor}</span>}
+                          </div>
+                          <button
+                            type="button"
+                            className="student-upcoming-details-btn"
+                            onClick={() => detailsRef.current?.showModal()}
+                            aria-label="View session details"
+                          >
+                            Details
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="student-upcoming-empty">
+                      <CalendarDays size={26} className="student-upcoming-empty-icon" />
+                      <p className="student-upcoming-empty-title">No upcoming classes</p>
+                      <p className="student-upcoming-empty-sub">Book 1-on-1 sessions tailored to your pace.</p>
+                      <Link to="/student/find-tutors" className="student-primary-button compact">
+                        <Search size={14} /> Find a tutor
+                      </Link>
+                    </div>
+                  )}
+
+                  <Link className="student-all-subjects" to="/student/schedules">
+                    <span>Manage all schedules</span>
+                    <ArrowRight size={17} />
+                  </Link>
+                </section>
+
                 <section className="student-panel student-history" aria-labelledby="student-history-heading">
                   <div className="student-panel-heading">
                     <div>
@@ -827,68 +894,6 @@ const StudentDashboard = () => {
                       <p>Your session hours will appear here as you complete tutoring sessions.</p>
                     </div>
                   )}
-                </section>
-
-                <section className="student-panel student-calendar" aria-label="Calendar">
-                  <div className="student-calendar-heading">
-                    <h2 aria-live="polite">{monthLabel}</h2>
-                    <div>
-                      <button
-                        type="button"
-                        aria-label="Previous month"
-                        onClick={() => changeMonth(-1)}
-                      >
-                        <ChevronLeft size={18} />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Next month"
-                        onClick={() => changeMonth(1)}
-                      >
-                        <ChevronRight size={18} />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="student-calendar-grid">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                      <span className="student-calendar-weekday" key={day}>
-                        {day}
-                      </span>
-                    ))}
-                    {Array.from({ length: monthOffset }, (_, index) => (
-                      <span key={"blank-" + index} />
-                    ))}
-                    {Array.from({ length: monthDays }, (_, index) => {
-                      const day = index + 1;
-                      const isToday =
-                        day === today.getDate() &&
-                        calendarMonth.getMonth() === today.getMonth() &&
-                        calendarMonth.getFullYear() === today.getFullYear();
-                      return (
-                        <span
-                          key={day}
-                          className={isToday ? "student-calendar-today" : ""}
-                          aria-current={isToday ? "date" : undefined}
-                        >
-                          {day}
-                        </span>
-                      );
-                    })}
-                  </div>
-                  <div className="student-calendar-footer">
-                    <CalendarDays size={16} />
-                    <span>
-                      Today / {today.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setCalendarMonth(new Date(today.getFullYear(), today.getMonth(), 1))
-                      }
-                    >
-                      Today
-                    </button>
-                  </div>
                 </section>
               </div>
             </div>

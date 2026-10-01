@@ -1,6 +1,7 @@
 import { profilePictureUrl } from "../services/profile";
 import StudentNotifications from './StudentNotifications';
 import UserProfileModal from './UserProfileModal';
+import ProfileSupportModals from './ProfileSupportModals';
 import '../styles/view-profile-modal.css';
 import {
   useEffect,
@@ -25,6 +26,15 @@ import {
   Sun,
   ShieldCheck,
   Users,
+  Sparkles,
+  Globe,
+  Headphones,
+  HelpCircle,
+  MessageSquare,
+  Bug,
+  ChevronRight,
+  ChevronDown,
+  User,
 } from "lucide-react";
 
 import {
@@ -44,9 +54,6 @@ import '../styles/admin-modern.css';
 const DashboardLayout = ({
   role = "student",
   userName = "",
-  searchValue = "",
-  onSearchChange,
-  searchPlaceholder = "Search Courses...",
   requestCount = 0,
   children,
 }) => {
@@ -61,8 +68,13 @@ const DashboardLayout = ({
   } = useTheme();
 
   const [
-    showSettings,
-    setShowSettings,
+    showLogoutModal,
+    setShowLogoutModal,
+  ] = useState(false);
+
+  const [
+    showProfileMenu,
+    setShowProfileMenu,
   ] = useState(false);
 
   const [
@@ -71,20 +83,20 @@ const DashboardLayout = ({
   ] = useState(false);
 
   const [
-    showLogoutModal,
-    setShowLogoutModal,
-  ] = useState(false);
+    activeModal,
+    setActiveModal,
+  ] = useState(null);
 
-  const settingsRef = useRef(null);
+  const profileMenuRef = useRef(null);
   const menuButtonRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [headerSearch, setHeaderSearch] = useState("");
   const closeSidebar = () => { setSidebarOpen(false); menuButtonRef.current?.focus(); };
   useEffect(() => {
     const handleKey = (event) => {
       if (event.key === "Escape") {
         setSidebarOpen(false);
-        setShowSettings(false);
+        setShowProfileMenu(false);
+        setActiveModal(null);
         menuButtonRef.current?.focus();
       }
     };
@@ -98,6 +110,7 @@ const DashboardLayout = ({
   const isTeacher = role === "teacher";
   const isAdminView = role === "admin" || location.pathname.startsWith("/admin");
   const dashboardPath = isAdminView ? "/admin/dashboard" : isTeacher ? "/teacher/dashboard" : "/dashboard";
+  const settingsPath = isAdmin ? "/admin/settings" : isTeacher ? "/teacher/settings" : "/student/settings";
 
   const displayName =
     userName || user?.name ||
@@ -113,30 +126,14 @@ const DashboardLayout = ({
       .toUpperCase() || "U";
 
   useEffect(() => {
-    const handleOutsideClick = (
-      event
-    ) => {
-      if (
-        settingsRef.current &&
-        !settingsRef.current.contains(
-          event.target
-        )
-      ) {
-        setShowSettings(false);
+    const handleOutsideClick = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
       }
     };
 
-    document.addEventListener(
-      "mousedown",
-      handleOutsideClick
-    );
-
-    return () => {
-      document.removeEventListener(
-        "mousedown",
-        handleOutsideClick
-      );
-    };
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
   const isActive = (path) =>
@@ -150,7 +147,7 @@ const DashboardLayout = ({
 
   const confirmLogout = async () => {
     setShowLogoutModal(false);
-    setShowSettings(false);
+    setShowProfileMenu(false);
 
     try { await logout(); navigate('/'); }
     catch { setNavigationNotice('Unable to sign out. Check your connection and try again.'); }
@@ -208,7 +205,7 @@ const DashboardLayout = ({
           NO LOGOUT BUTTON HERE.
 
           Logout is now inside
-          the Settings dropdown.
+          the Profile dropdown.
         */}
       </aside>
       {sidebarOpen && <button type="button" className="dashboard-sidebar-backdrop" aria-label="Close sidebar" onClick={closeSidebar} />}
@@ -232,31 +229,6 @@ const DashboardLayout = ({
               <strong>TuroLink</strong>
             </Link>
           </>}
-          <form className="dashboard-layout-search" onSubmit={(event) => {
-            event.preventDefault();
-            if (!onSearchChange) navigate((isTeacher ? "/teacher/my-subjects?q=" : "/student/my-subjects?q=") + encodeURIComponent(headerSearch));
-          }}>
-            <Search size={19} />
-
-            <input
-              type="text"
-              value={!onSearchChange ? headerSearch : searchValue}
-              aria-label="Search subjects"
-              placeholder={
-                searchPlaceholder
-              }
-              onChange={(event) => {
-                if (!onSearchChange) setHeaderSearch(event.target.value);
-                if (
-                  onSearchChange
-                ) {
-                  onSearchChange(
-                    event.target.value
-                  );
-                }
-              }}
-            />
-          </form>
 
           <div className="dashboard-layout-header-right">
             {/* DARK MODE */}
@@ -287,111 +259,214 @@ const DashboardLayout = ({
             )}
 
             {/* ================================
-                SETTINGS
-            ================================= */}
-
+            {/* NOTIFICATIONS */}
             <StudentNotifications />
-            <div
-              className="dashboard-settings-wrapper"
-              ref={settingsRef}
-            >
+
+            {/* PROFILE DROPDOWN */}
+            <div className="dashboard-profile-wrapper" ref={profileMenuRef}>
               <button
                 type="button"
-                className="dashboard-layout-icon-button"
-                aria-label="Settings"
-                onClick={() =>
-                  setShowSettings(
-                    (previous) =>
-                      !previous
-                  )
-                }
+                className={`dashboard-layout-user-btn ${showProfileMenu ? "active" : ""}`}
+                onClick={() => setShowProfileMenu((prev) => !prev)}
+                aria-label="View profile menu"
+                aria-expanded={showProfileMenu}
               >
-                <Settings
-                  size={20}
-                />
+                <div className="dashboard-layout-avatar">
+                  {user?.profilePicture ? <img src={profilePictureUrl(user.profilePicture)} alt="" /> : firstLetter}
+                </div>
+
+                <div className="dashboard-layout-profile">
+                  <strong>{displayName}</strong>
+                  <span>{isAdmin ? "Admin" : isTeacher ? "Teacher" : "Student"}</span>
+                </div>
+                <ChevronDown size={14} className={`dashboard-profile-chevron ${showProfileMenu ? "open" : ""}`} />
               </button>
 
-              {showSettings && (
-                <div className="dashboard-settings-menu">
-                  <div className="dashboard-settings-menu-title">
-                    Settings
+              {showProfileMenu && (
+                <div className="dashboard-profile-dropdown" role="menu">
+                  {/* Identity Header */}
+                  <div className="dashboard-profile-dropdown-header">
+                    <div className="dashboard-profile-avatar-large">
+                      {user?.profilePicture ? <img src={profilePictureUrl(user.profilePicture)} alt="" /> : firstLetter}
+                    </div>
+                    <div className="dashboard-profile-header-info">
+                      <strong>{displayName}</strong>
+                      <p>{user?.email || "Signed in"}</p>
+                      <span className={`dashboard-profile-role-pill ${isTeacher ? 'teacher' : ''}`}>
+                        {isTeacher ? "Teacher Account" : isAdmin ? "Administrator" : "Student Account"}
+                      </span>
+                    </div>
                   </div>
 
-                  <button
-                    type="button"
-                    className="dashboard-settings-menu-item"
-                    onClick={() => { setShowSettings(false); goTo(isTeacher ? "/teacher/settings" : "/student/settings"); }}
-                  >
-                    <Settings
-                      size={17}
-                    />
+                  <div className="dashboard-profile-quick-actions">
+                    <button
+                      type="button"
+                      className="dashboard-profile-quick-btn"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowUserProfile(true);
+                      }}
+                    >
+                      <User size={13} /> Full Profile
+                    </button>
+                    <button
+                      type="button"
+                      className="dashboard-profile-quick-btn"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        goTo(settingsPath);
+                      }}
+                    >
+                      <Settings size={13} /> Settings
+                    </button>
+                  </div>
 
-                    Account Settings
-                  </button>
+                  <div className="dashboard-profile-divider" />
 
-                  <button
-                    type="button"
-                    className="dashboard-settings-menu-item"
-                    onClick={() => { setShowSettings(false); goTo(isTeacher ? "/teacher/settings?tab=notifications" : "/student/settings?tab=notifications"); }}
-                  >
-                    <Bell
-                      size={17}
-                    />
+                  {/* Section 0: Settings Options */}
+                  <div className="dashboard-profile-menu-list">
+                    <button
+                      type="button"
+                      className="dashboard-profile-menu-item"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        goTo(settingsPath);
+                      }}
+                    >
+                      <div className="dashboard-profile-item-left">
+                        <Settings size={17} className="dashboard-profile-item-icon green" />
+                        <span>Account Settings</span>
+                      </div>
+                      <ChevronRight size={15} className="dashboard-profile-item-arrow" />
+                    </button>
 
-                    Notification Settings
-                  </button>
+                    <button
+                      type="button"
+                      className="dashboard-profile-menu-item"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        goTo(`${settingsPath}?tab=notifications`);
+                      }}
+                    >
+                      <div className="dashboard-profile-item-left">
+                        <Bell size={17} className="dashboard-profile-item-icon green" />
+                        <span>Notification Settings</span>
+                      </div>
+                      <ChevronRight size={15} className="dashboard-profile-item-arrow" />
+                    </button>
+                  </div>
 
-                  <div className="dashboard-settings-menu-divider" />
+                  <div className="dashboard-profile-divider" />
 
-                  <button
-                    type="button"
-                    className="dashboard-settings-menu-item logout"
-                    onClick={() => {
-                      setShowSettings(
-                        false
-                      );
+                  {/* Section 1: Features & Preferences */}
+                  <div className="dashboard-profile-menu-list">
+                    <button
+                      type="button"
+                      className="dashboard-profile-menu-item"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setActiveModal('whatsNew');
+                      }}
+                    >
+                      <div className="dashboard-profile-item-left">
+                        <Sparkles size={17} className="dashboard-profile-item-icon green" />
+                        <span>What’s New</span>
+                      </div>
+                      <ChevronRight size={15} className="dashboard-profile-item-arrow" />
+                    </button>
 
-                      setShowLogoutModal(
-                        true
-                      );
-                    }}
-                  >
-                    <LogOut
-                      size={17}
-                    />
+                    <button
+                      type="button"
+                      className="dashboard-profile-menu-item"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setActiveModal('language');
+                      }}
+                    >
+                      <div className="dashboard-profile-item-left">
+                        <Globe size={17} className="dashboard-profile-item-icon green" />
+                        <span>Language</span>
+                      </div>
+                      <span className="dashboard-profile-badge-text">US English</span>
+                    </button>
+                  </div>
 
-                    Log Out
-                  </button>
+                  <div className="dashboard-profile-divider" />
+
+                  {/* Section 2: Support Header & Items */}
+                  <div className="dashboard-profile-section-title">
+                    <Headphones size={15} className="green" />
+                    <span>Support</span>
+                  </div>
+
+                  <div className="dashboard-profile-menu-list">
+                    <button
+                      type="button"
+                      className="dashboard-profile-menu-item"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setActiveModal('support');
+                      }}
+                    >
+                      <div className="dashboard-profile-item-left">
+                        <HelpCircle size={17} className="dashboard-profile-item-icon" />
+                        <span>Support</span>
+                      </div>
+                      <ChevronRight size={15} className="dashboard-profile-item-arrow" />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="dashboard-profile-menu-item"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setActiveModal('feedback');
+                      }}
+                    >
+                      <div className="dashboard-profile-item-left">
+                        <MessageSquare size={17} className="dashboard-profile-item-icon" />
+                        <span>Feedback</span>
+                      </div>
+                      <ChevronRight size={15} className="dashboard-profile-item-arrow" />
+                    </button>
+
+                    <button
+                      type="button"
+                      className="dashboard-profile-menu-item"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setActiveModal('reportBug');
+                      }}
+                    >
+                      <div className="dashboard-profile-item-left">
+                        <Bug size={17} className="dashboard-profile-item-icon red" />
+                        <span>Report a bug</span>
+                      </div>
+                      <ChevronRight size={15} className="dashboard-profile-item-arrow" />
+                    </button>
+                  </div>
+
+                  <div className="dashboard-profile-divider" />
+
+                  {/* Sign Out */}
+                  <div className="dashboard-profile-menu-list">
+                    <button
+                      type="button"
+                      className="dashboard-profile-menu-item logout"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        setShowLogoutModal(true);
+                      }}
+                    >
+                      <div className="dashboard-profile-item-left">
+                        <LogOut size={17} className="dashboard-profile-item-icon" />
+                        <span>Log Out</span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* PROFILE */}
-
-            <button
-              type="button"
-              className="dashboard-layout-user-btn"
-              onClick={() => setShowUserProfile(true)}
-              aria-label="View your profile"
-            >
-              <div className="dashboard-layout-avatar">
-                {user?.profilePicture ? <img src={profilePictureUrl(user.profilePicture)} alt="" /> : firstLetter}
-              </div>
-
-              <div className="dashboard-layout-profile">
-                <strong>
-                  {displayName}
-                </strong>
-
-                <span>
-                  {isAdmin
-                    ? "Admin"
-                    : isTeacher
-                      ? "Teacher"
-                      : "Student"}
-                </span>
-              </div>
-            </button>
           </div>
         </header>
 
@@ -517,6 +592,13 @@ const DashboardLayout = ({
         user={user}
         isOpen={showUserProfile}
         onClose={() => setShowUserProfile(false)}
+      />
+
+      <ProfileSupportModals
+        activeModal={activeModal}
+        onClose={() => setActiveModal(null)}
+        user={user}
+        isTeacher={isTeacher}
       />
     </div>
   );

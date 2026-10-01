@@ -375,9 +375,102 @@
 .subject-feed-page button:disabled { opacity: .55; cursor: not-allowed; }
 .subject-feed-page :is(a, button, textarea):focus-visible { outline: 3px solid #8dac74; outline-offset: 3px; }
 
+/* ── In-page Search Bar ── */
+.student-subjects-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.student-subject-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(420px, 100%);
+  background: var(--layout-card);
+  border: 1.5px solid var(--layout-border);
+  border-radius: 999px;
+  padding: 0 16px;
+  height: 44px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.student-subject-search-wrapper:focus-within {
+  border-color: var(--layout-green);
+  box-shadow: 0 0 0 3px rgba(53, 92, 66, 0.12);
+}
+
+.student-subject-search-icon {
+  color: var(--layout-muted);
+  flex-shrink: 0;
+  margin-right: 10px;
+}
+
+.student-subject-search-input {
+  border: 0;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  color: var(--layout-text);
+}
+
+.student-subject-search-input::placeholder {
+  color: var(--layout-muted);
+}
+
+.student-subject-search-clear {
+  border: 0;
+  background: var(--layout-hover);
+  color: var(--layout-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 8px;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.student-subject-search-clear:hover {
+  background: var(--layout-border);
+  color: var(--layout-text);
+}
+
+.student-subject-search-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 4px;
+  font-size: 13px;
+  color: var(--layout-muted);
+  font-weight: 500;
+}
+
+.student-subject-search-status button {
+  background: transparent;
+  border: 0;
+  color: var(--layout-green);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
 /* ── Responsive ── */
 @media (max-width: 700px) {
   .subject-feed-page { padding: 20px 16px; }
+  .student-subjects-header-row { flex-direction: column; align-items: stretch; }
+  .student-subject-search-wrapper { width: 100%; }
   .subject-feed-grid { grid-template-columns: 1fr; gap: 18px; }
   .subject-feed-post { padding: 20px; }
   .subject-feed-post header { flex-wrap: wrap; }

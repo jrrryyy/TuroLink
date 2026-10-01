@@ -1,5 +1,6 @@
 import PasswordStrength from '../components/PasswordStrength';
 import GoogleSignIn from '../components/GoogleSignIn';
+import LegalModals from '../components/LegalModals';
 import { validateRegistration, documentError } from "../../../shared/validation.mjs";
 import FieldError from "../components/FieldError";
 import "../styles/validation.css";
@@ -24,6 +25,7 @@ const TeacherRegister = () => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeLegalModal, setActiveLegalModal] = useState(null);
 
   const [showPassword, setShowPassword] =
     useState(false);
@@ -222,7 +224,9 @@ const TeacherRegister = () => {
               </div>
 
               <label>
-                Name
+                <span className="teacher-field-label">
+                  Name <span className="required-asterisk">*</span>
+                </span>
                 <input
                   type="text"
                   name="name" aria-invalid={Boolean(fieldErrors.name)} aria-describedby={fieldErrors.name ? "name-error" : undefined}
@@ -234,7 +238,9 @@ const TeacherRegister = () => {
             </label>
 
               <label>
-                Email Address
+                <span className="teacher-field-label">
+                  Email Address <span className="required-asterisk">*</span>
+                </span>
                 <input
                   type="email"
                   name="email" aria-invalid={Boolean(fieldErrors.email)} aria-describedby={fieldErrors.email ? "email-error" : undefined}
@@ -246,7 +252,9 @@ const TeacherRegister = () => {
             </label>
 
               <label>
-                Phone Number
+                <span className="teacher-field-label">
+                  Phone Number <span className="required-asterisk">*</span>
+                </span>
                 <input
                   type="tel"
                   name="phone" aria-invalid={Boolean(fieldErrors.phone)} aria-describedby={fieldErrors.phone ? "phone-error" : undefined}
@@ -258,7 +266,9 @@ const TeacherRegister = () => {
             </label>
 
               <label>
-                Password
+                <span className="teacher-field-label">
+                  Password <span className="required-asterisk">*</span>
+                </span>
 
                 <div className="teacher-password">
                   <input
@@ -292,7 +302,9 @@ const TeacherRegister = () => {
             </label>
 
               <label>
-                Confirm Password
+                <span className="teacher-field-label">
+                  Confirm Password <span className="required-asterisk">*</span>
+                </span>
 
                 <div className="teacher-password">
                   <input
@@ -359,7 +371,9 @@ const TeacherRegister = () => {
               </div>
 
               <label>
-                Degree Title
+                <span className="teacher-field-label">
+                  Degree Title <span className="required-asterisk">*</span>
+                </span>
                 <input
                   type="text"
                   name="degreeTitle" aria-invalid={Boolean(fieldErrors.degreeTitle)} aria-describedby={fieldErrors.degreeTitle ? "degreeTitle-error" : undefined}
@@ -373,7 +387,9 @@ const TeacherRegister = () => {
             </label>
 
               <label>
-                Subject to Teach
+                <span className="teacher-field-label">
+                  Subject to Teach <span className="required-asterisk">*</span>
+                </span>
                 <input
                   type="text"
                   name="subjectToTeach" aria-invalid={Boolean(fieldErrors.subjectToTeach)} aria-describedby={fieldErrors.subjectToTeach ? "subjectToTeach-error" : undefined}
@@ -387,7 +403,9 @@ const TeacherRegister = () => {
             </label>
 
               <label>
-                Brief Teaching Bio
+                <span className="teacher-field-label">
+                  Brief Teaching Bio <span className="required-asterisk">*</span>
+                </span>
 
                 <textarea
                   name="teachingBio" aria-invalid={Boolean(fieldErrors.teachingBio)} aria-describedby={fieldErrors.teachingBio ? "teachingBio-error" : undefined}
@@ -462,8 +480,23 @@ const TeacherRegister = () => {
                   />
 
                   <span>
-                    I agree to the TuroLink
-                    Terms and Conditions.
+                    I agree to the TuroLink{" "}
+                    <button
+                      type="button"
+                      className="auth-legal-link"
+                      onClick={() => setActiveLegalModal("terms")}
+                    >
+                      Terms and Conditions
+                    </button>{" "}
+                    and{" "}
+                    <button
+                      type="button"
+                      className="auth-legal-link"
+                      onClick={() => setActiveLegalModal("privacy")}
+                    >
+                      Privacy Policy
+                    </button>
+                    <span className="required-asterisk">*</span>
                   </span>
                 <FieldError errors={fieldErrors} name="terms" />
             </label>
@@ -479,9 +512,8 @@ const TeacherRegister = () => {
                   />
 
                   <span>
-                    I confirm that the
-                    information and documents
-                    submitted are valid.
+                    I confirm that the information and documents submitted are valid.
+                    <span className="required-asterisk">*</span>
                   </span>
                 <FieldError errors={fieldErrors} name="verificationConsent" />
             </label>
@@ -513,15 +545,20 @@ const TeacherRegister = () => {
           )}
 
           <div className="teacher-signin-card">
-            Have an account?
-
-            <Link to="/login">
+            <span>Already have an account?</span>
+            <Link to="/login" className="teacher-signin-link">
               Sign In
             </Link>
           </div>
 
         </div>
       </section>
+
+      <LegalModals
+        activeModal={activeLegalModal}
+        onClose={() => setActiveLegalModal(null)}
+        onAccept={() => setTerms(true)}
+      />
     </div>
   );
 };
