@@ -5,6 +5,7 @@ const Session = require('../models/AuthSession');
 const bcrypt = require('bcryptjs');
 const { cookie, hash, cookieOptions, startSession } = require('../services/authSecurity');
 const { sendVerification, assertMailConfigured } = require('../services/verificationEmail');
+const { sendPasswordReset } = require('../services/passwordResetEmail');
 const { loadValidators } = require('../config/validators');
 
 async function createAccount(req, res, role = 'student', google) {
@@ -39,7 +40,7 @@ async function login(req, res) {
     const user = await User.findOne({ email: req.body.email });
     if (!user?.password || !await bcrypt.compare(req.body.password, user.password)) return res.status(401).json({ message: 'Invalid email or password.' });
     if (!user.emailVerifiedAt) return res.status(403).json({ code: 'EMAIL_UNVERIFIED', message: 'Verify your email before signing in. Request a verification link below.' });
-    await startSession(req, res, user);
+    await startSession(req, res, user, Boolean(req.body.rememberMe));
     res.json({ user: publicUser(user) });
   } catch { res.status(500).json({ message: 'Unable to sign in. Please try again.' }); }
 }
@@ -66,4 +67,60 @@ async function logout(req, res) {
   res.json({ message: 'Signed out.' });
 }
 const getMe = (req, res) => res.json(publicUser(req.user));
-module.exports = { register, createAccount, login, getMe, verifyEmail, resend, logout };
+
+async function forgotPassword(req, res) {
+  const { normalizeEmail } = await loadValidators();
+  try {
+    const email = normalizeEmail(req.body.email || '');
+    if (!email) return res.status(400).json({ message: 'Email address is required.' });
+    const user = await User.findOne({ email });
+    if (user && user.emailVerifiedAt) {
+      await sendPasswordReset(user);
+    }
+    res.json({
+      message: 'If an account exists with this email, a password reset link has been sent. Check spam too. The link expires in 1 hour.',
+    });
+  } catch (error) {
+    res.status(error.status || 500).json({ message: error.status ? error.message : 'Unable to send password reset email. Please try again.' });
+  }
+}
+
+async function resetPassword(req, res) {
+  const { token, password, confirmPassword } = req.body || {};
+  if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) {
+    return res.status(400).json({ message: 'This password reset link is invalid or malformed.' });
+  }
+  if (!password || typeof password !== 'string' || password.length < 6) {
+    return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+  }
+  if (confirmPassword !== undefined && password !== confirmPassword) {
+    return res.status(400).json({ message: 'Passwords do not match.' });
+  }
+
+  try {
+    const user = await User.findOne({
+      resetPasswordHash: hash(token),
+      resetPasswordExpiresAt: { $gt: new Date() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'This password reset link has expired or has already been used. Please request a new one.' });
+    }
+
+    user.password = await bcrypt.hash(password, 12);
+    user.resetPasswordHash = undefined;
+    user.resetPasswordExpiresAt = undefined;
+    user.resetPasswordSentAt = undefined;
+    await user.save();
+
+    // Revoke all existing sessions for security
+    await Session.deleteMany({ user: user._id });
+
+    res.json({ message: 'Your password has been reset successfully. You can now log in with your new password.' });
+  } catch (error) {
+    console.error('Password reset error:', error);
+    res.status(500).json({ message: 'Unable to reset your password. Please try again.' });
+  }
+}
+
+module.exports = { register, createAccount, login, getMe, verifyEmail, resend, logout, forgotPassword, resetPassword };

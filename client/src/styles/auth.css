@@ -220,6 +220,47 @@
   font-weight: 600;
 }
 
+.auth-options-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: -4px;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.auth-remember-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #335035;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.auth-remember-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #335035;
+  cursor: pointer;
+  margin: 0;
+}
+
+.auth-forgot-link {
+  color: #335035;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.auth-forgot-link:hover {
+  color: #1f3422;
+  text-decoration: underline;
+}
+
 .auth-form input:not([type="checkbox"]) {
   width: 100%;
   height: 50px;

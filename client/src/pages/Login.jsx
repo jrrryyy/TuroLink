@@ -28,7 +28,8 @@ const Login = () => {
 
   const { login } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(() => localStorage.getItem("turolink_remembered_email") || "");
+  const [rememberMe, setRememberMe] = useState(() => localStorage.getItem("turolink_remember_me") === "true");
   const [password, setPassword] =
     useState("");
 
@@ -58,9 +59,19 @@ const Login = () => {
       setLoading(true);
 
       // The API sets an HttpOnly session cookie and returns the verified user.
+      if (rememberMe) {
+        localStorage.setItem("turolink_remembered_email", email.trim());
+        localStorage.setItem("turolink_remember_me", "true");
+      } else {
+        localStorage.removeItem("turolink_remembered_email");
+        localStorage.removeItem("turolink_remember_me");
+      }
+
+      // The API sets an HttpOnly session cookie and returns the verified user.
       const result = await login(
         normalizeEmail(email),
-        password
+        password,
+        rememberMe
       );
 
       // Check if ProtectedRoute supplied
@@ -74,7 +85,9 @@ const Login = () => {
       }
 
       // ROLE-BASED REDIRECT
-      if (result.user.role === "teacher") {
+      if (result.user.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (result.user.role === "teacher") {
         navigate("/teacher/dashboard");
       } else {
         navigate("/dashboard");
@@ -196,6 +209,22 @@ const Login = () => {
               </div>
             <FieldError errors={fieldErrors} name="password" />
             </label>
+
+            <div className="auth-options-row">
+              <label className="auth-remember-label">
+                <input
+                  type="checkbox"
+                  name="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span>Remember me</span>
+              </label>
+
+              <Link to="/forgot-password" className="auth-forgot-link">
+                Forgot password?
+              </Link>
+            </div>
 
             <button
               type="submit"

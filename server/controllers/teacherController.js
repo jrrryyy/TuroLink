@@ -5,18 +5,26 @@ const registerTeacher = (req, res) => require('./authController').createAccount(
 
 const getTeacherDashboard = async (req, res) => {
   try {
-    if (req.user.role !== "teacher") {
+    if (req.user.role !== "teacher" && req.user.role !== "admin") {
       return res.status(403).json({
         message: "Teacher access only.",
       });
     }
 
-    const teacherProfile =
+    let teacherProfile =
       await TeacherProfile.findOne({
         user: req.user._id,
       });
 
-    if (!teacherProfile) {
+    if (!teacherProfile && req.user.role === "admin") {
+      teacherProfile = await TeacherProfile.create({
+        user: req.user._id,
+        degreeTitle: "Administrator",
+        subjectToTeach: "All Subjects",
+        teachingBio: "Platform Administrator with instructor access privileges.",
+        isVerified: true,
+      });
+    } else if (!teacherProfile) {
       return res.status(404).json({
         message: "Teacher profile not found.",
       });

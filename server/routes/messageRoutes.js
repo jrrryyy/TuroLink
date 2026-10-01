@@ -285,9 +285,11 @@ router.post('/conversations/:id', uploadMiddleware, async (req, res) => {
     try {
       const wantsAlert = recipientUser?.notificationPreferences?.newMessageAlerts !== false;
       if (wantsAlert) {
-        const notifUrl = recipientUser?.role === 'teacher'
-          ? `/teacher/messages?conversation=${id}`
-          : `/student/messages?conversation=${id}`;
+        const notifUrl = recipientUser?.role === 'admin'
+          ? `/admin/messages?conversation=${id}`
+          : recipientUser?.role === 'teacher'
+            ? `/teacher/messages?conversation=${id}`
+            : `/student/messages?conversation=${id}`;
         await Notification.create({
           recipient: recipientId,
           eventKey: `message:${message._id}`,
@@ -412,7 +414,21 @@ router.get('/contacts', async (req, res) => {
   try {
     const contactsMap = new Map();
 
-    if (req.user.role === 'teacher') {
+    if (req.user.role === 'admin') {
+      const allUsers = await User.find({ _id: { $ne: req.user._id } })
+        .select('name email role profilePicture')
+        .lean();
+      allUsers.forEach((u) => {
+        contactsMap.set(u._id.toString(), {
+          _id: u._id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          profilePicture: u.profilePicture,
+          subtitle: u.role === 'teacher' ? 'Teacher' : u.role === 'admin' ? 'Administrator' : 'Student',
+        });
+      });
+    } else if (req.user.role === 'teacher') {
       // 1. Students enrolled in teacher's subjects
       const subjects = await Subject.find({ teacherId: req.user._id })
         .populate('enrolledStudents', 'name email role profilePicture')

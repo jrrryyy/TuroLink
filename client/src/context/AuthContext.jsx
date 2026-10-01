@@ -12,8 +12,8 @@ export const AuthProvider = ({ children }) => {
     api.get('/auth/me').then(response => { if (active) setUser(response.data); }).catch(() => { if (active) setUser(null); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; window.removeEventListener('turolink:session-expired', expired); };
   }, []);
-  const login = async (email, password) => {
-    const { data } = await api.post('/auth/login', { email, password });
+  const login = async (email, password, rememberMe = false) => {
+    const { data } = await api.post('/auth/login', { email, password, rememberMe });
     setUser(data.user);
     return data;
   };

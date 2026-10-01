@@ -11,5 +11,6 @@ const protect = async (req, res, next) => {
     next();
   } catch { res.status(503).json({ message: 'Unable to verify your session. Please try again.' }); }
 };
-const requireStudent = (req, res, next) => req.user.role === 'student' ? next() : res.status(403).json({ message: 'Student access only.' });
-module.exports = { protect, requireStudent };
+const requireStudent = (req, res, next) => (req.user.role === 'student' || req.user.role === 'admin') ? next() : res.status(403).json({ message: 'Student access only.' });
+const requireAdmin = (req, res, next) => (req.user?.role === 'admin') ? next() : res.status(403).json({ message: 'Admin access required.' });
+module.exports = { protect, requireStudent, requireAdmin };

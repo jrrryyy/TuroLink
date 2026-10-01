@@ -8,7 +8,7 @@ const DeclinedRequest = require('../models/DeclinedRequest');
 const Subject = require('../models/Subject');
 
 router.use(protect);
-const role = (expected) => (req, res, next) => req.user.role === expected ? next() : res.status(403).json({ message: `${expected} access only.` });
+const role = (expected) => (req, res, next) => (req.user.role === expected || req.user.role === 'admin') ? next() : res.status(403).json({ message: `${expected} access only.` });
 const validId = (id) => mongoose.isObjectIdOrHexString(id);
 const fail = (message, status = 400) => Object.assign(new Error(message), { status });
 const run = (fn) => async (req, res) => {

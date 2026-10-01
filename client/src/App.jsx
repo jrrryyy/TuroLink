@@ -13,6 +13,8 @@ import {
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentMySubjects from "./pages/StudentMySubjects";
@@ -20,6 +22,11 @@ import StudentMySubjects from "./pages/StudentMySubjects";
 import TeacherRegister from "./pages/TeacherRegister";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import TeacherMySubjects from "./pages/TeacherMySubjects";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
+import AdminTeacherVerification from "./pages/AdminTeacherVerification";
+import AdminSubjects from "./pages/AdminSubjects";
+import AdminBookings from "./pages/AdminBookings";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -46,6 +53,15 @@ const GuestRoute = ({ children }) => {
   }
 
   if (isAuthenticated && user) {
+    if (user.role === "admin") {
+      return (
+        <Navigate
+          to="/admin/dashboard"
+          replace
+        />
+      );
+    }
+
     if (user.role === "teacher") {
       return (
         <Navigate
@@ -127,6 +143,24 @@ function App() {
           </GuestRoute>
         }
       />
+      <Route
+        path="/forgot-password"
+        element={
+          <GuestRoute>
+            <ForgotPassword />
+          </GuestRoute>
+        }
+      />
+
+      <Route
+        path="/reset-password"
+        element={
+          <GuestRoute>
+            <ResetPassword />
+          </GuestRoute>
+        }
+      />
+
 
 
       {/* =====================================
@@ -183,6 +217,73 @@ function App() {
           </ProtectedRoute>
         }
       />
+      {/* =====================================
+          ADMIN ONLY
+      ====================================== */}
+
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/users"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AdminUsers />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/teachers"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AdminTeacherVerification />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/subjects"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AdminSubjects />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/bookings"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AdminBookings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/settings"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AccountSettings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/messages"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <Messages />
+          </ProtectedRoute>
+        }
+      />
+
 
 
       {/* =====================================

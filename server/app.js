@@ -10,6 +10,7 @@ const authRoutes = require("./routes/authRoutes");
 const studentRoutes = require("./routes/studentRoutes");
 const courseRoutes = require("./routes/courseRoutes");
 const subjectRoutes = require("./routes/subjectRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 const app = express();
 const uploadBaseDir = getUploadPath();
@@ -45,7 +46,7 @@ app.use(
 );
 
 app.use(express.json());
-app.use(['/api', '/auth', '/teacher', '/student', '/courses', '/subjects', '/tutors', '/student-subjects', '/notifications', '/messages'], require('./services/authSecurity').csrf);
+app.use(['/api', '/auth', '/teacher', '/student', '/courses', '/subjects', '/tutors', '/student-subjects', '/notifications', '/messages', '/admin'], require('./services/authSecurity').csrf);
 
 app.get("/", (req, res) => {
   res.json({
@@ -68,6 +69,7 @@ app.use(["/api/tutors", "/tutors"], require('./routes/tutorRoutes'));
 app.use(["/api/student-subjects", "/student-subjects"], require('./routes/studentSubjectRoutes'));
 app.use(["/api/notifications", "/notifications"], require('./routes/notificationRoutes'));
 app.use(["/api/messages", "/messages"], require('./routes/messageRoutes'));
+app.use(["/api/admin", "/admin"], adminRoutes);
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);

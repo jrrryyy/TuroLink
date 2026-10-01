@@ -68,10 +68,13 @@ const userSchema = new mongoose.Schema(
     verificationHash: { type: String, select: false },
     verificationExpiresAt: { type: Date, select: false },
     verificationSentAt: { type: Date, select: false },
+    resetPasswordHash: { type: String, select: false },
+    resetPasswordExpiresAt: { type: Date, select: false },
+    resetPasswordSentAt: { type: Date, select: false },
     googleSub: { type: String, unique: true, sparse: true },
     role: {
     type: String,
-    enum: ["student", "teacher"],
+    enum: ["student", "teacher", "admin"],
     default: "student",
     },
 

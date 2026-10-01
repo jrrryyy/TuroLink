@@ -29,37 +29,39 @@ const ProtectedRoute = ({
     );
   }
 
-  // Wrong role
-  if (
-    allowedRole &&
-    user.role !== allowedRole
-  ) {
-    // Teacher trying to access student page
-    if (user.role === "teacher") {
+  // Role checks
+  if (allowedRole) {
+    // Admin has dual access to all student, teacher, and admin views
+    if (user.role === "admin") {
+      return children;
+    }
+
+    if (user.role !== allowedRole) {
+      if (user.role === "teacher") {
+        return (
+          <Navigate
+            to="/teacher/dashboard"
+            replace
+          />
+        );
+      }
+
+      if (user.role === "student") {
+        return (
+          <Navigate
+            to="/dashboard"
+            replace
+          />
+        );
+      }
+
       return (
         <Navigate
-          to="/teacher/dashboard"
+          to="/"
           replace
         />
       );
     }
-
-    // Student trying to access teacher page
-    if (user.role === "student") {
-      return (
-        <Navigate
-          to="/dashboard"
-          replace
-        />
-      );
-    }
-
-    return (
-      <Navigate
-        to="/"
-        replace
-      />
-    );
   }
 
   return children;

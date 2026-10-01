@@ -23,6 +23,8 @@ import {
   Settings,
   Bell,
   Sun,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
 
 import {
@@ -37,6 +39,7 @@ import { useTheme } from "../context/ThemeContext";
 import "../styles/dashboard-layout.css";
 import '../styles/teacher-modern.css';
 import '../styles/student-modern.css';
+import '../styles/admin-modern.css';
 
 const DashboardLayout = ({
   role = "student",
@@ -90,15 +93,19 @@ const DashboardLayout = ({
   }, []);
   const [navigationNotice, setNavigationNotice] = useState("");
 
-  const isTeacher =
-    role === "teacher";
-  const dashboardPath = isTeacher ? "/teacher/dashboard" : "/dashboard";
+  const userRole = user?.role || role;
+  const isAdmin = userRole === "admin";
+  const isTeacher = role === "teacher";
+  const isAdminView = role === "admin" || location.pathname.startsWith("/admin");
+  const dashboardPath = isAdminView ? "/admin/dashboard" : isTeacher ? "/teacher/dashboard" : "/dashboard";
 
   const displayName =
     userName || user?.name ||
-    (isTeacher
-      ? "Teacher"
-      : "Student");
+    (isAdmin
+      ? "Admin"
+      : isTeacher
+        ? "Teacher"
+        : "Student");
 
   const firstLetter =
     displayName
@@ -151,7 +158,7 @@ const DashboardLayout = ({
 
   return (
     <div
-      className={`dashboard-layout ${isTeacher ? "teacher-layout" : "student-layout"} ${darkMode ? "dark-dashboard-layout" : ""} ${sidebarOpen ? "dashboard-sidebar-open" : ""}`}
+      className={`dashboard-layout ${isAdminView ? "admin-layout" : isTeacher ? "teacher-layout" : "student-layout"} ${darkMode ? "dark-dashboard-layout" : ""} ${sidebarOpen ? "dashboard-sidebar-open" : ""}`}
     >
       {/* =========================================
           SIDEBAR
@@ -164,7 +171,14 @@ const DashboardLayout = ({
         </Link>
 
         <nav className="dashboard-layout-nav" aria-label="Main navigation">
-          {[
+          {(isAdminView ? [
+            { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
+            { label: "User Management", icon: Users, path: "/admin/users" },
+            { label: "Teacher Approvals", icon: ShieldCheck, path: "/admin/teachers" },
+            { label: "Platform Subjects", icon: BookOpen, path: "/admin/subjects" },
+            { label: "All Bookings", icon: CalendarDays, path: "/admin/bookings" },
+            { label: "Messages", icon: MessageCircle, path: "/student/messages" },
+          ] : [
             { label: "Dashboard", icon: LayoutDashboard, path: isTeacher ? "/teacher/dashboard" : "/dashboard" },
             { label: "My Subjects", icon: BookOpen, path: isTeacher ? "/teacher/my-subjects" : "/student/my-subjects" },
             { label: "Messages", icon: MessageCircle, path: isTeacher ? '/teacher/messages' : '/student/messages' },
@@ -174,7 +188,7 @@ const DashboardLayout = ({
               { label: 'Find Tutor', icon: Search, path: '/student/find-tutors' },
               { label: 'Rate Tutors', icon: Star, path: '/student/rate-tutors' },
             ]),
-          ].map(({ label, icon: Icon, path }) => (
+          ]).map(({ label, icon: Icon, path }) => (
             <button key={label} type="button"
               className={path && isActive(path) ? "dashboard-layout-nav-item active" : "dashboard-layout-nav-item"}
               aria-current={path && isActive(path) ? "page" : undefined}
@@ -370,9 +384,11 @@ const DashboardLayout = ({
                 </strong>
 
                 <span>
-                  {isTeacher
-                    ? "Teacher"
-                    : "Student"}
+                  {isAdmin
+                    ? "Admin"
+                    : isTeacher
+                      ? "Teacher"
+                      : "Student"}
                 </span>
               </div>
             </button>
@@ -388,6 +404,42 @@ const DashboardLayout = ({
             <div className="student-navigation-notice" role="status">
               <span>{navigationNotice}</span>
               <button type="button" onClick={() => setNavigationNotice("")}>Dismiss</button>
+            </div>
+          )}
+          {isAdmin && (
+            <div className="admin-perspective-banner">
+              <div className="admin-perspective-info">
+                <div className="admin-perspective-icon">
+                  <ShieldCheck size={18} />
+                </div>
+                <div>
+                  <div className="admin-perspective-title">Administrator Dual-Role Mode</div>
+                  <div className="admin-perspective-subtitle">Switch active viewpoint to test or operate as any role</div>
+                </div>
+              </div>
+              <div className="admin-perspective-pills">
+                <button
+                  type="button"
+                  className={`admin-perspective-pill ${isAdminView ? "active" : ""}`}
+                  onClick={() => goTo("/admin/dashboard")}
+                >
+                  <ShieldCheck size={14} /> Admin Hub
+                </button>
+                <button
+                  type="button"
+                  className={`admin-perspective-pill ${!isAdminView && !isTeacher ? "active" : ""}`}
+                  onClick={() => goTo("/dashboard")}
+                >
+                  <Star size={14} /> Student View
+                </button>
+                <button
+                  type="button"
+                  className={`admin-perspective-pill ${!isAdminView && isTeacher ? "active" : ""}`}
+                  onClick={() => goTo("/teacher/dashboard")}
+                >
+                  <BookOpen size={14} /> Teacher View
+                </button>
+              </div>
             </div>
           )}
           {children}

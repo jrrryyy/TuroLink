@@ -20,6 +20,8 @@ const google = require('../controllers/googleAuthController');
 router.post('/verify-email', auth.verifyEmail);
 router.post('/resend-verification', auth.resend);
 router.post('/logout', auth.logout);
+router.post('/forgot-password', auth.forgotPassword);
+router.post('/reset-password', auth.resetPassword);
 router.get('/google/config', google.config);
 router.post('/google', google.authenticate);
 router.get('/google/profile', google.profile);

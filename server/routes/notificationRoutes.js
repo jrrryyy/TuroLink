@@ -8,6 +8,9 @@ const User = require('../models/User');
 router.use(protect);
 
 async function scope(user, role) {
+  if (role === 'admin') {
+    return { recipient: user };
+  }
   if (role === 'teacher') {
     const subjects = await Subject.find({ teacherId: user }).select('announcements._id').lean();
     return {

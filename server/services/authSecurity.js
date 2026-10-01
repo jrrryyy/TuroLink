@@ -18,11 +18,11 @@ function cookie(req, name) {
   return part ? part.slice(name.length + 1) : '';
 }
 
-async function startSession(req, res, user) {
+async function startSession(req, res, user, rememberMe = false) {
   const old = cookie(req, 'turolink_session');
   if (old) await Session.deleteOne({ tokenHash: hash(old) });
   const token = random();
-  const duration = 7 * 24 * 60 * 60 * 1000;
+  const duration = rememberMe ? 30 * 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
   await Session.create({ tokenHash: hash(token), user: user._id, expiresAt: new Date(Date.now() + duration) });
   res.cookie('turolink_session', token, { ...cookieOptions(), maxAge: duration });
 }
@@ -38,7 +38,6 @@ function csrf(req, res, next) {
   const cleanClient = (process.env.CLIENT_URL || '').replace(/\/+$/, '');
 
   const isAllowed =
-    !isProduction ||
     cleanOrigin === cleanClient ||
     cleanOrigin.endsWith('.vercel.app') ||
     cleanOrigin.includes('localhost') ||
