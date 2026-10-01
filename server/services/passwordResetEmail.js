@@ -1,9 +1,9 @@
 const nodemailer = require('nodemailer');
 const User = require('../models/User');
-const { random, hash } = require('./authSecurity');
+const { random, hash, getClientUrl } = require('./authSecurity');
 const { assertMailConfigured } = require('./verificationEmail');
 
-async function sendPasswordReset(user) {
+async function sendPasswordReset(user, req) {
   assertMailConfigured();
   const token = random();
   const updated = await User.findOneAndUpdate(
@@ -31,10 +31,11 @@ async function sendPasswordReset(user) {
     connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
-    ...(process.env.SMTP_USER ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } } : {}),
+    ...(process.env.SMTP_USER ? { auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } } : {}) || {},
   });
 
-  const link = `${process.env.CLIENT_URL.replace(/\/$/, '')}/reset-password#token=${token}`;
+  const baseUrl = getClientUrl(req);
+  const link = `${baseUrl}/reset-password#token=${token}`;
 
   try {
     await transport.sendMail({

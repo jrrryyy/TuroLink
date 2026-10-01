@@ -27,6 +27,53 @@ async function startSession(req, res, user, rememberMe = false) {
   res.cookie('turolink_session', token, { ...cookieOptions(), maxAge: duration });
 }
 
+function isAllowedOrigin(rawOrigin) {
+  if (!rawOrigin || typeof rawOrigin !== 'string') return false;
+  try {
+    const parsed = new URL(rawOrigin);
+    const origin = parsed.origin;
+    const clientUrl = (process.env.CLIENT_URL || '').trim().replace(/\/+$/, '');
+    const allowed = (process.env.ALLOWED_ORIGINS || '')
+      .split(',')
+      .map(o => o.trim().replace(/\/+$/, ''))
+      .filter(Boolean);
+
+    if (clientUrl && origin === clientUrl) return true;
+    if (allowed.includes(origin)) return true;
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1') return true;
+    if (parsed.hostname === 'vercel.app' || parsed.hostname.endsWith('.vercel.app')) return true;
+
+    return false;
+  } catch {
+    const clean = rawOrigin.trim().replace(/\/+$/, '');
+    const clientUrl = (process.env.CLIENT_URL || '').trim().replace(/\/+$/, '');
+    return Boolean(clientUrl && clean === clientUrl) || clean.includes('localhost') || clean.includes('127.0.0.1');
+  }
+}
+
+function getClientUrl(req) {
+  if (req && typeof req.get === 'function') {
+    const origin = req.get('Origin');
+    if (origin && isAllowedOrigin(origin)) {
+      try {
+        return new URL(origin).origin;
+      } catch {
+        return origin.trim().replace(/\/+$/, '');
+      }
+    }
+    const referer = req.get('Referer');
+    if (referer) {
+      try {
+        const refUrl = new URL(referer);
+        if (isAllowedOrigin(refUrl.origin)) {
+          return refUrl.origin;
+        }
+      } catch {}
+    }
+  }
+  return (process.env.CLIENT_URL || 'http://localhost:5173').trim().replace(/\/+$/, '');
+}
+
 function csrf(req, res, next) {
   res.set('Cache-Control', 'no-store');
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
@@ -34,20 +81,11 @@ function csrf(req, res, next) {
   const origin = req.get('Origin');
   if (!origin) return next();
 
-  const cleanOrigin = origin.replace(/\/+$/, '');
-  const cleanClient = (process.env.CLIENT_URL || '').replace(/\/+$/, '');
-
-  const isAllowed =
-    cleanOrigin === cleanClient ||
-    cleanOrigin.endsWith('.vercel.app') ||
-    cleanOrigin.includes('localhost') ||
-    cleanOrigin.includes('127.0.0.1');
-
-  if (!isAllowed || req.get('X-TuroLink-Request') !== '1') {
+  if (!isAllowedOrigin(origin) || req.get('X-TuroLink-Request') !== '1') {
     return res.status(403).json({ message: 'Request origin could not be verified. Reload the page and try again.' });
   }
   next();
 }
 
 const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-8', legacyHeaders: false, message: { message: 'Too many attempts. Please try again in 15 minutes.' } });
-module.exports = { hash, random, cookie, cookieOptions, startSession, csrf, authLimit };
+module.exports = { hash, random, cookie, cookieOptions, startSession, csrf, authLimit, isAllowedOrigin, getClientUrl };

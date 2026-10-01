@@ -21,7 +21,7 @@ async function createAccount(req, res, role = 'student', google) {
     user = await User.create({ name: req.body.name.trim(), email, phone, role, ...(google ? { googleSub: google.sub } : { password: await bcrypt.hash(req.body.password, 12) }) });
     if (role === 'teacher') await TeacherProfile.create({ user: user._id, degreeTitle: req.body.degreeTitle, subjectToTeach: req.body.subjectToTeach, teachingBio: req.body.teachingBio, verificationDocument: req.file ? `/uploads/${req.file.filename}` : '', subjects: [{ name: req.body.subjectToTeach }] });
     profileComplete = true;
-    await sendVerification(user);
+    await sendVerification(user, req);
     return res.status(201).json({ verificationRequired: true, email, message: 'Check your email to activate your account. The link expires in 1 hour.' });
   } catch (error) {
     if (user && !profileComplete) { await TeacherProfile.deleteOne({ user: user._id }); await User.deleteOne({ _id: user._id }); }
@@ -56,7 +56,7 @@ async function resend(req, res) {
   try {
     assertMailConfigured();
     const user = await User.findOne({ email: normalizeEmail(req.body.email), emailVerifiedAt: null });
-    if (user) await sendVerification(user);
+    if (user) await sendVerification(user, req);
     res.json({ message: 'If this email has an unverified account, a link has been sent. Check spam too. Please wait 60 seconds before requesting another.' });
   } catch (error) { res.status(error.status || 500).json({ message: error.status ? error.message : 'Unable to send verification email.' }); }
 }
@@ -75,7 +75,7 @@ async function forgotPassword(req, res) {
     if (!email) return res.status(400).json({ message: 'Email address is required.' });
     const user = await User.findOne({ email });
     if (user && user.emailVerifiedAt) {
-      await sendPasswordReset(user);
+      await sendPasswordReset(user, req);
     }
     res.json({
       message: 'If an account exists with this email, a password reset link has been sent. Check spam too. The link expires in 1 hour.',
