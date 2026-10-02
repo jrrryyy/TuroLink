@@ -53,7 +53,7 @@ router.get('/conversations', async (req, res) => {
       participants: req.user._id,
       deletedFor: { $ne: req.user._id },
     })
-      .populate('participants', 'name email role profilePicture')
+      .populate('participants', 'name email role profilePicture bio phone sex')
       .sort({ lastMessageAt: -1 })
       .lean();
 
@@ -92,14 +92,14 @@ router.post('/conversations', async (req, res) => {
       return res.status(400).json({ message: 'You cannot start a conversation with yourself.' });
     }
 
-    const recipient = await User.findById(recipientId).select('name email role profilePicture').lean();
+    const recipient = await User.findById(recipientId).select('name email role profilePicture bio phone sex').lean();
     if (!recipient) {
       return res.status(404).json({ message: 'User not found.' });
     }
 
     let conversation = await Conversation.findOne({
       participants: { $all: [req.user._id, recipientId], $size: 2 },
-    }).populate('participants', 'name email role profilePicture');
+    }).populate('participants', 'name email role profilePicture bio phone sex');
 
     if (!conversation) {
       conversation = await Conversation.create({
@@ -108,7 +108,7 @@ router.post('/conversations', async (req, res) => {
         lastMessageAt: new Date(),
         unreadCounts: {},
       });
-      await conversation.populate('participants', 'name email role profilePicture');
+      await conversation.populate('participants', 'name email role profilePicture bio phone sex');
     } else if (conversation.deletedFor && conversation.deletedFor.length > 0) {
       conversation.deletedFor = conversation.deletedFor.filter(
         (uid) => uid.toString() !== req.user._id.toString()
@@ -140,7 +140,7 @@ router.get('/conversations/:id', async (req, res) => {
       return res.status(400).json({ message: 'Invalid conversation ID.' });
     }
 
-    const conversation = await Conversation.findById(id).populate('participants', 'name email role profilePicture');
+    const conversation = await Conversation.findById(id).populate('participants', 'name email role profilePicture bio phone sex');
     if (!conversation) {
       return res.status(404).json({ message: 'Conversation not found.' });
     }
@@ -416,7 +416,7 @@ router.get('/contacts', async (req, res) => {
 
     if (req.user.role === 'admin') {
       const allUsers = await User.find({ _id: { $ne: req.user._id } })
-        .select('name email role profilePicture')
+        .select('name email role profilePicture bio phone sex')
         .lean();
       allUsers.forEach((u) => {
         contactsMap.set(u._id.toString(), {
@@ -425,13 +425,16 @@ router.get('/contacts', async (req, res) => {
           email: u.email,
           role: u.role,
           profilePicture: u.profilePicture,
+          bio: u.bio,
+          phone: u.phone,
+          sex: u.sex,
           subtitle: u.role === 'teacher' ? 'Teacher' : u.role === 'admin' ? 'Administrator' : 'Student',
         });
       });
     } else if (req.user.role === 'teacher') {
       // 1. Students enrolled in teacher's subjects
       const subjects = await Subject.find({ teacherId: req.user._id })
-        .populate('enrolledStudents', 'name email role profilePicture')
+        .populate('enrolledStudents', 'name email role profilePicture bio phone sex')
         .lean();
 
       subjects.forEach((s) => {
@@ -443,6 +446,9 @@ router.get('/contacts', async (req, res) => {
               email: st.email,
               role: st.role || 'student',
               profilePicture: st.profilePicture,
+              bio: st.bio,
+              phone: st.phone,
+              sex: st.sex,
               subtitle: `Student · ${s.code}`,
             });
           }
@@ -451,7 +457,7 @@ router.get('/contacts', async (req, res) => {
 
       // 2. Students who booked tutoring sessions with this teacher
       const bookings = await Booking.find({ teacher: req.user._id })
-        .populate('student', 'name email role profilePicture')
+        .populate('student', 'name email role profilePicture bio phone sex')
         .lean();
 
       bookings.forEach((b) => {
@@ -464,6 +470,9 @@ router.get('/contacts', async (req, res) => {
               email: b.student.email,
               role: b.student.role || 'student',
               profilePicture: b.student.profilePicture,
+              bio: b.student.bio,
+              phone: b.student.phone,
+              sex: b.student.sex,
               subtitle: `Tutoring Student · ${b.subject || ''}`,
             });
           }
@@ -473,7 +482,7 @@ router.get('/contacts', async (req, res) => {
       // Student role:
       // 1. Instructors of enrolled subjects
       const enrolledSubjects = await Subject.find({ enrolledStudents: req.user._id })
-        .populate('teacherId', 'name email role profilePicture')
+        .populate('teacherId', 'name email role profilePicture bio phone sex')
         .lean();
 
       enrolledSubjects.forEach((s) => {
@@ -484,6 +493,9 @@ router.get('/contacts', async (req, res) => {
             email: s.teacherId.email,
             role: s.teacherId.role || 'teacher',
             profilePicture: s.teacherId.profilePicture,
+            bio: s.teacherId.bio,
+            phone: s.teacherId.phone,
+            sex: s.teacherId.sex,
             subtitle: `Instructor · ${s.code}`,
           });
         }
@@ -491,7 +503,7 @@ router.get('/contacts', async (req, res) => {
 
       // 2. Tutors who have active tutor profiles
       const tutors = await TeacherProfile.find({ isPublic: { $ne: false } })
-        .populate('user', 'name email role profilePicture')
+        .populate('user', 'name email role profilePicture bio phone sex')
         .lean();
 
       tutors.forEach((t) => {
@@ -504,6 +516,9 @@ router.get('/contacts', async (req, res) => {
               email: t.user.email,
               role: t.user.role || 'teacher',
               profilePicture: t.user.profilePicture,
+              bio: t.user.bio,
+              phone: t.user.phone,
+              sex: t.user.sex,
               subtitle: `Tutor · ${t.subject || 'Instructor'}`,
             });
           }
@@ -513,7 +528,7 @@ router.get('/contacts', async (req, res) => {
 
     // 3. Anyone with whom an existing conversation exists
     const existingConvs = await Conversation.find({ participants: req.user._id })
-      .populate('participants', 'name email role profilePicture')
+      .populate('participants', 'name email role profilePicture bio phone sex')
       .lean();
 
     existingConvs.forEach((conv) => {
@@ -527,6 +542,9 @@ router.get('/contacts', async (req, res) => {
               email: p.email,
               role: p.role,
               profilePicture: p.profilePicture,
+              bio: p.bio,
+              phone: p.phone,
+              sex: p.sex,
               subtitle: p.role === 'teacher' ? 'Teacher' : 'Student',
             });
           }
@@ -538,6 +556,23 @@ router.get('/contacts', async (req, res) => {
     res.json(list);
   } catch (error) {
     res.status(500).json({ message: 'Unable to load contacts.' });
+  }
+});
+
+// ── GET /users/:id (View user profile details) ────────────────────────────────
+router.get('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid user ID.' });
+    }
+    const targetUser = await User.findById(id).select('name email role profilePicture bio phone sex').lean();
+    if (!targetUser) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+    res.json(targetUser);
+  } catch (error) {
+    res.status(500).json({ message: 'Unable to load user profile.' });
   }
 });
 

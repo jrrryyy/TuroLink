@@ -255,13 +255,47 @@ export default function Messages() {
   useEffect(() => {
     const interval = setInterval(() => {
       api.get('/messages/conversations').then((res) => {
-        setConversations(res.data || []);
+        const nextList = res.data || [];
+        setConversations((prev) => {
+          if (
+            prev.length === nextList.length &&
+            prev.every((c, i) => c._id === nextList[i]._id && c.lastMessageAt === nextList[i].lastMessageAt && c.unreadCount === nextList[i].unreadCount)
+          ) {
+            return prev;
+          }
+          return nextList;
+        });
       }).catch(() => {});
 
       if (activeId) {
         api.get(`/messages/conversations/${activeId}`).then((res) => {
-          setMessages(res.data.messages || []);
-          setActiveRecipient(res.data.conversation?.otherParticipant || null);
+          const nextMsgs = res.data.messages || [];
+          setMessages((prev) => {
+            if (
+              prev.length === nextMsgs.length &&
+              (prev.length === 0 || prev[prev.length - 1]._id === nextMsgs[nextMsgs.length - 1]._id)
+            ) {
+              return prev;
+            }
+            return nextMsgs;
+          });
+          const nextOther = res.data.conversation?.otherParticipant || null;
+          setActiveRecipient((prev) => {
+            if (!prev && !nextOther) return prev;
+            if (
+              prev &&
+              nextOther &&
+              prev._id === nextOther._id &&
+              prev.name === nextOther.name &&
+              prev.bio === nextOther.bio &&
+              prev.phone === nextOther.phone &&
+              prev.sex === nextOther.sex &&
+              prev.profilePicture === nextOther.profilePicture
+            ) {
+              return prev;
+            }
+            return nextOther;
+          });
           setIsBlockedByMe(Boolean(res.data.conversation?.isBlockedByMe));
           setIsBlockedByThem(Boolean(res.data.conversation?.isBlockedByThem));
         }).catch(() => {});
@@ -270,6 +304,9 @@ export default function Messages() {
 
     return () => clearInterval(interval);
   }, [activeId]);
+
+  const handleCloseTutorModal = useCallback(() => setViewTutorId(null), []);
+  const handleCloseUserModal = useCallback(() => setViewUser(null), []);
 
   // Open conversation from sidebar
   const handleSelectConversation = (conv) => {
@@ -1114,7 +1151,7 @@ export default function Messages() {
         <TutorProfileModal
           tutorId={viewTutorId}
           isOpen={Boolean(viewTutorId)}
-          onClose={() => setViewTutorId(null)}
+          onClose={handleCloseTutorModal}
         />
       )}
 
@@ -1123,7 +1160,7 @@ export default function Messages() {
         <UserProfileModal
           user={viewUser}
           isOpen={Boolean(viewUser)}
-          onClose={() => setViewUser(null)}
+          onClose={handleCloseUserModal}
         />
       )}
 

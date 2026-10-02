@@ -1,20 +1,43 @@
-import React, { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   X,
   Mail,
   Phone,
   User,
-  Settings,
   ShieldCheck,
   GraduationCap,
 } from 'lucide-react';
+import api from '../services/api';
 import { profilePictureUrl } from '../services/profile';
 import '../styles/view-profile-modal.css';
 
 export default function UserProfileModal({ user, isOpen, onClose }) {
   const modalRef = useRef(null);
-  const navigate = useNavigate();
+  const targetId = user?._id || user?.id;
+  const [profileData, setProfileData] = useState(user);
+
+  useEffect(() => {
+    setProfileData(user);
+  }, [user]);
+
+  // Fetch full user profile details if targetId is present
+  useEffect(() => {
+    if (!isOpen || !targetId) return;
+
+    let active = true;
+    api
+      .get(`/messages/users/${targetId}`)
+      .then((res) => {
+        if (active && res.data) {
+          setProfileData((prev) => ({ ...prev, ...res.data }));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [isOpen, targetId]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -24,7 +47,7 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
     document.body.style.overflow = 'hidden';
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onClose?.();
     };
     window.addEventListener('keydown', handleKeyDown);
 
@@ -42,14 +65,9 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
     }
   };
 
-  const handleGoToSettings = () => {
-    onClose();
-    const destination = user.role === 'teacher' ? '/teacher/settings' : '/student/settings';
-    navigate(destination);
-  };
-
-  const isTeacher = user.role === 'teacher';
-  const firstLetter = user.name?.trim().charAt(0).toUpperCase() || 'U';
+  const activeUser = profileData || user;
+  const isTeacher = activeUser.role === 'teacher';
+  const firstLetter = activeUser.name?.trim().charAt(0).toUpperCase() || 'U';
 
   return (
     <div
@@ -74,13 +92,13 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
         <div className="view-profile-top-bar">
           <div className="view-profile-avatar-wrap">
             <div className="view-profile-avatar">
-              {user.profilePicture ? (
-                <img src={profilePictureUrl(user.profilePicture)} alt={user.name} />
+              {activeUser.profilePicture ? (
+                <img src={profilePictureUrl(activeUser.profilePicture)} alt={activeUser.name} />
               ) : (
                 firstLetter
               )}
             </div>
-            <span className="view-profile-status-indicator" title="Signed In" />
+            <span className="view-profile-status-indicator" title="Active on TuroLink" />
           </div>
         </div>
 
@@ -88,7 +106,7 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
           <div className="view-profile-identity">
             <div className="view-profile-name-row">
               <h2 id="user-profile-name" className="view-profile-name">
-                {user.name}
+                {activeUser.name}
               </h2>
               <span className="view-profile-role-pill">
                 {isTeacher ? <GraduationCap size={13} /> : <ShieldCheck size={13} />}
@@ -96,14 +114,14 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
               </span>
             </div>
 
-            <p className="view-profile-subtitle">{user.email}</p>
+            <p className="view-profile-subtitle">{activeUser.email}</p>
           </div>
 
           {/* About / Bio */}
           <div className="view-profile-section">
             <h3 className="view-profile-section-title">About</h3>
             <p className="view-profile-text">
-              {user.bio || 'You haven’t added a bio yet. Click "Edit Profile" to write something about yourself!'}
+              {activeUser.bio || 'No bio provided yet.'}
             </p>
           </div>
 
@@ -115,7 +133,7 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
                 <Mail size={18} className="view-profile-info-icon" />
                 <div>
                   <strong>Email</strong>
-                  <span>{user.email}</span>
+                  <span>{activeUser.email}</span>
                 </div>
               </div>
 
@@ -123,7 +141,7 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
                 <Phone size={18} className="view-profile-info-icon" />
                 <div>
                   <strong>Phone</strong>
-                  <span>{user.phone || 'Not provided'}</span>
+                  <span>{activeUser.phone || 'Not provided'}</span>
                 </div>
               </div>
 
@@ -132,7 +150,7 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
                 <div>
                   <strong>Gender / Sex</strong>
                   <span style={{ textTransform: 'capitalize' }}>
-                    {user.sex ? user.sex.replace(/-/g, ' ') : 'Not specified'}
+                    {activeUser.sex ? activeUser.sex.replace(/-/g, ' ') : 'Not specified'}
                   </span>
                 </div>
               </div>
@@ -147,15 +165,6 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
             onClick={onClose}
           >
             Close
-          </button>
-
-          <button
-            type="button"
-            className="view-profile-action-primary"
-            onClick={handleGoToSettings}
-          >
-            <Settings size={16} />
-            Edit Profile &amp; Settings
           </button>
         </div>
       </div>

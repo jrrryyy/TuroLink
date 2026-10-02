@@ -44,21 +44,33 @@ export default function TutorProfileModal({ tutorId, isOpen, onClose }) {
   const modalRef = useRef(null);
   const navigate = useNavigate();
 
+  // Handle body scroll locking and Escape key
   useEffect(() => {
-    if (!isOpen || !tutorId) return;
+    if (!isOpen) return;
 
-    let active = true;
-    setLoading(true);
-    setError('');
-
-    // Trap body scroll
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onClose?.();
     };
     window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  // Fetch tutor profile data
+  useEffect(() => {
+    if (!isOpen || !tutorId) return;
+
+    let active = true;
+    if (!tutor || (tutor.id !== tutorId && tutor._id !== tutorId)) {
+      setLoading(true);
+    }
+    setError('');
 
     api
       .get(`/tutors/${tutorId}`)
@@ -73,10 +85,9 @@ export default function TutorProfileModal({ tutorId, isOpen, onClose }) {
       });
 
     return () => {
-      document.body.style.overflow = originalOverflow;
-      window.removeEventListener('keydown', handleKeyDown);
+      active = false;
     };
-  }, [isOpen, tutorId, onClose]);
+  }, [isOpen, tutorId]);
 
   if (!isOpen) return null;
 
