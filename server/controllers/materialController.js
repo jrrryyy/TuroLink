@@ -1,17 +1,34 @@
 const Subject = require('../models/Subject');
 const mongoose = require('mongoose');
 const fs = require('node:fs/promises');
+const fsSync = require('node:fs');
 const path = require('node:path');
-const { randomUUID } = require('node:crypto');
-const { uploadFile, deleteFile, streamDownload, isCloudConfigured } = require('../services/cloudStorage');
+const { getUploadPath } = require('../config/storage');
+const { uploadFile, deleteFile, streamDownload } = require('../services/cloudStorage');
 
 const storageDirectory = path.resolve(__dirname, '../storage/materials');
+
 const allowedTypes = new Set([
-  'application/pdf', 'text/plain', 'image/jpeg', 'image/png', 'image/webp',
+  'application/pdf', 'text/plain', 'text/csv',
+  'image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml', 'image/bmp',
   'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/zip', 'application/x-zip-compressed', 'application/x-rar-compressed', 'application/octet-stream',
 ]);
+
+const allowedExtensions = new Set([
+  '.pdf', '.txt', '.csv', '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx',
+  '.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg', '.bmp', '.zip', '.rar',
+]);
+
+function isAllowedFile(file) {
+  if (!file) return false;
+  if (allowedTypes.has(file.mimetype)) return true;
+  const ext = path.extname(file.originalname || '').toLowerCase();
+  return allowedExtensions.has(ext);
+}
+
 const badRequest = (message, field) => Object.assign(new Error(message), { status: 400, ...(field ? { errors: { [field]: message } } : {}) });
 
 // Also called before reads, so scheduled posts appear even after a server restart.
@@ -30,9 +47,13 @@ async function publishDueMaterials() {
   await require('../services/notifications').retryNotifications();
 }
 
-async function ownedSubject(req) {
+async function ownedSubject(req, populate = false) {
   if (!mongoose.isValidObjectId(req.params.id)) throw badRequest('Invalid subject.');
-  const subject = await Subject.findOne({ _id: req.params.id, teacherId: req.user._id }).populate('materials.recipientStudents', 'name email profilePicture');
+  const query = Subject.findOne({ _id: req.params.id, teacherId: req.user._id });
+  if (populate) {
+    query.populate('materials.recipientStudents', 'name email profilePicture');
+  }
+  const subject = await query;
   if (!subject) throw Object.assign(new Error('Subject not found.'), { status: 404 });
   return subject;
 }
@@ -107,16 +128,20 @@ async function removeFile(key) {
     return;
   }
   if (path.basename(key) !== key) return;
-  await fs.unlink(path.join(storageDirectory, key)).catch((error) => {
-    if (error.code !== 'ENOENT') console.error('Unable to clean up classwork attachment:', error.code);
-  });
+  const legacyPath = path.join(storageDirectory, key);
+  const uploadsPath = path.join(getUploadPath('materials'), key);
+  await fs.unlink(legacyPath).catch(() => {});
+  await fs.unlink(uploadsPath).catch(() => {});
 }
 
 const handler = (fn) => async (req, res) => {
   try { await fn(req, res); }
   catch (error) {
-    if (!error.status) console.error('Classwork request failed:', error.name);
-    res.status(error.status || 500).json({ message: error.status ? error.message : 'Unable to save or load classwork. Please try again.', ...(error.errors ? { errors: error.errors } : {}) });
+    console.error('Classwork request failed:', error);
+    res.status(error.status || 500).json({
+      message: error.status ? error.message : (error.message || 'Unable to save or load classwork. Please try again.'),
+      ...(error.errors ? { errors: error.errors } : {})
+    });
   }
 };
 
@@ -124,12 +149,12 @@ const listMaterials = handler(async (req, res) => {
   // Check access before performing any work.
   await ownedSubject(req);
   await publishDueMaterials();
-  const subject = await ownedSubject(req);
+  const subject = await ownedSubject(req, true);
   res.json(subject.materials);
 });
 
 const saveMaterial = handler(async (req, res) => {
-  const subject = await ownedSubject(req);
+  const subject = await ownedSubject(req, false);
   const existing = req.params.materialId ? materialById(subject, req.params.materialId) : null;
   if (existing?.status === 'archived') throw badRequest('Restore archived classwork before editing.');
   const fields = validatedFields(req.body, subject);
@@ -137,28 +162,23 @@ const saveMaterial = handler(async (req, res) => {
   const oldKey = existing?.attachmentKey;
   try {
     if (req.file) {
-      if (!allowedTypes.has(req.file.mimetype)) throw badRequest('Unsupported file type. Use a document, PDF, text file, or image.');
-      if (isCloudConfigured()) {
-        const uploadResult = await uploadFile(req.file.buffer, {
-          folder: 'materials',
-          filename: req.file.originalname,
-          mimetype: req.file.mimetype,
-          resourceType: 'auto',
-        });
-        newKey = uploadResult.url;
-        Object.assign(fields, {
-          attachmentKey: newKey,
-          attachmentName: req.file.originalname,
-          attachmentType: req.file.mimetype,
-          attachmentSize: uploadResult.size || req.file.size,
-          fileUrl: uploadResult.url,
-        });
-      } else {
-        await fs.mkdir(storageDirectory, { recursive: true });
-        newKey = randomUUID();
-        await fs.writeFile(path.join(storageDirectory, newKey), req.file.buffer);
-        Object.assign(fields, { attachmentKey: newKey, attachmentName: req.file.originalname, attachmentType: req.file.mimetype, attachmentSize: req.file.size, fileUrl: '' });
+      if (!isAllowedFile(req.file)) {
+        throw badRequest('Unsupported file type. Use a document, PDF, text file, or image.');
       }
+      const uploadResult = await uploadFile(req.file.buffer, {
+        folder: 'materials',
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        resourceType: 'auto',
+      });
+      newKey = uploadResult.url;
+      Object.assign(fields, {
+        attachmentKey: newKey,
+        attachmentName: req.file.originalname,
+        attachmentType: req.file.mimetype,
+        attachmentSize: uploadResult.size || req.file.size,
+        fileUrl: uploadResult.url,
+      });
     } else if (req.body.removeAttachment === 'true') {
       Object.assign(fields, { attachmentKey: '', attachmentName: '', attachmentType: '', attachmentSize: 0, fileUrl: '' });
     }
@@ -171,7 +191,7 @@ const saveMaterial = handler(async (req, res) => {
 });
 
 const changeMaterialStatus = handler(async (req, res) => {
-  const subject = await ownedSubject(req);
+  const subject = await ownedSubject(req, false);
   const material = materialById(subject, req.params.materialId);
   if (req.body.action === 'archive' && material.status !== 'archived') material.status = 'archived';
   else if (req.body.action === 'restore' && material.status === 'archived') {
@@ -182,7 +202,7 @@ const changeMaterialStatus = handler(async (req, res) => {
 });
 
 const deleteMaterial = handler(async (req, res) => {
-  const subject = await ownedSubject(req);
+  const subject = await ownedSubject(req, false);
   const material = materialById(subject, req.params.materialId);
   const key = material.attachmentKey;
   subject.materials.pull(material._id);
@@ -192,7 +212,7 @@ const deleteMaterial = handler(async (req, res) => {
 });
 
 const downloadAttachment = handler(async (req, res) => {
-  const subject = await ownedSubject(req);
+  const subject = await ownedSubject(req, false);
   const material = materialById(subject, req.params.materialId);
   const targetKey = material.fileUrl || material.attachmentKey;
   if (!targetKey) throw Object.assign(new Error('Attachment not found.'), { status: 404 });
@@ -201,10 +221,14 @@ const downloadAttachment = handler(async (req, res) => {
     return streamDownload(targetKey, res, material.attachmentName || 'Material');
   }
 
-  if (path.basename(material.attachmentKey) !== material.attachmentKey) throw Object.assign(new Error('Attachment not found.'), { status: 404 });
-  const file = path.join(storageDirectory, material.attachmentKey);
-  try { await fs.access(file); } catch { throw Object.assign(new Error('Attachment not found.'), { status: 404 }); }
-  res.download(file, material.attachmentName);
+  const legacyFile = path.join(storageDirectory, path.basename(targetKey));
+  const uploadsFile = path.join(getUploadPath('materials'), path.basename(targetKey));
+  const resolved = fsSync.existsSync(legacyFile) ? legacyFile : (fsSync.existsSync(uploadsFile) ? uploadsFile : null);
+  if (resolved) {
+    return res.download(resolved, material.attachmentName || 'Material');
+  }
+
+  return streamDownload(targetKey, res, material.attachmentName || 'Material');
 });
 
 module.exports = { listMaterials, saveMaterial, changeMaterialStatus, deleteMaterial, downloadAttachment, publishDueMaterials };

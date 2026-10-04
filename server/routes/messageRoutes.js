@@ -224,6 +224,9 @@ router.post('/conversations/:id', uploadMiddleware, async (req, res) => {
     const recipientId = conversation.participants.find(
       (p) => p.toString() !== req.user._id.toString()
     );
+    if (!recipientId) {
+      return res.status(400).json({ message: 'Other participant not found in this conversation.' });
+    }
 
     // Verify neither user has blocked the other
     const currentUser = await User.findById(req.user._id).select('blockedUsers').lean();
@@ -307,7 +310,43 @@ router.post('/conversations/:id', uploadMiddleware, async (req, res) => {
 
     res.status(201).json(message);
   } catch (error) {
-    res.status(500).json({ message: 'Unable to send message.' });
+    console.error('Send message failed:', error);
+    res.status(error.status || 500).json({
+      message: error.status ? error.message : (error.message || 'Unable to send message.'),
+    });
+  }
+});
+
+// ── GET /download/:filename (Download attachment) ───────────────────────────
+router.get('/download/:filename', async (req, res) => {
+  try {
+    const rawFilename = req.params.filename;
+    const originalName = req.query.name || rawFilename || 'Attachment';
+
+    // Find message containing this attachment to get full URL or key
+    const message = await Message.findOne({
+      'attachment.url': { $regex: rawFilename.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') },
+    }).lean();
+
+    const targetUrl = message?.attachment?.url;
+    if (targetUrl && /^https?:\/\//i.test(targetUrl)) {
+      return streamDownload(targetUrl, res, originalName);
+    }
+
+    // Local file fallback
+    const localPath = path.join(uploadDir, path.basename(rawFilename));
+    if (fs.existsSync(localPath)) {
+      return res.download(localPath, originalName);
+    }
+
+    if (targetUrl) {
+      return streamDownload(targetUrl, res, originalName);
+    }
+
+    res.status(404).json({ message: 'Attachment file not found.' });
+  } catch (err) {
+    console.error('Download message attachment error:', err);
+    res.status(500).json({ message: 'Unable to download attachment.' });
   }
 });
 

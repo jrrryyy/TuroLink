@@ -255,11 +255,15 @@ export default function TeacherClasswork({ subject, teacherName }) {
       <div className="classwork-card-title"><h3>{labelFor(item.type)}: <span>{item.title}</span></h3><span>{item.points == null ? 'Ungraded' : `${item.points} Points`}</span></div>
       <p className="classwork-meta">Due: {formattedDate(item.dueAt)}</p>
       {item.status === 'scheduled' && <p className="classwork-meta">Posts: {formattedDate(item.scheduledAt)}</p>}
-      {item.status === 'posted' && item.postedAt && <p className="classwork-meta">Posted: {formattedDate(item.postedAt)}</p>}
       {item.instructions && <p className="classwork-instructions">{item.instructions}</p>}
       <div className="classwork-attachments">
-        {item.attachmentKey && <button type="button" onClick={() => download(item)}><FileText size={18} />{item.attachmentName}<small>{Math.max(1, Math.round(item.attachmentSize / 1024))} KB</small></button>}
-        {item.fileUrl && /^(https?:\/\/|\/uploads\/)/.test(item.fileUrl) && <a href={new URL(item.fileUrl, new URL(api.defaults.baseURL, window.location.origin).origin).href} target="_blank" rel="noreferrer"><FileText size={18} />Attachment</a>}
+        {(item.attachmentKey || item.fileUrl) && (
+          <button type="button" onClick={() => download(item)}>
+            <FileText size={18} />
+            <span>{item.attachmentName || 'Attachment'}</span>
+            <small>{Math.max(1, Math.round((item.attachmentSize || 0) / 1024))} KB</small>
+          </button>
+        )}
         {item.link && /^https?:\/\//.test(item.link) && <a href={item.link} target="_blank" rel="noreferrer"><LinkIcon size={18} />Open attached link</a>}
       </div>
 
@@ -308,7 +312,7 @@ export default function TeacherClasswork({ subject, teacherName }) {
         </div>
         <label className="classwork-field">Title<input name="title" aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "classwork-title-error" : undefined} placeholder="Title" required maxLength={200} value={form.title} onChange={updateForm} /><span id="classwork-title-error"><FieldError errors={fieldErrors} name="title" /></span></label>
         <label className="classwork-field">Instructions<textarea name="instructions" aria-invalid={Boolean(fieldErrors.instructions)} aria-describedby={fieldErrors.instructions ? "classwork-instructions-error" : undefined} placeholder="Type instructions..." rows={7} maxLength={20000} value={form.instructions} onChange={updateForm} /><span id="classwork-instructions-error"><FieldError errors={fieldErrors} name="instructions" /></span></label>
-        <div className="classwork-attachment-controls"><label className="classwork-upload"><Upload size={19} />Attach file<input type="file" accept=".pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.webp" onChange={(event) => {
+        <div className="classwork-attachment-controls"><label className="classwork-upload"><Upload size={19} />Attach file<input type="file" accept=".pdf,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.gif,.bmp,.zip,.rar" onChange={(event) => {
           const selected = event.target.files?.[0];
           if (selected?.size > 10 * 1024 * 1024) { setError('Attachments must be 10 MB or smaller.'); event.target.value = ''; return; }
           setFile(selected || null); setError('');

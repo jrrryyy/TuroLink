@@ -144,11 +144,29 @@ const attachment = handler(async (req, res) => {
     return streamDownload(fileKeyOrUrl, res, item.attachmentName || 'Attachment');
   }
 
-  const key = isMaterial ? item.attachmentKey : (item.attachment || '').replace('/uploads/announcements/', '');
-  if (!key || path.basename(key) !== key) throw fail('Attachment not found.', 404);
-  const file = path.resolve(__dirname, isMaterial ? '../storage/materials' : '../uploads/announcements', key);
-  try { await fs.access(file); } catch { throw fail('Attachment not found.', 404); }
-  res.download(file, item.attachmentName || 'Attachment');
+  const key = isMaterial ? (item.fileUrl || item.attachmentKey) : (item.attachment || '').replace('/uploads/announcements/', '');
+  if (!key) throw fail('Attachment not found.', 404);
+  const baseName = path.basename(key);
+  const legacyFile = path.resolve(__dirname, isMaterial ? '../storage/materials' : '../uploads/announcements', baseName);
+  const uploadsFile = path.join(require('../config/storage').getUploadPath(isMaterial ? 'materials' : 'announcements'), baseName);
+  let file = null;
+  try {
+    await fs.access(legacyFile);
+    file = legacyFile;
+  } catch {
+    try {
+      await fs.access(uploadsFile);
+      file = uploadsFile;
+    } catch {
+      file = null;
+    }
+  }
+
+  if (file) {
+    return res.download(file, item.attachmentName || 'Attachment');
+  }
+
+  return streamDownload(fileKeyOrUrl, res, item.attachmentName || 'Attachment');
 });
 const engagement = handler(async (req, res) => {
   const subject = await accessible(req, true);

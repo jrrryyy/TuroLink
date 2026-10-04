@@ -79,22 +79,16 @@ const submitWork = handler(async (req, res) => {
   let newKey = '';
   try {
     if (req.file) {
-      if (!allowedTypes.has(req.file.mimetype) && !req.file.originalname.match(/\.(pdf|docx?|pptx?|xlsx?|txt|jpg|jpeg|png|webp|zip|rar|7z)$/i)) {
+      if (!allowedTypes.has(req.file.mimetype) && !req.file.originalname.match(/\.(pdf|docx?|pptx?|xlsx?|txt|jpg|jpeg|png|webp|gif|svg|bmp|zip|rar|7z)$/i)) {
         throw fail('Unsupported file format. Please attach a document, presentation, sheet, image, or zip archive.');
       }
-      if (isCloudConfigured()) {
-        const uploadResult = await uploadFile(req.file.buffer, {
-          folder: 'submissions',
-          filename: req.file.originalname,
-          mimetype: req.file.mimetype,
-          resourceType: 'auto',
-        });
-        newKey = uploadResult.url;
-      } else {
-        await fs.mkdir(storageDirectory, { recursive: true });
-        newKey = randomUUID();
-        await fs.writeFile(path.join(storageDirectory, newKey), req.file.buffer);
-      }
+      const uploadResult = await uploadFile(req.file.buffer, {
+        folder: 'submissions',
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        resourceType: 'auto',
+      });
+      newKey = uploadResult.url;
     }
 
     const now = new Date();
@@ -194,14 +188,27 @@ const downloadStudentAttachment = handler(async (req, res) => {
   if (/^https?:\/\//i.test(submission.attachmentKey)) {
     return streamDownload(submission.attachmentKey, res, submission.attachmentName || 'Submission');
   }
-  const file = path.join(storageDirectory, submission.attachmentKey);
+  const baseName = path.basename(submission.attachmentKey);
+  const legacyFile = path.join(storageDirectory, baseName);
+  const uploadsFile = path.join(require('../config/storage').getUploadPath('submissions'), baseName);
+  let file = null;
   try {
-    await fs.access(file);
+    await fs.access(legacyFile);
+    file = legacyFile;
   } catch {
-    throw fail('Attachment file is no longer available.', 404);
+    try {
+      await fs.access(uploadsFile);
+      file = uploadsFile;
+    } catch {
+      file = null;
+    }
   }
 
-  res.download(file, submission.attachmentName || 'Submission');
+  if (file) {
+    return res.download(file, submission.attachmentName || 'Submission');
+  }
+
+  return streamDownload(submission.attachmentKey, res, submission.attachmentName || 'Submission');
 });
 
 // ── Teacher: List submissions for a material ──────────────────────────────
@@ -381,14 +388,27 @@ const downloadTeacherAttachment = handler(async (req, res) => {
   if (/^https?:\/\//i.test(submission.attachmentKey)) {
     return streamDownload(submission.attachmentKey, res, submission.attachmentName || 'Student_Submission');
   }
-  const file = path.join(storageDirectory, submission.attachmentKey);
+  const baseName = path.basename(submission.attachmentKey);
+  const legacyFile = path.join(storageDirectory, baseName);
+  const uploadsFile = path.join(require('../config/storage').getUploadPath('submissions'), baseName);
+  let file = null;
   try {
-    await fs.access(file);
+    await fs.access(legacyFile);
+    file = legacyFile;
   } catch {
-    throw fail('Attachment file is no longer available.', 404);
+    try {
+      await fs.access(uploadsFile);
+      file = uploadsFile;
+    } catch {
+      file = null;
+    }
   }
 
-  res.download(file, submission.attachmentName || 'Student_Submission');
+  if (file) {
+    return res.download(file, submission.attachmentName || 'Student_Submission');
+  }
+
+  return streamDownload(submission.attachmentKey, res, submission.attachmentName || 'Student_Submission');
 });
 
 module.exports = {

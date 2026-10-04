@@ -56,6 +56,8 @@ function isCloudConfigured() {
   return getProvider() !== 'local';
 }
 
+const { getUploadPath } = require('../config/storage');
+
 /**
  * Upload a file buffer to cloud storage (or local disk in fallback mode)
  */
@@ -74,57 +76,66 @@ async function uploadFile(buffer, options = {}) {
   const uniqueName = `${baseName}_${uniqueId}${ext}`;
 
   if (provider === 'cloudinary') {
-    return new Promise((resolve, reject) => {
-      // For images, use 'image'; for documents/audio/video or unknown, use 'auto' or 'raw'
-      let resType = resourceType;
-      if (resType === 'auto') {
-        const isImage = mimetype.startsWith('image/');
-        const isVideo = mimetype.startsWith('video/') || mimetype.startsWith('audio/');
-        resType = isImage ? 'image' : isVideo ? 'video' : 'raw';
-      }
+    try {
+      return await new Promise((resolve, reject) => {
+        // For images, use 'image'; for documents/audio/video or unknown, use 'auto' or 'raw'
+        let resType = resourceType;
+        if (resType === 'auto') {
+          const isImage = mimetype.startsWith('image/');
+          const isVideo = mimetype.startsWith('video/') || mimetype.startsWith('audio/');
+          resType = isImage ? 'image' : isVideo ? 'video' : 'raw';
+        }
 
-      const uploadOptions = {
-        folder: `turolink/${folder}`,
-        resource_type: resType,
-        public_id: `${baseName}_${uniqueId}`,
-        use_filename: true,
-        unique_filename: true,
-      };
+        const publicId = resType === 'raw' ? `${baseName}_${uniqueId}${ext}` : `${baseName}_${uniqueId}`;
+        const uploadOptions = {
+          folder: `turolink/${folder}`,
+          resource_type: resType,
+          public_id: publicId,
+          use_filename: true,
+          unique_filename: true,
+        };
 
-      const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
-        if (error) return reject(error);
-        resolve({
-          url: result.secure_url,
-          key: result.public_id,
-          resourceType: result.resource_type || resType,
-          size: result.bytes || buffer.length,
-          originalName: filename,
-          provider: 'cloudinary',
+        const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
+          if (error) return reject(error);
+          resolve({
+            url: result.secure_url,
+            key: result.public_id,
+            resourceType: result.resource_type || resType,
+            size: result.bytes || buffer.length,
+            originalName: filename,
+            provider: 'cloudinary',
+          });
         });
-      });
 
-      Readable.from(buffer).pipe(stream);
-    });
+        Readable.from(buffer).pipe(stream);
+      });
+    } catch (cloudErr) {
+      console.warn('Cloudinary upload failed, gracefully falling back to disk:', cloudErr.message);
+    }
   }
 
   if (provider === 'vercel-blob') {
-    const pathname = `turolink/${folder}/${uniqueName}`;
-    const blob = await vercelBlob.put(pathname, buffer, {
-      access: 'public',
-      contentType: mimetype,
-    });
-    return {
-      url: blob.url,
-      key: blob.url,
-      pathname: blob.pathname,
-      size: buffer.length,
-      originalName: filename,
-      provider: 'vercel-blob',
-    };
+    try {
+      const pathname = `turolink/${folder}/${uniqueName}`;
+      const blob = await vercelBlob.put(pathname, buffer, {
+        access: 'public',
+        contentType: mimetype,
+      });
+      return {
+        url: blob.url,
+        key: blob.url,
+        pathname: blob.pathname,
+        size: buffer.length,
+        originalName: filename,
+        provider: 'vercel-blob',
+      };
+    } catch (blobErr) {
+      console.warn('Vercel Blob upload failed, gracefully falling back to disk:', blobErr.message);
+    }
   }
 
-  // Local disk fallback
-  const localDir = path.resolve(__dirname, `../uploads/${folder}`);
+  // Local disk fallback (using getUploadPath for serverless / local compatibility)
+  const localDir = getUploadPath(folder);
   await fs.mkdir(localDir, { recursive: true });
   const localFilePath = path.join(localDir, uniqueName);
   await fs.writeFile(localFilePath, buffer);

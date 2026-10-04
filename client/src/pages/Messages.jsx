@@ -91,6 +91,75 @@ function MessageAvatar({ src, name, size, className = '', fallbackClassName = ''
   );
 }
 
+function MessageAttachmentItem({ attachment, onPreview, onDownload }) {
+  const [imgError, setImgError] = useState(false);
+  const isImg = isImageAttachment(attachment);
+
+  if (isImg && !imgError) {
+    const fullUrl = resolveAttachmentUrl(attachment.url);
+    return (
+      <div className="messages-image-attachment-wrapper">
+        <button
+          type="button"
+          className="messages-image-attachment-preview"
+          onClick={() => onPreview({
+            url: fullUrl,
+            name: attachment.originalName || 'Image',
+            size: attachment.size,
+            attachment,
+          })}
+          title="Click to view full image"
+        >
+          <img
+            src={fullUrl}
+            alt={attachment.originalName || 'Image attachment'}
+            loading="lazy"
+            onError={() => setImgError(true)}
+          />
+          <div className="messages-image-attachment-overlay">
+            <Eye size={18} />
+            <span>View</span>
+          </div>
+        </button>
+        <div className="messages-image-attachment-caption">
+          <span className="messages-image-name" title={attachment.originalName}>
+            {attachment.originalName || 'Image'}
+          </span>
+          <button
+            type="button"
+            className="messages-attachment-download-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDownload(attachment);
+            }}
+            title="Download image"
+            aria-label="Download image"
+          >
+            <Download size={13} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className="messages-attachment-card interactive"
+      onClick={() => onDownload(attachment)}
+      title={`Click to download ${attachment.originalName || 'file'}`}
+    >
+      <FileText size={15} />
+      <span className="messages-attachment-title">
+        {attachment.originalName || 'Attachment'}
+      </span>
+      <span className="messages-attachment-action" title="Download">
+        <Download size={13} />
+      </span>
+    </button>
+  );
+}
+
 const URL_REGEX = /(https?:\/\/[^\s]+)/gi;
 
 function extractSharedLinks(msgs = []) {
@@ -843,63 +912,11 @@ export default function Messages() {
                               <div className="messages-bubble">
                                 {msg.text}
                                 {msg.attachment && (
-                                  isImageAttachment(msg.attachment) ? (
-                                    <div className="messages-image-attachment-wrapper">
-                                      <button
-                                        type="button"
-                                        className="messages-image-attachment-preview"
-                                        onClick={() => setPreviewImage({
-                                          url: resolveAttachmentUrl(msg.attachment.url),
-                                          name: msg.attachment.originalName || 'Image',
-                                          size: msg.attachment.size,
-                                          attachment: msg.attachment,
-                                        })}
-                                        title="Click to view full image"
-                                      >
-                                        <img
-                                          src={resolveAttachmentUrl(msg.attachment.url)}
-                                          alt={msg.attachment.originalName || 'Image attachment'}
-                                          loading="lazy"
-                                        />
-                                        <div className="messages-image-attachment-overlay">
-                                          <Eye size={18} />
-                                          <span>View</span>
-                                        </div>
-                                      </button>
-                                      <div className="messages-image-attachment-caption">
-                                        <span className="messages-image-name" title={msg.attachment.originalName}>
-                                          {msg.attachment.originalName || 'Image'}
-                                        </span>
-                                        <button
-                                          type="button"
-                                          className="messages-attachment-download-btn"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDownloadAttachment(msg.attachment);
-                                          }}
-                                          title="Download image"
-                                          aria-label="Download image"
-                                        >
-                                          <Download size={13} />
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="messages-attachment-card interactive"
-                                      onClick={() => handleDownloadAttachment(msg.attachment)}
-                                      title={`Click to download ${msg.attachment.originalName || 'file'}`}
-                                    >
-                                      <FileText size={15} />
-                                      <span className="messages-attachment-title">
-                                        {msg.attachment.originalName || 'Attachment'}
-                                      </span>
-                                      <span className="messages-attachment-action" title="Download">
-                                        <Download size={13} />
-                                      </span>
-                                    </button>
-                                  )
+                                  <MessageAttachmentItem
+                                    attachment={msg.attachment}
+                                    onPreview={setPreviewImage}
+                                    onDownload={handleDownloadAttachment}
+                                  />
                                 )}
                               </div>
 

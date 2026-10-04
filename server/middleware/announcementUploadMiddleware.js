@@ -36,26 +36,24 @@ const fileFilter = (
 ) => {
   const allowedTypes = [
     "application/pdf",
-
     "application/msword",
-
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-
     "application/vnd.ms-powerpoint",
-
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-
     "application/vnd.ms-excel",
-
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-
     "text/plain",
-
+    "text/csv",
     "image/jpeg",
-
+    "image/jpg",
+    "image/pjpeg",
     "image/png",
-
     "image/webp",
+    "image/gif",
+    "image/bmp",
+    "image/svg+xml",
+    "application/zip",
+    "application/x-zip-compressed",
   ];
 
   if (
