@@ -26,10 +26,15 @@ export default function StudentRecipientPicker({
     };
   });
 
-  // An empty value array [] means ALL students are selected.
-  const isAllSelected = value.length === 0 || (students.length > 0 && value.length === students.length);
+  // A value of [] (empty array) strictly represents "All Students" (broadcast mode).
+  // A non-empty array e.g. [studentId] represents specific selected student(s),
+  // even if there is only 1 student currently enrolled.
+  const isAllSelected = !value || value.length === 0;
+
+  // In All Students mode, all enrolled students are included.
+  // In specific mode, only students in value array are included.
   const selectedSet = new Set(
-    isAllSelected ? students.map((s) => s._id) : value.map(String)
+    isAllSelected ? students.map((s) => s._id) : (Array.isArray(value) ? value.map(String) : [])
   );
 
   // Close on click outside or Escape
@@ -54,26 +59,45 @@ export default function StudentRecipientPicker({
   }, [isOpen]);
 
   const toggleAll = () => {
-    onChange([]);
+    if (isAllSelected) {
+      // Teacher wants to turn off "All Students" broadcast mode.
+      // If there's only 1 student, switch to specifically selecting that 1 student.
+      // If there are multiple, keep all currently selected as specific IDs so they can deselect one.
+      if (students.length === 1) {
+        onChange([students[0]._id]);
+      } else {
+        onChange(students.map((s) => s._id));
+      }
+    } else {
+      // Switch back to "All Students" broadcast mode
+      onChange([]);
+    }
   };
 
   const toggleStudent = (studentId) => {
-    let nextSelected;
     if (isAllSelected) {
-      // If currently all selected and user clicks one student, that student is now excluded
-      nextSelected = students.filter((s) => s._id !== studentId).map((s) => s._id);
-    } else if (selectedSet.has(studentId)) {
-      nextSelected = value.filter((id) => String(id) !== studentId);
-    } else {
-      nextSelected = [...value, studentId];
+      // In All Students mode:
+      if (students.length === 1) {
+        // Only 1 student enrolled: clicking that student switches from "All Students" to specific student!
+        onChange([studentId]);
+      } else {
+        // Multiple students: clicking a student excludes them, making the rest specific students
+        const nextSelected = students.filter((s) => s._id !== studentId).map((s) => s._id);
+        onChange(nextSelected);
+      }
+      return;
     }
 
-    // If all students ended up selected, reset to [] (canonical representation for All Students)
-    if (nextSelected.length >= students.length) {
-      onChange([]);
+    // In Specific Students mode:
+    let nextSelected;
+    if (selectedSet.has(studentId)) {
+      nextSelected = (value || []).filter((id) => String(id) !== String(studentId));
     } else {
-      onChange(nextSelected);
+      nextSelected = [...(value || []), studentId];
     }
+
+    // Keep the specific student IDs (do NOT force to [] even if count matches students.length)
+    onChange(nextSelected);
   };
 
   const selectOnlyStudent = (studentId, event) => {
@@ -91,6 +115,9 @@ export default function StudentRecipientPicker({
       const found = students.find((s) => s._id === String(value[0]));
       return found?.name || '1 Student';
     }
+    if (value.length === 0) {
+      return 'No students selected';
+    }
     return `${value.length} Students`;
   };
 
@@ -102,12 +129,12 @@ export default function StudentRecipientPicker({
 
   return (
     <div
-      className={`student-recipient-picker ${compact ? 'compact' : ''} ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''}`}
+      className={`student-recipient-picker ${compact ? 'compact' : ''} ${isOpen ? 'open' : ''} ${disabled ? 'disabled' : ''} ${!isAllSelected ? 'specific-active' : ''}`}
       ref={containerRef}
     >
       <button
         type="button"
-        className="recipient-picker-trigger"
+        className={`recipient-picker-trigger ${!isAllSelected ? 'is-specific' : ''}`}
         onClick={() => !disabled && setIsOpen((prev) => !prev)}
         disabled={disabled}
         aria-haspopup="listbox"
@@ -116,7 +143,11 @@ export default function StudentRecipientPicker({
         id={`recipient-trigger-${listId}`}
       >
         <span className="recipient-picker-label">
-          <Users size={14} className="recipient-picker-icon" />
+          {!isAllSelected && value.length === 1 ? (
+            <User size={14} className="recipient-picker-icon specific-icon" />
+          ) : (
+            <Users size={14} className="recipient-picker-icon" />
+          )}
           <span className="recipient-picker-text">{getDisplayLabel()}</span>
         </span>
         <ChevronDown size={15} className={`recipient-picker-chevron ${isOpen ? 'rotated' : ''}`} />
@@ -128,7 +159,7 @@ export default function StudentRecipientPicker({
             <span className="recipient-picker-title">Audience</span>
             {students.length > 0 && (
               <span className="recipient-picker-count">
-                {isAllSelected ? `${students.length} of ${students.length}` : `${value.length} of ${students.length}`}
+                {isAllSelected ? `All (${students.length})` : `${value.length} of ${students.length}`}
               </span>
             )}
           </div>
@@ -175,7 +206,7 @@ export default function StudentRecipientPicker({
               </div>
               <div className="recipient-info">
                 <span className="recipient-name">All Students</span>
-                <span className="recipient-meta">{students.length} enrolled student{students.length === 1 ? '' : 's'}</span>
+                <span className="recipient-meta">{students.length} enrolled student{students.length === 1 ? '' : 's'} (broadcast)</span>
               </div>
             </div>
 
@@ -186,13 +217,15 @@ export default function StudentRecipientPicker({
               <div className="recipient-empty">No matching students found</div>
             ) : (
               filteredStudents.map((student) => {
-                const isSelected = selectedSet.has(student._id);
+                // In All Students mode, student is included in broadcast.
+                // In Specific Students mode, student is included only if in selectedSet.
+                const isChecked = selectedSet.has(student._id);
                 return (
                   <div
                     key={student._id}
-                    className={`recipient-item ${isSelected ? 'selected' : ''}`}
+                    className={`recipient-item ${isChecked ? 'selected' : ''} ${!isAllSelected && isChecked ? 'specific-selected' : ''}`}
                     role="option"
-                    aria-selected={isSelected}
+                    aria-selected={isChecked}
                     tabIndex={0}
                     onClick={() => toggleStudent(student._id)}
                     onKeyDown={(e) => {
@@ -205,7 +238,7 @@ export default function StudentRecipientPicker({
                     <div className="recipient-checkbox">
                       <input
                         type="checkbox"
-                        checked={isSelected}
+                        checked={isChecked}
                         onChange={() => toggleStudent(student._id)}
                         aria-label={student.name}
                         tabIndex={-1}
