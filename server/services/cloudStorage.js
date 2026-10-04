@@ -4,26 +4,44 @@ const path = require('node:path');
 const { randomUUID } = require('node:crypto');
 const { Readable } = require('node:stream');
 
-// Configure Cloudinary if credentials are present
-let cloudinary;
-try {
-  cloudinary = require('cloudinary').v2;
-  if (process.env.CLOUDINARY_URL) {
-    // CLOUDINARY_URL automatically parsed by SDK
-  } else if (
-    process.env.CLOUDINARY_CLOUD_NAME &&
-    process.env.CLOUDINARY_API_KEY &&
-    process.env.CLOUDINARY_API_SECRET
-  ) {
-    cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_API_SECRET,
-      secure: true,
-    });
+// Configure Cloudinary dynamically and securely
+let cloudinaryInstance = null;
+
+function getCloudinary() {
+  if (cloudinaryInstance) return cloudinaryInstance;
+  try {
+    const sdk = require('cloudinary').v2;
+    const rawUrl = (process.env.CLOUDINARY_URL || '').trim().replace(/^["']|["']$/g, '');
+    if (rawUrl) {
+      const match = rawUrl.match(/^cloudinary:\/\/([^:]+):([^@]+)@([^/?#]+)/i);
+      if (match) {
+        sdk.config({
+          cloud_name: match[3],
+          api_key: match[1],
+          api_secret: match[2],
+          secure: true,
+        });
+      } else {
+        sdk.config({ url: rawUrl, secure: true });
+      }
+      cloudinaryInstance = sdk;
+    } else if (
+      process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET
+    ) {
+      sdk.config({
+        cloud_name: process.env.CLOUDINARY_CLOUD_NAME.trim().replace(/^["']|["']$/g, ''),
+        api_key: process.env.CLOUDINARY_API_KEY.trim().replace(/^["']|["']$/g, ''),
+        api_secret: process.env.CLOUDINARY_API_SECRET.trim().replace(/^["']|["']$/g, ''),
+        secure: true,
+      });
+      cloudinaryInstance = sdk;
+    }
+  } catch (err) {
+    console.warn('Cloudinary SDK initialization warning:', err.message);
   }
-} catch (e) {
-  // Cloudinary module not loaded
+  return cloudinaryInstance;
 }
 
 // Configure Vercel Blob if token is present
@@ -37,14 +55,12 @@ try {
 }
 
 function getProvider() {
-  if (
-    cloudinary &&
-    (process.env.CLOUDINARY_URL ||
-      (process.env.CLOUDINARY_CLOUD_NAME &&
-        process.env.CLOUDINARY_API_KEY &&
-        process.env.CLOUDINARY_API_SECRET))
-  ) {
-    return 'cloudinary';
+  const c = getCloudinary();
+  if (c) {
+    const cfg = c.config();
+    if (cfg.cloud_name && cfg.api_key && cfg.api_secret) {
+      return 'cloudinary';
+    }
   }
   if (vercelBlob && process.env.BLOB_READ_WRITE_TOKEN) {
     return 'vercel-blob';
@@ -77,6 +93,7 @@ async function uploadFile(buffer, options = {}) {
 
   if (provider === 'cloudinary') {
     try {
+      const c = getCloudinary();
       return await new Promise((resolve, reject) => {
         // For images, use 'image'; for documents/audio/video or unknown, use 'auto' or 'raw'
         let resType = resourceType;
@@ -95,7 +112,7 @@ async function uploadFile(buffer, options = {}) {
           unique_filename: true,
         };
 
-        const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
+        const stream = c.uploader.upload_stream(uploadOptions, (error, result) => {
           if (error) return reject(error);
           resolve({
             url: result.secure_url,
@@ -110,7 +127,22 @@ async function uploadFile(buffer, options = {}) {
         Readable.from(buffer).pipe(stream);
       });
     } catch (cloudErr) {
-      console.warn('Cloudinary upload failed, gracefully falling back to disk:', cloudErr.message);
+      console.error('Cloudinary upload failed:', cloudErr.message || cloudErr);
+      // If running on Vercel, production, or if cloud credentials were provided:
+      // DO NOT silently fall back to ephemeral local disk, because files saved to /tmp
+      // will be lost on the next request and cannot be downloaded across devices.
+      const isCloudEnv = Boolean(
+        process.env.VERCEL ||
+        process.env.NODE_ENV === 'production' ||
+        process.env.CLOUDINARY_URL ||
+        process.env.CLOUDINARY_CLOUD_NAME
+      );
+      if (isCloudEnv) {
+        throw new Error(
+          `Cloud storage upload failed: ${cloudErr.message || 'Unable to upload file to cloud storage.'}`
+        );
+      }
+      console.warn('Falling back to local disk in local development mode.');
     }
   }
 
@@ -130,8 +162,22 @@ async function uploadFile(buffer, options = {}) {
         provider: 'vercel-blob',
       };
     } catch (blobErr) {
-      console.warn('Vercel Blob upload failed, gracefully falling back to disk:', blobErr.message);
+      console.error('Vercel Blob upload failed:', blobErr.message || blobErr);
+      const isCloudEnv = Boolean(process.env.VERCEL || process.env.NODE_ENV === 'production');
+      if (isCloudEnv) {
+        throw new Error(`Cloud storage upload failed: ${blobErr.message}`);
+      }
+      console.warn('Falling back to local disk in local development mode.');
     }
+  }
+
+  // Warn if writing locally on serverless
+  if (process.env.VERCEL) {
+    console.warn(
+      'WARNING: Writing to local disk on Vercel serverless environment. ' +
+      'Files in /tmp are ephemeral and cannot be downloaded across sessions or devices. ' +
+      'Ensure CLOUDINARY_URL is configured in Vercel project environment variables.'
+    );
   }
 
   // Local disk fallback (using getUploadPath for serverless / local compatibility)
@@ -160,15 +206,16 @@ async function deleteFile(keyOrUrl, options = {}) {
 
   try {
     if (provider === 'cloudinary' && !keyOrUrl.startsWith('/uploads/')) {
+      const c = getCloudinary();
       const publicId = keyOrUrl.startsWith('http')
-        ? extractCloudinaryPublicId(keyOrUrl)
+        ? extractCloudinaryPublicId(keyOrUrl, resourceType === 'raw')
         : keyOrUrl;
-      if (publicId) {
-        await cloudinary.uploader.destroy(publicId, { resource_type: resourceType }).catch(() => {});
+      if (publicId && c) {
+        await c.uploader.destroy(publicId, { resource_type: resourceType }).catch(() => {});
         // Also attempt with 'image' and 'raw' in case resourceType differed
         if (resourceType === 'auto') {
-          await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' }).catch(() => {});
-          await cloudinary.uploader.destroy(publicId, { resource_type: 'image' }).catch(() => {});
+          await c.uploader.destroy(publicId, { resource_type: 'raw' }).catch(() => {});
+          await c.uploader.destroy(publicId, { resource_type: 'image' }).catch(() => {});
         }
       }
       return;
@@ -194,11 +241,14 @@ async function deleteFile(keyOrUrl, options = {}) {
   }
 }
 
-function extractCloudinaryPublicId(url) {
+function extractCloudinaryPublicId(url, isRaw = false) {
   try {
     const parts = url.split('/upload/');
     if (parts.length < 2) return null;
     const afterUpload = parts[1].replace(/^v\d+\//, ''); // strip version v12345/
+    if (isRaw || url.includes('/raw/upload/')) {
+      return afterUpload;
+    }
     const lastDot = afterUpload.lastIndexOf('.');
     return lastDot > 0 ? afterUpload.slice(0, lastDot) : afterUpload;
   } catch {
@@ -232,19 +282,10 @@ async function streamDownload(keyOrUrl, res, originalFilename = 'download', loca
         res.setHeader('Content-Length', contentLength);
       }
 
-      const reader = response.body.getReader();
-      const nodeStream = new Readable({
-        async read() {
-          const { done, value } = await reader.read();
-          if (done) {
-            this.push(null);
-          } else {
-            this.push(Buffer.from(value));
-          }
-        },
-      });
-
-      return nodeStream.pipe(res);
+      if (response.body) {
+        const nodeStream = Readable.fromWeb ? Readable.fromWeb(response.body) : Readable.from(response.body);
+        return nodeStream.pipe(res);
+      }
     } catch (err) {
       console.error('Remote download stream error:', err.message);
       // Fall through to local fallback if provided
@@ -263,6 +304,13 @@ async function streamDownload(keyOrUrl, res, originalFilename = 'download', loca
       : null;
     if (resolvedPath && fsSync.existsSync(resolvedPath)) {
       return res.download(resolvedPath, originalFilename);
+    }
+
+    // If it was a local upload path that doesn't exist on disk (e.g. pre-cloud ephemeral file)
+    if (typeof keyOrUrl === 'string' && keyOrUrl.startsWith('/uploads/')) {
+      return res.status(404).json({
+        message: 'This attachment was uploaded before cloud storage was connected and is no longer available on the server. Please edit the classwork or re-upload the file.',
+      });
     }
   }
 
