@@ -1,4 +1,5 @@
 const Subject = require('../models/Subject');
+const Submission = require('../models/Submission');
 const mongoose = require('mongoose');
 const fs = require('node:fs/promises');
 const fsSync = require('node:fs');
@@ -150,7 +151,59 @@ const listMaterials = handler(async (req, res) => {
   await ownedSubject(req);
   await publishDueMaterials();
   const subject = await ownedSubject(req, true);
-  res.json(subject.materials);
+
+  const materials = subject.materials || [];
+  const materialIds = materials.map((m) => m._id);
+
+  // Fetch all submissions for these materials in this subject
+  const submissions = await Submission.find({
+    subjectId: subject._id,
+    materialId: { $in: materialIds },
+  }).select('materialId status grade').lean();
+
+  const subMap = new Map();
+  submissions.forEach((s) => {
+    const mId = String(s.materialId);
+    if (!subMap.has(mId)) {
+      subMap.set(mId, { turnedInCount: 0, gradedCount: 0 });
+    }
+    const stats = subMap.get(mId);
+    if (s.status === 'submitted' || s.status === 'graded') {
+      stats.turnedInCount += 1;
+    }
+    if (s.status === 'graded') {
+      stats.gradedCount += 1;
+    }
+  });
+
+  const enrolledCount = (subject.enrolledStudents || []).length;
+  const materialsWithStats = materials.map((mat) => {
+    const obj = mat.toObject ? mat.toObject() : { ...mat };
+    const stats = subMap.get(String(mat._id)) || { turnedInCount: 0, gradedCount: 0 };
+    const assignedCount = mat.recipientStudents && mat.recipientStudents.length > 0
+      ? mat.recipientStudents.length
+      : enrolledCount;
+
+    const turnedIn = stats.turnedInCount;
+    const graded = stats.gradedCount;
+    const pendingGrading = Math.max(0, turnedIn - graded);
+    const isAllGraded = turnedIn > 0 && pendingGrading === 0;
+    const isPartiallyGraded = graded > 0 && pendingGrading > 0;
+    const needsGrading = pendingGrading > 0;
+
+    obj.submissionStats = {
+      totalAssigned: assignedCount,
+      turnedIn,
+      graded,
+      pendingGrading,
+      isAllGraded,
+      isPartiallyGraded,
+      needsGrading,
+    };
+    return obj;
+  });
+
+  res.json(materialsWithStats);
 });
 
 const saveMaterial = handler(async (req, res) => {

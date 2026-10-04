@@ -201,6 +201,7 @@ export default function TeacherClasswork({ subject, teacherName }) {
       setGradeNotice('Grade and feedback saved successfully.');
       const res = await api.get(`/subjects/${subject._id}/materials/${activeMaterialSubmissions.material._id}/submissions`);
       setActiveMaterialSubmissions(res.data);
+      await refresh();
     } catch (err) {
       setSubmissionsError(err.response?.data?.message || 'Unable to save grade.');
     } finally {
@@ -225,62 +226,125 @@ export default function TeacherClasswork({ subject, teacherName }) {
   const posted = materials.filter((item) => !item.status || item.status === 'posted');
   const saved = materials.filter((item) => ['draft', 'scheduled', 'archived'].includes(item.status));
 
-  const card = (item) => (
-    <article className="classwork-card" key={item._id}>
-      <div className="classwork-card-header">
-        <div className="classwork-author"><span>{teacherName?.charAt(0).toUpperCase() || 'T'}</span><strong>{teacherName || 'Teacher'}</strong></div>
-        {item.recipientStudents && item.recipientStudents.length > 0 ? (
-          <span className="recipient-badge specific" title="Assigned to specific students">
-            <Users size={12} />
-            {item.recipientStudents.length === 1
-              ? (item.recipientStudents[0]?.name || '1 Student')
-              : `${item.recipientStudents.length} Students`}
-          </span>
-        ) : (
-          <span className="recipient-badge" title="Visible to all enrolled students">
-            <Users size={12} />
-            All Students
-          </span>
-        )}
-        {item.status && item.status !== 'posted' && <span className="classwork-status">{item.status}</span>}
-        <details className="classwork-item-menu">
-          <summary aria-label={`Actions for ${item.title}`}><MoreVertical size={20} /></summary>
-          <div>
-            {item.status !== 'archived' && <button type="button" disabled={busy} onClick={(event) => { event.currentTarget.closest('details').open = false; openEditor(item.type, item); }}>Edit</button>}
-            <button type="button" disabled={busy} onClick={(event) => { event.currentTarget.closest('details').open = false; changeStatus(item, item.status === 'archived' ? 'restore' : 'archive'); }}>{item.status === 'archived' ? 'Restore to drafts' : 'Archive'}</button>
-            <button type="button" disabled={busy} onClick={(event) => { event.currentTarget.closest('details').open = false; setDeleteTarget(item); deleteRef.current.showModal(); }}>Delete</button>
-          </div>
-        </details>
-      </div>
-      <div className="classwork-card-title"><h3>{labelFor(item.type)}: <span>{item.title}</span></h3><span>{item.points == null ? 'Ungraded' : `${item.points} Points`}</span></div>
-      <p className="classwork-meta">Due: {formattedDate(item.dueAt)}</p>
-      {item.status === 'scheduled' && <p className="classwork-meta">Posts: {formattedDate(item.scheduledAt)}</p>}
-      {item.instructions && <p className="classwork-instructions">{item.instructions}</p>}
-      <div className="classwork-attachments">
-        {(item.attachmentKey || item.fileUrl) && (
-          <button type="button" onClick={() => download(item)}>
-            <FileText size={18} />
-            <span>{item.attachmentName || 'Attachment'}</span>
-            <small>{Math.max(1, Math.round((item.attachmentSize || 0) / 1024))} KB</small>
-          </button>
-        )}
-        {item.link && /^https?:\/\//.test(item.link) && <a href={item.link} target="_blank" rel="noreferrer"><LinkIcon size={18} />Open attached link</a>}
-      </div>
+  const card = (item) => {
+    const stats = item.submissionStats || {
+      totalAssigned: item.recipientStudents?.length || 0,
+      turnedIn: 0,
+      graded: 0,
+      pendingGrading: 0,
+      isAllGraded: false,
+      isPartiallyGraded: false,
+      needsGrading: false,
+    };
 
-      {(!item.status || item.status === 'posted') && (
-        <div className="classwork-card-submissions-row">
-          <button
-            type="button"
-            className="classwork-submissions-btn"
-            onClick={() => openSubmissionsModal(item)}
-          >
-            <Users size={16} />
-            <span>View Submissions &amp; Grade</span>
-          </button>
+    return (
+      <article className="classwork-card" key={item._id}>
+        <div className="classwork-card-header">
+          <div className="classwork-author"><span>{teacherName?.charAt(0).toUpperCase() || 'T'}</span><strong>{teacherName || 'Teacher'}</strong></div>
+          {item.recipientStudents && item.recipientStudents.length > 0 ? (
+            <span className="recipient-badge specific" title="Assigned to specific students">
+              <Users size={12} />
+              {item.recipientStudents.length === 1
+                ? (item.recipientStudents[0]?.name || '1 Student')
+                : `${item.recipientStudents.length} Students`}
+            </span>
+          ) : (
+            <span className="recipient-badge" title="Visible to all enrolled students">
+              <Users size={12} />
+              All Students
+            </span>
+          )}
+
+          {(!item.status || item.status === 'posted') && (
+            <>
+              {stats.isAllGraded && (
+                <span className="classwork-grading-badge badge-all-graded" title="All turned-in submissions are graded">
+                  <CheckCircle2 size={12} />
+                  <span>Graded ({stats.graded}/{stats.turnedIn})</span>
+                </span>
+              )}
+              {stats.isPartiallyGraded && (
+                <span className="classwork-grading-badge badge-partially-graded" title="Partially graded submissions">
+                  <Clock size={12} />
+                  <span>Graded ({stats.graded}/{stats.turnedIn})</span>
+                </span>
+              )}
+              {stats.needsGrading && stats.graded === 0 && (
+                <span className="classwork-grading-badge badge-needs-grading" title="New submissions waiting to be graded">
+                  <AlertCircle size={12} />
+                  <span>{stats.turnedIn} to Grade</span>
+                </span>
+              )}
+            </>
+          )}
+
+          {item.status && item.status !== 'posted' && <span className="classwork-status">{item.status}</span>}
+          <details className="classwork-item-menu">
+            <summary aria-label={`Actions for ${item.title}`}><MoreVertical size={20} /></summary>
+            <div>
+              {item.status !== 'archived' && <button type="button" disabled={busy} onClick={(event) => { event.currentTarget.closest('details').open = false; openEditor(item.type, item); }}>Edit</button>}
+              <button type="button" disabled={busy} onClick={(event) => { event.currentTarget.closest('details').open = false; changeStatus(item, item.status === 'archived' ? 'restore' : 'archive'); }}>{item.status === 'archived' ? 'Restore to drafts' : 'Archive'}</button>
+              <button type="button" disabled={busy} onClick={(event) => { event.currentTarget.closest('details').open = false; setDeleteTarget(item); deleteRef.current.showModal(); }}>Delete</button>
+            </div>
+          </details>
         </div>
-      )}
-    </article>
-  );
+        <div className="classwork-card-title"><h3>{labelFor(item.type)}: <span>{item.title}</span></h3><span>{item.points == null ? 'Ungraded' : `${item.points} Points`}</span></div>
+        <p className="classwork-meta">Due: {formattedDate(item.dueAt)}</p>
+        {item.status === 'scheduled' && <p className="classwork-meta">Posts: {formattedDate(item.scheduledAt)}</p>}
+        {item.instructions && <p className="classwork-instructions">{item.instructions}</p>}
+        <div className="classwork-attachments">
+          {(item.attachmentKey || item.fileUrl) && (
+            <button type="button" onClick={() => download(item)}>
+              <FileText size={18} />
+              <span>{item.attachmentName || 'Attachment'}</span>
+              <small>{Math.max(1, Math.round((item.attachmentSize || 0) / 1024))} KB</small>
+            </button>
+          )}
+          {item.link && /^https?:\/\//.test(item.link) && <a href={item.link} target="_blank" rel="noreferrer"><LinkIcon size={18} />Open attached link</a>}
+        </div>
+
+        {(!item.status || item.status === 'posted') && (
+          <div className="classwork-card-submissions-row">
+            <div className="classwork-grading-status-container">
+              {stats.isAllGraded ? (
+                <div className="classwork-grading-pill pill-all-graded">
+                  <CheckCircle2 size={15} />
+                  <span className="pill-title">Graded</span>
+                  <span className="pill-detail">· All {stats.turnedIn} {stats.turnedIn === 1 ? 'submission' : 'submissions'} graded</span>
+                </div>
+              ) : stats.isPartiallyGraded ? (
+                <div className="classwork-grading-pill pill-partially-graded">
+                  <Clock size={15} />
+                  <span className="pill-title">Partially Graded</span>
+                  <span className="pill-detail">· {stats.graded}/{stats.turnedIn} graded ({stats.pendingGrading} pending)</span>
+                </div>
+              ) : stats.needsGrading ? (
+                <div className="classwork-grading-pill pill-needs-grading">
+                  <AlertCircle size={15} />
+                  <span className="pill-title">Needs Grading</span>
+                  <span className="pill-detail">· {stats.turnedIn} turned in</span>
+                </div>
+              ) : (
+                <div className="classwork-grading-pill pill-no-submissions">
+                  <Users size={14} />
+                  <span className="pill-detail">0 turned in · {stats.totalAssigned} assigned</span>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className={`classwork-submissions-btn ${stats.isAllGraded ? 'is-graded' : ''}`}
+              onClick={() => openSubmissionsModal(item)}
+            >
+              {stats.isAllGraded ? <CheckCircle2 size={16} /> : <Users size={16} />}
+              <span>{stats.isAllGraded ? 'View Grades & Submissions' : 'View Submissions & Grade'}</span>
+            </button>
+          </div>
+        )}
+      </article>
+    );
+  };
 
   return <section className="teacher-classwork" aria-label="Materials">
     <div className="classwork-toolbar"><h2>Materials</h2><details className="classwork-create" ref={createRef}>

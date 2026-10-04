@@ -70,8 +70,8 @@ export default function AccountSettings() {
   const choosePhoto = (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const error = file.size > 2 * 1024 * 1024
-      ? 'Choose an image of 2 MB or smaller.'
+    const error = file.size > 5 * 1024 * 1024
+      ? 'Choose an image of 5 MB or smaller.'
       : !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
       ? 'Choose a JPG, PNG, or WebP image.'
       : '';
@@ -246,7 +246,7 @@ export default function AccountSettings() {
                       aria-describedby="profile-picture-help"
                     />
                   </label>
-                  <p id="profile-picture-help">JPG, PNG, or WebP · Up to 2 MB</p>
+                  <p id="profile-picture-help">JPG, PNG, or WebP · Up to 5 MB</p>
                   <FieldError errors={errors} name="profilePicture" />
                   {(photo || user.profilePicture || errors.profilePicture) && (
                     <button

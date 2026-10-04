@@ -60,24 +60,39 @@ const updateAccount = async (req, res) => {
     }
     if (req.file) {
       const buffer = req.file.buffer;
+      const mime = (req.file.mimetype || '').toLowerCase();
       let extension;
-      if (req.file.mimetype === 'image/png' && buffer.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) extension = 'png';
-      if (req.file.mimetype === 'image/jpeg' && buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255) extension = 'jpg';
-      if (req.file.mimetype === 'image/webp' && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') extension = 'webp';
-      if (!extension) return res.status(400).json({ message: 'Choose a JPG, PNG, or WebP image.', errors: { profilePicture: 'Choose a valid JPG, PNG, or WebP image.' } });
-      if (cloudStorage.isCloudConfigured()) {
-        const uploadResult = await cloudStorage.uploadFile(buffer, {
-          folder: 'avatars',
-          filename: `avatar.${extension}`,
-          mimetype: req.file.mimetype,
-          resourceType: 'image',
-        });
-        uploaded = uploadResult.url;
-      } else {
-        await fs.mkdir(directory, { recursive: true });
-        uploaded = `/uploads/avatars/${randomUUID()}.${extension}`;
-        await fs.writeFile(path.join(directory, path.basename(uploaded)), buffer);
+      if (
+        mime === 'image/png' ||
+        (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])))
+      ) {
+        extension = 'png';
+      } else if (
+        mime === 'image/jpeg' || mime === 'image/jpg' || mime === 'image/pjpeg' ||
+        (buffer.length >= 3 && buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255)
+      ) {
+        extension = 'jpg';
+      } else if (
+        mime === 'image/webp' ||
+        (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP')
+      ) {
+        extension = 'webp';
       }
+
+      if (!extension) {
+        return res.status(400).json({
+          message: 'Choose a JPG, PNG, or WebP image.',
+          errors: { profilePicture: 'Choose a valid JPG, PNG, or WebP image.' },
+        });
+      }
+
+      const uploadResult = await cloudStorage.uploadFile(buffer, {
+        folder: 'avatars',
+        filename: `avatar_${user._id}.${extension}`,
+        mimetype: req.file.mimetype,
+        resourceType: 'image',
+      });
+      uploaded = uploadResult.url;
       changes.profilePicture = uploaded;
     } else if (req.body.removePicture === 'true') changes.profilePicture = '';
     const updated = await User.findOneAndUpdate({ _id: user._id, password: user.password }, { $set: changes }, { returnDocument: 'after', runValidators: true });
