@@ -1,5 +1,7 @@
+const mongoose = require("mongoose");
 const Subject =
   require("../models/Subject");
+const { uploadFile, deleteFile } = require("../services/cloudStorage");
 
 
 // ============================================
@@ -14,9 +16,13 @@ const getTeacherSubjects =
         await Subject.find({
           teacherId:
             req.user._id,
-        }).sort({
-          createdAt: -1,
-        });
+        })
+          .populate("enrolledStudents", "name email profilePicture")
+          .populate("announcements.recipientStudents", "name email profilePicture")
+          .populate("materials.recipientStudents", "name email profilePicture")
+          .sort({
+            createdAt: -1,
+          });
 
       res
         .status(200)
@@ -49,7 +55,10 @@ const getSubject =
 
           teacherId:
             req.user._id,
-        });
+        })
+          .populate("enrolledStudents", "name email profilePicture")
+          .populate("announcements.recipientStudents", "name email profilePicture")
+          .populate("materials.recipientStudents", "name email profilePicture");
 
       if (!subject) {
         return res
@@ -407,16 +416,46 @@ const createAnnouncement =
 
 
       if (req.file) {
-        attachment =
-          `/uploads/announcements/${req.file.filename}`;
-
-        attachmentName =
-          req.file.originalname;
-
-        attachmentType =
-          req.file.mimetype;
+        const uploadResult = await uploadFile(req.file.buffer, {
+          folder: 'announcements',
+          filename: req.file.originalname,
+          mimetype: req.file.mimetype,
+          resourceType: 'auto',
+        });
+        attachment = uploadResult.url;
+        attachmentName = req.file.originalname;
+        attachmentType = req.file.mimetype;
       }
 
+
+      // =====================================
+      // RECIPIENT STUDENTS
+      // =====================================
+
+      let recipientStudents = [];
+      if (req.body.recipientStudents) {
+        try {
+          const raw = typeof req.body.recipientStudents === "string"
+            ? JSON.parse(req.body.recipientStudents)
+            : req.body.recipientStudents;
+          const list = Array.isArray(raw) ? raw : [raw];
+          recipientStudents = list
+            .map((id) => String(id?._id || id).trim())
+            .filter((id) => id && id !== "all" && mongoose.isValidObjectId(id));
+        } catch {
+          recipientStudents = String(req.body.recipientStudents)
+            .split(",")
+            .map((id) => id.trim())
+            .filter((id) => id && id !== "all" && mongoose.isValidObjectId(id));
+        }
+      }
+
+      if (recipientStudents.length > 0 && subject.enrolledStudents) {
+        const enrolledSet = new Set(
+          (subject.enrolledStudents || []).map((s) => (s._id ? s._id.toString() : s.toString()))
+        );
+        recipientStudents = recipientStudents.filter((id) => enrolledSet.has(id));
+      }
 
       // =====================================
       // SAVE
@@ -434,6 +473,8 @@ const createAnnouncement =
         attachmentType,
 
         link: cleanLink,
+
+        recipientStudents,
 
         status,
 
@@ -524,6 +565,8 @@ const deleteAnnouncement =
       }
 
 
+      const attachmentToDelete = announcement.attachment;
+
       subject.announcements.pull(
         req.params
           .announcementId
@@ -531,6 +574,10 @@ const deleteAnnouncement =
 
 
       await subject.save();
+
+      if (attachmentToDelete) {
+        await deleteFile(attachmentToDelete, { folder: 'announcements', resourceType: 'auto' });
+      }
 
 
       res.status(200).json({

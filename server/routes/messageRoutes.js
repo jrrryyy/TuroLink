@@ -16,17 +16,12 @@ const Notification = require('../models/Notification');
 
 const { getUploadPath } = require('../config/storage');
 
+const { uploadFile, streamDownload } = require('../services/cloudStorage');
+
 // Ensure upload directory exists
 const uploadDir = getUploadPath('messages');
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const safeName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, safeName);
-  },
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -248,10 +243,16 @@ router.post('/conversations/:id', uploadMiddleware, async (req, res) => {
     let attachment = null;
 
     if (req.file) {
+      const uploadResult = await uploadFile(req.file.buffer, {
+        folder: 'messages',
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        resourceType: 'auto',
+      });
       attachment = {
-        url: `/uploads/messages/${req.file.filename}`,
+        url: uploadResult.url,
         originalName: req.file.originalname,
-        size: req.file.size,
+        size: uploadResult.size || req.file.size,
         mimeType: req.file.mimetype,
       };
     }
@@ -580,14 +581,15 @@ router.get('/users/:id', async (req, res) => {
 router.get('/download/:filename', async (req, res) => {
   try {
     const filename = path.basename(req.params.filename);
-    const filePath = path.join(uploadDir, filename);
-
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: 'Attachment file not found.' });
-    }
-
     const downloadName = req.query.name || filename;
-    res.download(filePath, downloadName);
+    const localFilePath = path.join(uploadDir, filename);
+
+    const msg = await Message.findOne({
+      'attachment.url': { $regex: filename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') },
+    }).lean();
+
+    const targetUrl = msg?.attachment?.url || localFilePath;
+    return streamDownload(targetUrl, res, downloadName, localFilePath);
   } catch (err) {
     res.status(500).json({ message: 'Unable to download attachment.' });
   }

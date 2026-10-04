@@ -5,6 +5,7 @@ const { randomUUID } = require('node:crypto');
 const Subject = require('../models/Subject');
 const Submission = require('../models/Submission');
 const Notification = require('../models/Notification');
+const { uploadFile, deleteFile, streamDownload, isCloudConfigured } = require('../services/cloudStorage');
 
 const storageDirectory = path.resolve(__dirname, '../storage/submissions');
 
@@ -43,7 +44,12 @@ const handler = (fn) => async (req, res) => {
 };
 
 async function removeFile(key) {
-  if (!key || path.basename(key) !== key) return;
+  if (!key) return;
+  if (/^https?:\/\//i.test(key)) {
+    await deleteFile(key, { folder: 'submissions', resourceType: 'auto' });
+    return;
+  }
+  if (path.basename(key) !== key) return;
   await fs.unlink(path.join(storageDirectory, key)).catch((err) => {
     if (err.code !== 'ENOENT') console.error('Error deleting submission file:', err.code);
   });
@@ -60,6 +66,10 @@ const submitWork = handler(async (req, res) => {
 
   const material = subject.materials.id(req.params.materialId);
   if (!material || material.status !== 'posted') throw fail('Material not found or not yet posted.', 404);
+  if (material.recipientStudents && material.recipientStudents.length > 0) {
+    const isRecipient = material.recipientStudents.some((id) => String(id._id || id) === String(req.user._id));
+    if (!isRecipient) throw fail('You are not assigned to this material.', 403);
+  }
 
   const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
   if (!req.file && !text) {
@@ -72,9 +82,19 @@ const submitWork = handler(async (req, res) => {
       if (!allowedTypes.has(req.file.mimetype) && !req.file.originalname.match(/\.(pdf|docx?|pptx?|xlsx?|txt|jpg|jpeg|png|webp|zip|rar|7z)$/i)) {
         throw fail('Unsupported file format. Please attach a document, presentation, sheet, image, or zip archive.');
       }
-      await fs.mkdir(storageDirectory, { recursive: true });
-      newKey = randomUUID();
-      await fs.writeFile(path.join(storageDirectory, newKey), req.file.buffer);
+      if (isCloudConfigured()) {
+        const uploadResult = await uploadFile(req.file.buffer, {
+          folder: 'submissions',
+          filename: req.file.originalname,
+          mimetype: req.file.mimetype,
+          resourceType: 'auto',
+        });
+        newKey = uploadResult.url;
+      } else {
+        await fs.mkdir(storageDirectory, { recursive: true });
+        newKey = randomUUID();
+        await fs.writeFile(path.join(storageDirectory, newKey), req.file.buffer);
+      }
     }
 
     const now = new Date();
@@ -171,6 +191,9 @@ const downloadStudentAttachment = handler(async (req, res) => {
   });
 
   if (!submission || !submission.attachmentKey) throw fail('Attachment not found.', 404);
+  if (/^https?:\/\//i.test(submission.attachmentKey)) {
+    return streamDownload(submission.attachmentKey, res, submission.attachmentName || 'Submission');
+  }
   const file = path.join(storageDirectory, submission.attachmentKey);
   try {
     await fs.access(file);
@@ -209,7 +232,13 @@ const listMaterialSubmissions = handler(async (req, res) => {
   const now = new Date();
   const isPastDue = Boolean(material.dueAt && now > new Date(material.dueAt));
 
-  const items = subject.enrolledStudents.map((student) => {
+  const targetStudents = (material.recipientStudents && material.recipientStudents.length > 0)
+    ? subject.enrolledStudents.filter((student) =>
+        material.recipientStudents.some((id) => String(id._id || id) === String(student._id))
+      )
+    : subject.enrolledStudents;
+
+  const items = targetStudents.map((student) => {
     const s = submissionMap.get(String(student._id));
     if (s) {
       return {
@@ -253,7 +282,7 @@ const listMaterialSubmissions = handler(async (req, res) => {
   });
 
   const counts = {
-    total: subject.enrolledStudents.length,
+    total: targetStudents.length,
     turnedIn: items.filter((i) => i.status === 'submitted' || i.status === 'graded').length,
     graded: items.filter((i) => i.status === 'graded').length,
     assigned: items.filter((i) => i.status === 'assigned').length,
@@ -349,6 +378,9 @@ const downloadTeacherAttachment = handler(async (req, res) => {
   });
 
   if (!submission || !submission.attachmentKey) throw fail('Attachment not found.', 404);
+  if (/^https?:\/\//i.test(submission.attachmentKey)) {
+    return streamDownload(submission.attachmentKey, res, submission.attachmentName || 'Student_Submission');
+  }
   const file = path.join(storageDirectory, submission.attachmentKey);
   try {
     await fs.access(file);

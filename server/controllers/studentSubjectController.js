@@ -3,6 +3,7 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const Subject = require('../models/Subject');
 const { publishDueMaterials } = require('./materialController');
+const { streamDownload } = require('../services/cloudStorage');
 const fail = (message, status = 400) => Object.assign(new Error(message), { status });
 const handler = (fn) => async (req, res) => {
   try { await fn(req, res); }
@@ -11,15 +12,21 @@ const handler = (fn) => async (req, res) => {
 const visible = (item) => item.status === 'posted' || (item.status === 'scheduled' && item.scheduledAt && new Date(item.scheduledAt) <= new Date());
 const announcementFilter = (id) => ({ _id: id, $or: [{ status: 'posted' }, { status: 'scheduled', scheduledAt: { $lte: new Date() } }] });
 const safeLink = (value) => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } };
-function summary(subject) {
-  const upcoming = (subject.materials || []).filter((m) => visible(m) && m.dueAt && new Date(m.dueAt) >= new Date()).sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))[0];
+const studentRecipientAccess = (item, studentId) => {
+  if (!item.recipientStudents || item.recipientStudents.length === 0) return true;
+  return item.recipientStudents.some((id) => String(id._id || id) === String(studentId));
+};
+function summary(subject, studentId) {
+  const upcoming = (subject.materials || [])
+    .filter((m) => visible(m) && (!studentId || studentRecipientAccess(m, studentId)) && m.dueAt && new Date(m.dueAt) >= new Date())
+    .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))[0];
   return { _id: subject._id, code: subject.code, title: subject.title, description: subject.description,
     instructorName: subject.teacherId?.name || 'Teacher', instructorAvatar: subject.teacherId?.profilePicture || '',
     upcomingTopic: upcoming?.title || '', enrolledCount: subject.enrolledStudents.length, rating: subject.rating || 0 };
 }
 const list = handler(async (req, res) => {
   const subjects = await Subject.find({ enrolledStudents: req.user._id }).populate('teacherId', 'name profilePicture').sort({ createdAt: -1 }).lean();
-  res.json(subjects.map(summary));
+  res.json(subjects.map((s) => summary(s, req.user._id)));
 });
 async function accessible(req, allowTeacher = false) {
   if (!mongoose.isObjectIdOrHexString(req.params.id)) throw fail('Subject not found.', 404);
@@ -32,40 +39,49 @@ const detail = handler(async (req, res) => {
   await accessible(req);
   await publishDueMaterials();
   const subject = await accessible(req);
-  const announcements = subject.announcements.filter(visible).map((a) => ({
-    _id: a._id, content: a.content, link: safeLink(a.link), postedAt: a.postedAt || a.scheduledAt || a.createdAt,
-    attachmentName: a.attachment ? a.attachmentName || 'Attachment' : '',
-    likes: a.likes.length, liked: a.likes.some((id) => id.equals(req.user._id)),
-    comments: a.comments.map((c) => ({ _id: c._id, text: c.text, createdAt: c.createdAt, name: c.author?.name || 'Former student', own: String(c.author?._id) === String(req.user._id) })),
-  })).sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
+  const announcements = subject.announcements
+    .filter(visible)
+    .filter((a) => studentRecipientAccess(a, req.user._id))
+    .map((a) => ({
+      _id: a._id, content: a.content, link: safeLink(a.link), postedAt: a.postedAt || a.scheduledAt || a.createdAt,
+      attachmentName: a.attachment ? a.attachmentName || 'Attachment' : '',
+      likes: a.likes.length, liked: a.likes.some((id) => id.equals(req.user._id)),
+      comments: a.comments.map((c) => ({ _id: c._id, text: c.text, createdAt: c.createdAt, name: c.author?.name || 'Former student', own: String(c.author?._id) === String(req.user._id) })),
+    })).sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
   const userSubmissions = await require('../models/Submission').find({ subjectId: subject._id, studentId: req.user._id });
   const subMap = new Map();
   userSubmissions.forEach((s) => subMap.set(String(s.materialId), s));
 
-  const materials = subject.materials.filter((m) => m.status === 'posted').map((m) => {
-    const sub = subMap.get(String(m._id));
-    return {
-      _id: m._id, title: m.title, type: m.type, instructions: m.instructions, points: m.points,
-      dueAt: m.dueAt, postedAt: m.postedAt, link: safeLink(m.link), attachmentName: m.attachmentKey ? m.attachmentName || 'Attachment' : '',
-      submission: sub ? {
-        _id: sub._id,
-        status: sub.status,
-        submittedAt: sub.submittedAt,
-        isLate: sub.isLate,
-        attachmentName: sub.attachmentName,
-        attachmentSize: sub.attachmentSize,
-        text: sub.text,
-        grade: sub.grade,
-        feedback: sub.feedback,
-        gradedAt: sub.gradedAt,
-      } : null,
-    };
-  }).sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
-  res.json({ ...summary(subject), announcements, materials });
+  const materials = subject.materials
+    .filter((m) => m.status === 'posted')
+    .filter((m) => studentRecipientAccess(m, req.user._id))
+    .map((m) => {
+      const sub = subMap.get(String(m._id));
+      return {
+        _id: m._id, title: m.title, type: m.type, instructions: m.instructions, points: m.points,
+        dueAt: m.dueAt, postedAt: m.postedAt, link: safeLink(m.link), attachmentName: m.attachmentKey ? m.attachmentName || 'Attachment' : '',
+        submission: sub ? {
+          _id: sub._id,
+          status: sub.status,
+          submittedAt: sub.submittedAt,
+          isLate: sub.isLate,
+          attachmentName: sub.attachmentName,
+          attachmentSize: sub.attachmentSize,
+          text: sub.text,
+          grade: sub.grade,
+          feedback: sub.feedback,
+          gradedAt: sub.gradedAt,
+        } : null,
+      };
+    }).sort((a, b) => new Date(b.postedAt) - new Date(a.postedAt));
+  res.json({ ...summary(subject, req.user._id), announcements, materials });
 });
 const interactionAccess = (req) => req.user.role === 'teacher' ? { teacherId: req.user._id } : { enrolledStudents: req.user._id };
 const like = handler(async (req, res) => {
   if (!mongoose.isObjectIdOrHexString(req.params.id) || !mongoose.isObjectIdOrHexString(req.params.announcementId) || typeof req.body.liked !== 'boolean') throw fail('Invalid like request.');
+  const subject = await accessible(req, true);
+  const post = subject.announcements.id(req.params.announcementId);
+  if (!post || !visible(post) || (req.user.role === 'student' && !studentRecipientAccess(post, req.user._id))) throw fail('Announcement not available.', 404);
   const action = req.body.liked ? '$addToSet' : '$pull';
   const result = await Subject.updateOne({ _id: req.params.id, ...interactionAccess(req), announcements: { $elemMatch: announcementFilter(req.params.announcementId) } }, { [action]: { 'announcements.$[post].likes': req.user._id } }, { arrayFilters: [{ 'post._id': new mongoose.Types.ObjectId(req.params.announcementId) }] });
   if (!result.matchedCount) throw fail('Announcement not available.', 404);
@@ -75,6 +91,9 @@ const comment = handler(async (req, res) => {
   const text = typeof req.body.text === 'string' ? req.body.text.trim() : '';
   if (!text || text.length > 2000) throw fail('Enter a comment of 1–2,000 characters.');
   if (!mongoose.isObjectIdOrHexString(req.params.id) || !mongoose.isObjectIdOrHexString(req.params.announcementId)) throw fail('Invalid announcement.');
+  const checkSub = await accessible(req, true);
+  const targetPost = checkSub.announcements.id(req.params.announcementId);
+  if (!targetPost || !visible(targetPost) || (req.user.role === 'student' && !studentRecipientAccess(targetPost, req.user._id))) throw fail('Announcement not available.', 404);
   await mongoose.connection.transaction(async session => {
     const commentId = new mongoose.Types.ObjectId();
     const subject = await Subject.findOneAndUpdate({ _id: req.params.id, ...interactionAccess(req), announcements: { $elemMatch: announcementFilter(req.params.announcementId) } }, { $push: { 'announcements.$[post].comments': { _id: commentId, author: req.user._id, text } } }, { arrayFilters: [{ 'post._id': new mongoose.Types.ObjectId(req.params.announcementId) }], returnDocument: 'after', session });
@@ -86,17 +105,23 @@ const comment = handler(async (req, res) => {
         url: `/teacher/my-subjects?subject=${subject._id}&post=${req.params.announcementId}`,
       }], { session });
     } else if (req.user.role === 'teacher') {
-      const studentRecipients = (subject.enrolledStudents || []).filter(sId => sId.toString() !== req.user._id.toString());
+      const targets = (targetPost.recipientStudents && targetPost.recipientStudents.length > 0)
+        ? targetPost.recipientStudents
+        : (subject.enrolledStudents || []);
+      const studentRecipients = targets.filter(sId => String(sId._id || sId) !== req.user._id.toString());
       if (studentRecipients.length > 0) {
-        const notifs = studentRecipients.map(sId => ({
-          recipient: sId,
-          eventKey: `comment:${commentId}:${sId}`,
-          sourceId: req.params.announcementId,
-          kind: 'comment',
-          title: `Teacher comment · ${subject.code}`,
-          message: `${req.user.name}: ${text.slice(0, 200)}`,
-          url: `/student/my-subjects/${subject._id}?tab=stream&post=${req.params.announcementId}`,
-        }));
+        const notifs = studentRecipients.map(sId => {
+          const recId = sId._id || sId;
+          return {
+            recipient: recId,
+            eventKey: `comment:${commentId}:${recId}`,
+            sourceId: req.params.announcementId,
+            kind: 'comment',
+            title: `Teacher comment · ${subject.code}`,
+            message: `${req.user.name}: ${text.slice(0, 200)}`,
+            url: `/student/my-subjects/${subject._id}?tab=stream&post=${req.params.announcementId}`,
+          };
+        });
         await require('../models/Notification').insertMany(notifs, { session });
       }
     }
@@ -110,6 +135,15 @@ const attachment = handler(async (req, res) => {
   if (!mongoose.isObjectIdOrHexString(itemId)) throw fail('Attachment not found.', 404);
   const item = (isMaterial ? subject.materials : subject.announcements).id(itemId);
   if (!item || (req.user.role !== 'teacher' && !visible(item))) throw fail('Attachment not found.', 404);
+  if (req.user.role === 'student' && !studentRecipientAccess(item, req.user._id)) throw fail('Attachment not found.', 404);
+
+  const fileKeyOrUrl = isMaterial ? (item.fileUrl || item.attachmentKey) : item.attachment;
+  if (!fileKeyOrUrl) throw fail('Attachment not found.', 404);
+
+  if (/^https?:\/\//i.test(fileKeyOrUrl)) {
+    return streamDownload(fileKeyOrUrl, res, item.attachmentName || 'Attachment');
+  }
+
   const key = isMaterial ? item.attachmentKey : (item.attachment || '').replace('/uploads/announcements/', '');
   if (!key || path.basename(key) !== key) throw fail('Attachment not found.', 404);
   const file = path.resolve(__dirname, isMaterial ? '../storage/materials' : '../uploads/announcements', key);
@@ -121,6 +155,7 @@ const engagement = handler(async (req, res) => {
   if (!mongoose.isObjectIdOrHexString(req.params.announcementId)) throw fail('Announcement not found.', 404);
   const post = subject.announcements.id(req.params.announcementId);
   if (!post || !visible(post)) throw fail('Announcement not available.', 404);
+  if (req.user.role === 'student' && !studentRecipientAccess(post, req.user._id)) throw fail('Announcement not available.', 404);
   res.json({ likes: post.likes.length, liked: post.likes.some((id) => id.equals(req.user._id)), comments: post.comments.map((c) => ({ _id: c._id, text: c.text, createdAt: c.createdAt, name: c.author?.name || 'Former user' })) });
 });
 module.exports = { list, detail, like, comment, attachment, engagement };

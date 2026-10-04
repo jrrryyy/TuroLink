@@ -9,6 +9,7 @@ const announcementSchema =
   new mongoose.Schema(
     {
       likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+      recipientStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
       notificationPending: { type: Boolean, default: false },
       notificationRecipients: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
       comments: [{
@@ -79,6 +80,7 @@ const announcementSchema =
 const materialSchema = new mongoose.Schema({
   notificationPending: { type: Boolean, default: false },
   notificationRecipients: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  recipientStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   title: { type: String, required: true, trim: true },
   type: { type: String, enum: ['assignment', 'quiz'], default: 'assignment' },
   instructions: { type: String, default: '' },
@@ -167,7 +169,11 @@ subjectSchema.pre('save', function () {
   for (const item of [...this.announcements, ...this.materials]) {
     if (item.status === 'posted' && (item.isNew || item.isModified('status'))) {
       item.notificationPending = true;
-      item.notificationRecipients = [...this.enrolledStudents];
+      if (item.recipientStudents && item.recipientStudents.length > 0) {
+        item.notificationRecipients = [...item.recipientStudents];
+      } else {
+        item.notificationRecipients = [...this.enrolledStudents];
+      }
     }
   }
 });

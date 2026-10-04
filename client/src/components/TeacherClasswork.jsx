@@ -20,9 +20,10 @@ import {
 import api from '../services/api';
 import { profilePictureUrl } from '../services/profile';
 import { downloadFile } from '../services/download';
+import StudentRecipientPicker from './StudentRecipientPicker';
 import '../styles/teacher-classwork.css';
 
-const emptyForm = (type = 'assignment') => ({ type, title: '', instructions: '', points: '100', dueAt: '', scheduledAt: '', link: '' });
+const emptyForm = (type = 'assignment') => ({ type, title: '', instructions: '', points: '100', dueAt: '', scheduledAt: '', link: '', recipientStudents: [] });
 const labelFor = (type) => type === 'quiz' ? 'Quiz Assignment' : 'Assignment';
 const localDate = (value) => {
   if (!value) return '';
@@ -79,7 +80,16 @@ export default function TeacherClasswork({ subject, teacherName }) {
   const openEditor = (type, item = null) => {
     setFieldErrors({});
     setEditing(item || { _id: null });
-    setForm(item ? { type: item.type || 'assignment', title: item.title, instructions: item.instructions || '', points: item.points == null ? '' : String(item.points), dueAt: localDate(item.dueAt), scheduledAt: localDate(item.scheduledAt), link: item.link || '' } : emptyForm(type));
+    setForm(item ? {
+      type: item.type || 'assignment',
+      title: item.title,
+      instructions: item.instructions || '',
+      points: item.points == null ? '' : String(item.points),
+      dueAt: localDate(item.dueAt),
+      scheduledAt: localDate(item.scheduledAt),
+      link: item.link || '',
+      recipientStudents: (item.recipientStudents || []).map((s) => String(s._id || s)),
+    } : emptyForm(type));
     setFile(null); setRemoveAttachment(false); setShowLink(Boolean(item?.link)); setError(''); setSuccess('');
     if (createRef.current) createRef.current.open = false;
     requestAnimationFrame(() => { editorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); editorRef.current?.querySelector('input[name="title"]')?.focus(); });
@@ -97,7 +107,11 @@ export default function TeacherClasswork({ subject, teacherName }) {
     try {
       const body = new FormData();
       for (const [key, value] of Object.entries(form)) {
-        body.append(key, ['dueAt', 'scheduledAt'].includes(key) ? (value ? new Date(value).toISOString() : '') : value);
+        if (key === 'recipientStudents') {
+          body.append('recipientStudents', JSON.stringify(value || []));
+        } else {
+          body.append(key, ['dueAt', 'scheduledAt'].includes(key) ? (value ? new Date(value).toISOString() : '') : value);
+        }
       }
       body.append('status', status); body.append('removeAttachment', String(removeAttachment));
       if (file) body.append('attachment', file);
@@ -215,6 +229,19 @@ export default function TeacherClasswork({ subject, teacherName }) {
     <article className="classwork-card" key={item._id}>
       <div className="classwork-card-header">
         <div className="classwork-author"><span>{teacherName?.charAt(0).toUpperCase() || 'T'}</span><strong>{teacherName || 'Teacher'}</strong></div>
+        {item.recipientStudents && item.recipientStudents.length > 0 ? (
+          <span className="recipient-badge specific" title="Assigned to specific students">
+            <Users size={12} />
+            {item.recipientStudents.length === 1
+              ? (item.recipientStudents[0]?.name || '1 Student')
+              : `${item.recipientStudents.length} Students`}
+          </span>
+        ) : (
+          <span className="recipient-badge" title="Visible to all enrolled students">
+            <Users size={12} />
+            All Students
+          </span>
+        )}
         {item.status && item.status !== 'posted' && <span className="classwork-status">{item.status}</span>}
         <details className="classwork-item-menu">
           <summary aria-label={`Actions for ${item.title}`}><MoreVertical size={20} /></summary>
@@ -267,7 +294,14 @@ export default function TeacherClasswork({ subject, teacherName }) {
         <div className="classwork-editor-heading"><h2>{labelFor(form.type)}</h2><button type="button" aria-label="Close editor" onClick={() => setEditing(null)}><X size={20} /></button></div>
         <div className="classwork-editor-options">
           <label>To<input value={`${subject.code}: ${subject.title}`} readOnly /></label>
-          <label>Students<select aria-label="Recipients" defaultValue="all"><option value="all">All Students</option></select></label>
+          <label>Students
+            <StudentRecipientPicker
+              enrolledStudents={subject.enrolledStudents || []}
+              value={form.recipientStudents || []}
+              onChange={(selected) => setForm((previous) => ({ ...previous, recipientStudents: selected }))}
+              ariaLabel="Recipients"
+            />
+          </label>
           <label>Points<select aria-label="Points" name="points" aria-invalid={Boolean(fieldErrors.points)} aria-describedby={fieldErrors.points ? "classwork-points-error" : undefined} value={['', '100'].includes(form.points) ? form.points : 'custom'} onChange={(event) => setForm((previous) => ({ ...previous, points: event.target.value === 'custom' ? '50' : event.target.value }))}><option value="100">100 Points</option><option value="">Ungraded</option><option value="custom">Custom points</option></select><span id="classwork-points-error"><FieldError errors={fieldErrors} name="points" /></span></label>
           {!['', '100'].includes(form.points) && <label>Custom points<input type="number" min="0" max="1000" name="points" aria-invalid={Boolean(fieldErrors.points)} aria-describedby={fieldErrors.points ? "classwork-points-error" : undefined} value={form.points} onChange={updateForm} /></label>}
           <label>Due date &amp; time<input type="datetime-local" name="dueAt" aria-invalid={Boolean(fieldErrors.dueAt)} aria-describedby={fieldErrors.dueAt ? "classwork-dueAt-error" : undefined} value={form.dueAt} onChange={updateForm} /><span id="classwork-dueAt-error"><FieldError errors={fieldErrors} name="dueAt" /></span></label>

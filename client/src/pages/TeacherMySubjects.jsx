@@ -21,12 +21,14 @@ import {
   Plus,
   Search,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
 
 
 import { useTheme } from "../context/ThemeContext";
 import TeacherClasswork from "../components/TeacherClasswork";
+import StudentRecipientPicker from "../components/StudentRecipientPicker";
 import DashboardLayout from "../components/DashboardLayout";
 import { useSearchParams } from "react-router-dom";
 
@@ -155,6 +157,11 @@ const TeacherMySubjects = () => {
     setAnnouncementLink,
   ] = useState("");
 
+  const [
+    announcementRecipients,
+    setAnnouncementRecipients,
+  ] = useState([]);
+
 
   // =====================================================
   // SCHEDULE
@@ -248,6 +255,10 @@ const TeacherMySubjects = () => {
 
       setAnnouncementLink(
         ""
+      );
+
+      setAnnouncementRecipients(
+        []
       );
 
       setShowLinkInput(
@@ -715,6 +726,11 @@ const TeacherMySubjects = () => {
           scheduledAt
         );
       }
+
+      formData.append(
+        "recipientStudents",
+        JSON.stringify(announcementRecipients || [])
+      );
 
       return formData;
     };
@@ -1437,9 +1453,13 @@ const TeacherMySubjects = () => {
                       {selectedSubject.title}
                     </span>
 
-                    <span>
-                      All Students
-                    </span>
+                    <StudentRecipientPicker
+                      enrolledStudents={selectedSubject.enrolledStudents || []}
+                      value={announcementRecipients}
+                      onChange={setAnnouncementRecipients}
+                      compact={true}
+                      ariaLabel="Announcement audience"
+                    />
 
                   </div>
 
@@ -1749,6 +1769,20 @@ const TeacherMySubjects = () => {
 
 
                             <div className="teacher-announcement-top-actions">
+
+                              {announcement.recipientStudents && announcement.recipientStudents.length > 0 ? (
+                                <span className="recipient-badge specific" title="Sent to specific students">
+                                  <Users size={12} />
+                                  {announcement.recipientStudents.length === 1
+                                    ? (announcement.recipientStudents[0]?.name || "1 Student")
+                                    : `${announcement.recipientStudents.length} Students`}
+                                </span>
+                              ) : (
+                                <span className="recipient-badge" title="Sent to all enrolled students">
+                                  <Users size={12} />
+                                  All Students
+                                </span>
+                              )}
 
                               <small>
                                 {formatAnnouncementTime(

@@ -8,6 +8,8 @@ const { sendVerification, assertMailConfigured } = require('../services/verifica
 const { sendPasswordReset } = require('../services/passwordResetEmail');
 const { loadValidators } = require('../config/validators');
 
+const { uploadFile } = require('../services/cloudStorage');
+
 async function createAccount(req, res, role = 'student', google) {
   let user;
   let profileComplete = false;
@@ -16,10 +18,33 @@ async function createAccount(req, res, role = 'student', google) {
     const { normalizeEmail, normalizePhone } = await loadValidators();
     const email = normalizeEmail(google?.email || req.body.email);
     const phone = normalizePhone(req.body.phone);
-    if (await User.exists({ email })) return res.status(409).json({ message: 'This email already has an account. Sign in or resend verification.', errors: { email: 'This email already has an account.' } });
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      if (existingUser.emailVerifiedAt) {
+        return res.status(409).json({
+          code: 'ALREADY_VERIFIED',
+          message: 'Your account is already verified. Please log in.',
+          errors: { email: 'Your account is already verified. Please log in.' }
+        });
+      }
+      return res.status(409).json({
+        message: 'This email already has an account. Sign in or resend verification.',
+        errors: { email: 'This email already has an account.' }
+      });
+    }
     if (await User.exists({ phone })) return res.status(409).json({ message: 'This mobile number is already registered.', errors: { phone: 'Use a different mobile number.' } });
     user = await User.create({ name: req.body.name.trim(), email, phone, role, ...(google ? { googleSub: google.sub } : { password: await bcrypt.hash(req.body.password, 12) }) });
-    if (role === 'teacher') await TeacherProfile.create({ user: user._id, degreeTitle: req.body.degreeTitle, subjectToTeach: req.body.subjectToTeach, teachingBio: req.body.teachingBio, verificationDocument: req.file ? `/uploads/${req.file.filename}` : '', subjects: [{ name: req.body.subjectToTeach }] });
+    let verificationDocument = '';
+    if (role === 'teacher' && req.file) {
+      const uploadResult = await uploadFile(req.file.buffer, {
+        folder: 'documents',
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        resourceType: req.file.mimetype?.startsWith('image/') ? 'image' : 'raw',
+      });
+      verificationDocument = uploadResult.url;
+    }
+    if (role === 'teacher') await TeacherProfile.create({ user: user._id, degreeTitle: req.body.degreeTitle, subjectToTeach: req.body.subjectToTeach, teachingBio: req.body.teachingBio, verificationDocument, subjects: [{ name: req.body.subjectToTeach }] });
     profileComplete = true;
     await sendVerification(user, req);
     return res.status(201).json({ verificationRequired: true, email, message: 'Check your email to activate your account. The link expires in 1 hour.' });
@@ -48,7 +73,12 @@ async function verifyEmail(req, res) {
   const token = req.body.token;
   if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return res.status(400).json({ message: 'This verification link is invalid.' });
   const user = await User.findOneAndUpdate({ verificationHash: hash(token), verificationExpiresAt: { $gt: new Date() }, emailVerifiedAt: null }, { $set: { emailVerifiedAt: new Date() }, $unset: { verificationHash: 1, verificationExpiresAt: 1, verificationSentAt: 1 } });
-  if (!user) return res.status(400).json({ message: 'This link has expired or has already been used. Sign in if verified, or request a new link.' });
+  if (!user) {
+    return res.status(400).json({
+      code: 'ALREADY_VERIFIED',
+      message: 'Your account is already verified. Please log in.',
+    });
+  }
   res.json({ message: 'Email verified. You can now sign in.' });
 }
 async function resend(req, res) {

@@ -1,6 +1,7 @@
 import PasswordStrength from '../components/PasswordStrength';
 import GoogleSignIn from '../components/GoogleSignIn';
 import LegalModals from '../components/LegalModals';
+import AlreadyVerifiedModal from '../components/AlreadyVerifiedModal';
 import { validateRegistration } from "../../../shared/validation.mjs";
 import FieldError from "../components/FieldError";
 import "../styles/validation.css";
@@ -26,6 +27,7 @@ const Register = () => {
   const navigate = useNavigate();
   const submitting = useRef(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showAlreadyVerified, setShowAlreadyVerified] = useState(false);
 
   const { register } = useAuth();
 
@@ -88,6 +90,10 @@ const Register = () => {
 
       navigate("/verify-email", { state: { email: form.email, message: result.message } });
     } catch (error) {
+      if (error.response?.data?.code === 'ALREADY_VERIFIED' || /already verified/i.test(error.response?.data?.message || '')) {
+        setShowAlreadyVerified(true);
+        return;
+      }
       setFieldErrors(error.response?.data?.errors || {});
       
       setError(
@@ -103,6 +109,11 @@ const Register = () => {
 
   return (
     <div className="auth-layout">
+      <AlreadyVerifiedModal
+        isOpen={showAlreadyVerified}
+        onClose={() => setShowAlreadyVerified(false)}
+        message="Your account is already verified. Please log in to continue."
+      />
       <section className="auth-brand-panel">
         <Link to="/" className="auth-back">
           <ArrowLeft size={18} />

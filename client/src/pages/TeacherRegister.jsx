@@ -1,6 +1,7 @@
 import PasswordStrength from '../components/PasswordStrength';
 import GoogleSignIn from '../components/GoogleSignIn';
 import LegalModals from '../components/LegalModals';
+import AlreadyVerifiedModal from '../components/AlreadyVerifiedModal';
 import { validateRegistration, documentError } from "../../../shared/validation.mjs";
 import FieldError from "../components/FieldError";
 import "../styles/validation.css";
@@ -21,6 +22,7 @@ const TeacherRegister = () => {
   const navigate = useNavigate();
   const submitting = useRef(false);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [showAlreadyVerified, setShowAlreadyVerified] = useState(false);
   const { registerTeacher } = useAuth();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -127,6 +129,10 @@ const TeacherRegister = () => {
       const result = await registerTeacher(data);
       navigate("/verify-email", { state: { email: formData.email, message: result.message } });
     } catch (err) {
+      if (err.response?.data?.code === 'ALREADY_VERIFIED' || /already verified/i.test(err.response?.data?.message || '')) {
+        setShowAlreadyVerified(true);
+        return;
+      }
       setFieldErrors(err.response?.data?.errors || {});
       if (["name", "email", "phone", "password", "confirmPassword"].some((key) => err.response?.data?.errors?.[key])) setStep(1);
       setError(
@@ -142,6 +148,11 @@ const TeacherRegister = () => {
 
   return (
     <div className="teacher-register-page">
+      <AlreadyVerifiedModal
+        isOpen={showAlreadyVerified}
+        onClose={() => setShowAlreadyVerified(false)}
+        message="Your account is already verified. Please log in to continue."
+      />
 
       {/* LEFT SIDE */}
 

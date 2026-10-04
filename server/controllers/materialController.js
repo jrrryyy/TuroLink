@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const { randomUUID } = require('node:crypto');
+const { uploadFile, deleteFile, streamDownload, isCloudConfigured } = require('../services/cloudStorage');
 
 const storageDirectory = path.resolve(__dirname, '../storage/materials');
 const allowedTypes = new Set([
@@ -31,7 +32,7 @@ async function publishDueMaterials() {
 
 async function ownedSubject(req) {
   if (!mongoose.isValidObjectId(req.params.id)) throw badRequest('Invalid subject.');
-  const subject = await Subject.findOne({ _id: req.params.id, teacherId: req.user._id });
+  const subject = await Subject.findOne({ _id: req.params.id, teacherId: req.user._id }).populate('materials.recipientStudents', 'name email profilePicture');
   if (!subject) throw Object.assign(new Error('Subject not found.'), { status: 404 });
   return subject;
 }
@@ -49,7 +50,7 @@ function dateValue(value, label) {
   return date;
 }
 
-function validatedFields(body) {
+function validatedFields(body, subject) {
   const title = typeof body.title === 'string' ? body.title.trim() : '';
   if (!title || title.length > 200) throw badRequest('Enter a title of up to 200 characters.', 'title');
   if (!['assignment', 'quiz'].includes(body.type)) throw badRequest('Choose Assignment or Quiz Assignment.');
@@ -70,11 +71,42 @@ function validatedFields(body) {
       link = url.toString();
     } catch { throw badRequest('Enter a valid http or https link.', 'link'); }
   }
-  return { title, type: body.type, instructions, points, dueAt, scheduledAt, link, status: body.status, postedAt: body.status === 'posted' ? new Date() : null };
+
+  let recipientStudents = [];
+  if (body.recipientStudents !== undefined && body.recipientStudents !== null) {
+    try {
+      const raw = typeof body.recipientStudents === 'string'
+        ? JSON.parse(body.recipientStudents)
+        : body.recipientStudents;
+      const list = Array.isArray(raw) ? raw : [raw];
+      recipientStudents = list
+        .map((id) => String(id?._id || id).trim())
+        .filter((id) => id && id !== 'all' && mongoose.isValidObjectId(id));
+    } catch {
+      recipientStudents = String(body.recipientStudents)
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => id && id !== 'all' && mongoose.isValidObjectId(id));
+    }
+  }
+
+  if (recipientStudents.length > 0 && subject?.enrolledStudents) {
+    const enrolledSet = new Set(
+      (subject.enrolledStudents || []).map((s) => (s._id ? s._id.toString() : s.toString()))
+    );
+    recipientStudents = recipientStudents.filter((id) => enrolledSet.has(id));
+  }
+
+  return { title, type: body.type, instructions, points, dueAt, scheduledAt, link, recipientStudents, status: body.status, postedAt: body.status === 'posted' ? new Date() : null };
 }
 
 async function removeFile(key) {
-  if (!key || path.basename(key) !== key) return;
+  if (!key) return;
+  if (/^https?:\/\//i.test(key)) {
+    await deleteFile(key, { folder: 'materials', resourceType: 'auto' });
+    return;
+  }
+  if (path.basename(key) !== key) return;
   await fs.unlink(path.join(storageDirectory, key)).catch((error) => {
     if (error.code !== 'ENOENT') console.error('Unable to clean up classwork attachment:', error.code);
   });
@@ -100,16 +132,33 @@ const saveMaterial = handler(async (req, res) => {
   const subject = await ownedSubject(req);
   const existing = req.params.materialId ? materialById(subject, req.params.materialId) : null;
   if (existing?.status === 'archived') throw badRequest('Restore archived classwork before editing.');
-  const fields = validatedFields(req.body);
+  const fields = validatedFields(req.body, subject);
   let newKey;
   const oldKey = existing?.attachmentKey;
   try {
     if (req.file) {
       if (!allowedTypes.has(req.file.mimetype)) throw badRequest('Unsupported file type. Use a document, PDF, text file, or image.');
-      await fs.mkdir(storageDirectory, { recursive: true });
-      newKey = randomUUID();
-      await fs.writeFile(path.join(storageDirectory, newKey), req.file.buffer);
-      Object.assign(fields, { attachmentKey: newKey, attachmentName: req.file.originalname, attachmentType: req.file.mimetype, attachmentSize: req.file.size, fileUrl: '' });
+      if (isCloudConfigured()) {
+        const uploadResult = await uploadFile(req.file.buffer, {
+          folder: 'materials',
+          filename: req.file.originalname,
+          mimetype: req.file.mimetype,
+          resourceType: 'auto',
+        });
+        newKey = uploadResult.url;
+        Object.assign(fields, {
+          attachmentKey: newKey,
+          attachmentName: req.file.originalname,
+          attachmentType: req.file.mimetype,
+          attachmentSize: uploadResult.size || req.file.size,
+          fileUrl: uploadResult.url,
+        });
+      } else {
+        await fs.mkdir(storageDirectory, { recursive: true });
+        newKey = randomUUID();
+        await fs.writeFile(path.join(storageDirectory, newKey), req.file.buffer);
+        Object.assign(fields, { attachmentKey: newKey, attachmentName: req.file.originalname, attachmentType: req.file.mimetype, attachmentSize: req.file.size, fileUrl: '' });
+      }
     } else if (req.body.removeAttachment === 'true') {
       Object.assign(fields, { attachmentKey: '', attachmentName: '', attachmentType: '', attachmentSize: 0, fileUrl: '' });
     }
@@ -145,7 +194,14 @@ const deleteMaterial = handler(async (req, res) => {
 const downloadAttachment = handler(async (req, res) => {
   const subject = await ownedSubject(req);
   const material = materialById(subject, req.params.materialId);
-  if (!material.attachmentKey || path.basename(material.attachmentKey) !== material.attachmentKey) throw Object.assign(new Error('Attachment not found.'), { status: 404 });
+  const targetKey = material.fileUrl || material.attachmentKey;
+  if (!targetKey) throw Object.assign(new Error('Attachment not found.'), { status: 404 });
+
+  if (/^https?:\/\//i.test(targetKey)) {
+    return streamDownload(targetKey, res, material.attachmentName || 'Material');
+  }
+
+  if (path.basename(material.attachmentKey) !== material.attachmentKey) throw Object.assign(new Error('Attachment not found.'), { status: 404 });
   const file = path.join(storageDirectory, material.attachmentKey);
   try { await fs.access(file); } catch { throw Object.assign(new Error('Attachment not found.'), { status: 404 }); }
   res.download(file, material.attachmentName);

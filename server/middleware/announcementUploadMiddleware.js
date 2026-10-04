@@ -22,49 +22,7 @@ const uploadDirectory = getUploadPath("announcements");
 // STORAGE
 // ============================================
 
-const storage =
-  multer.diskStorage({
-    destination: (
-      req,
-      file,
-      cb
-    ) => {
-      cb(
-        null,
-        uploadDirectory
-      );
-    },
-
-    filename: (
-      req,
-      file,
-      cb
-    ) => {
-      const extension =
-        path.extname(
-          file.originalname
-        );
-
-      const baseName =
-        path
-          .basename(
-            file.originalname,
-            extension
-          )
-          .replace(
-            /[^a-zA-Z0-9-_]/g,
-            "-"
-          );
-
-      const uniqueName =
-        `${Date.now()}-${baseName}${extension}`;
-
-      cb(
-        null,
-        uniqueName
-      );
-    },
-  });
+const storage = multer.memoryStorage();
 
 
 // ============================================
