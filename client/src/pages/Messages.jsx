@@ -60,6 +60,37 @@ const formatDateDivider = (dateStr) => {
   return `${d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}, ${time}`;
 };
 
+function MessageAvatar({ src, name, size, className = '', fallbackClassName = '', wrapClassName = 'messages-avatar-wrap', showDot = false }) {
+  const [hasError, setHasError] = useState(false);
+  const initial = (name || 'U').charAt(0).toUpperCase();
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
+  const wrapStyle = size ? { width: size, height: size } : undefined;
+  const imgStyle = size ? { width: size, height: size } : undefined;
+
+  return (
+    <div className={wrapClassName} style={wrapStyle}>
+      {src && !hasError ? (
+        <img
+          src={profilePictureUrl(src)}
+          alt=""
+          className={`messages-avatar-img ${className}`}
+          style={imgStyle}
+          onError={() => setHasError(true)}
+        />
+      ) : (
+        <div className={`messages-avatar-fallback ${fallbackClassName}`} style={imgStyle}>
+          {initial}
+        </div>
+      )}
+      {showDot && <span className="messages-online-dot" />}
+    </div>
+  );
+}
+
 const URL_REGEX = /(https?:\/\/[^\s]+)/gi;
 
 function extractSharedLinks(msgs = []) {
@@ -115,6 +146,7 @@ export default function Messages() {
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [sendError, setSendError] = useState('');
 
   const [showNewModal, setShowNewModal] = useState(false);
   const [contacts, setContacts] = useState([]);
@@ -423,8 +455,9 @@ export default function Messages() {
 
       const convsRes = await api.get('/messages/conversations');
       setConversations(convsRes.data || []);
-    } catch {
-      // error handled gracefully
+    } catch (err) {
+      setSendError(err.response?.data?.message || 'Unable to send message or attachment. Please try again.');
+      setTimeout(() => setSendError(''), 6000);
     } finally {
       setSending(false);
     }
@@ -519,18 +552,11 @@ export default function Messages() {
                       onClick={() => handleSelectConversation(conv)}
                       aria-pressed={isSelected}
                     >
-                      <div className="messages-avatar-wrap">
-                        {other?.profilePicture ? (
-                          <img
-                            src={profilePictureUrl(other.profilePicture)}
-                            alt=""
-                            className="messages-avatar-img"
-                          />
-                        ) : (
-                          <div className="messages-avatar-fallback">{initial}</div>
-                        )}
-                        <span className="messages-online-dot" />
-                      </div>
+                      <MessageAvatar
+                        src={other?.profilePicture}
+                        name={other?.name}
+                        showDot={true}
+                      />
 
                       <div className="messages-conv-info">
                         <div className="messages-conv-top-row">
@@ -605,19 +631,13 @@ export default function Messages() {
                     {infoMenuOpen && (
                       <div className="messages-info-popover" role="dialog" aria-label="Conversation options">
                         <div className="messages-popover-header">
-                          <div className="messages-popover-avatar-wrap">
-                            {activeRecipient.profilePicture ? (
-                              <img
-                                src={profilePictureUrl(activeRecipient.profilePicture)}
-                                alt=""
-                                className="messages-popover-avatar-img"
-                              />
-                            ) : (
-                              <div className="messages-avatar-fallback">
-                                {activeRecipient.name?.charAt(0).toUpperCase() || 'U'}
-                              </div>
-                            )}
-                          </div>
+                          <MessageAvatar
+                            src={activeRecipient.profilePicture}
+                            name={activeRecipient.name}
+                            size="64px"
+                            wrapClassName="messages-popover-avatar-wrap"
+                            className="messages-popover-avatar-img"
+                          />
                           <div className="messages-popover-user-meta">
                             <h4>{activeRecipient.name}</h4>
                             <span className="messages-popover-role-pill">
@@ -812,16 +832,12 @@ export default function Messages() {
 
                             <div className="messages-bubble-container">
                               {!isMe && (
-                                <div className="messages-bubble-avatar">
-                                  {senderAvatar ? (
-                                    <img
-                                      src={profilePictureUrl(senderAvatar)}
-                                      alt={senderName}
-                                    />
-                                  ) : (
-                                    <div className="messages-avatar-fallback small">{senderInitial}</div>
-                                  )}
-                                </div>
+                                <MessageAvatar
+                                  src={senderAvatar}
+                                  name={senderName}
+                                  wrapClassName="messages-bubble-avatar"
+                                  fallbackClassName="small"
+                                />
                               )}
 
                               <div className="messages-bubble">
@@ -888,16 +904,12 @@ export default function Messages() {
                               </div>
 
                               {isMe && (
-                                <div className="messages-bubble-avatar sent-avatar">
-                                  {senderAvatar ? (
-                                    <img
-                                      src={profilePictureUrl(senderAvatar)}
-                                      alt="You"
-                                    />
-                                  ) : (
-                                    <div className="messages-avatar-fallback small sent-fallback">{senderInitial}</div>
-                                  )}
-                                </div>
+                                <MessageAvatar
+                                  src={senderAvatar}
+                                  name="You"
+                                  wrapClassName="messages-bubble-avatar sent-avatar"
+                                  fallbackClassName="small sent-fallback"
+                                />
                               )}
                             </div>
 
@@ -939,7 +951,13 @@ export default function Messages() {
                     </div>
                   </div>
                 ) : (
-                  <form className="messages-input-bar" onSubmit={handleSendMessage}>
+                  <>
+                    {sendError && (
+                      <div style={{ padding: '7px 16px', background: '#fee2e2', color: '#b91c1c', fontSize: '13px', borderRadius: '8px', margin: '0 16px 8px', border: '1px solid #fca5a5' }}>
+                        {sendError}
+                      </div>
+                    )}
+                    <form className="messages-input-bar" onSubmit={handleSendMessage}>
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -1053,7 +1071,8 @@ export default function Messages() {
                     >
                       <Send size={18} />
                     </button>
-                  </form>
+                    </form>
+                  </>
                 )}
               </>
             ) : (
@@ -1121,19 +1140,11 @@ export default function Messages() {
                     className="messages-contact-item"
                     onClick={() => handleStartChatWithContact(contact)}
                   >
-                    <div className="messages-avatar-wrap" style={{ width: '40px', height: '40px' }}>
-                      {contact.profilePicture ? (
-                        <img
-                          src={profilePictureUrl(contact.profilePicture)}
-                          alt=""
-                          className="messages-avatar-img"
-                        />
-                      ) : (
-                        <div className="messages-avatar-fallback">
-                          {contact.name?.charAt(0).toUpperCase() || 'U'}
-                        </div>
-                      )}
-                    </div>
+                    <MessageAvatar
+                      src={contact.profilePicture}
+                      name={contact.name}
+                      size="40px"
+                    />
                     <div className="messages-contact-info">
                       <strong>{contact.name}</strong>
                       <small>{contact.subtitle || (contact.role === 'teacher' ? 'Teacher' : 'Student')}</small>
