@@ -127,7 +127,7 @@ const TeacherRegister = () => {
       }
 
       const result = await registerTeacher(data);
-      navigate("/verify-email", { state: { email: formData.email, message: result.message } });
+      navigate("/verify-email", { state: { email: formData.email, message: result.message, expiresAt: result.expiresAt } });
     } catch (err) {
       if (err.response?.data?.code === 'ALREADY_VERIFIED' || /already verified/i.test(err.response?.data?.message || '')) {
         setShowAlreadyVerified(true);

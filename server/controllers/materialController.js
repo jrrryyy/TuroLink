@@ -119,7 +119,11 @@ function validatedFields(body, subject) {
     recipientStudents = recipientStudents.filter((id) => enrolledSet.has(id));
   }
 
-  return { title, type: body.type, instructions, points, dueAt, scheduledAt, link, recipientStudents, status: body.status, postedAt: body.status === 'posted' ? new Date() : null };
+  const allowLateSubmissions = body.allowLateSubmissions !== undefined && body.allowLateSubmissions !== null
+    ? (String(body.allowLateSubmissions) === 'true' || body.allowLateSubmissions === true)
+    : true;
+
+  return { title, type: body.type, instructions, points, dueAt, scheduledAt, link, recipientStudents, status: body.status, postedAt: body.status === 'posted' ? new Date() : null, allowLateSubmissions };
 }
 
 async function removeFile(key) {

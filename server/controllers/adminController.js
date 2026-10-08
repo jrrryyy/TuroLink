@@ -38,11 +38,13 @@ async function getStats(req, res) {
         .populate('teacher', 'name email')
         .lean(),
       TeacherProfile.find({ isVerified: { $ne: true } })
-        .populate('user', 'name email profilePicture')
-        .limit(6)
+        .populate('user', 'name email profilePicture role')
+        .sort({ createdAt: -1 })
         .lean(),
     ]);
 
+    // Only count and return actual teacher users who exist
+    const validPendingTeachers = pendingTeachers.filter((tp) => tp.user && tp.user.role === 'teacher');
     const activeSessions = await Session.countDocuments({ expiresAt: { $gt: new Date() } });
 
     res.json({
@@ -55,11 +57,11 @@ async function getStats(req, res) {
         totalSubjects,
         totalBookings,
         activeSessions,
-        pendingVerifications: pendingTeachers.length,
+        pendingVerifications: validPendingTeachers.length,
       },
       recentUsers,
       recentBookings,
-      pendingTeachers,
+      pendingTeachers: validPendingTeachers.slice(0, 6),
     });
   } catch (error) {
     console.error('Admin getStats error:', error);
@@ -199,7 +201,7 @@ async function deleteUser(req, res) {
 
     // Clean up associated sessions, teacher profiles, subjects
     await Session.deleteMany({ user: id });
-    await TeacherProfile.deleteOne({ user: id });
+    await TeacherProfile.deleteMany({ user: id });
     await User.findByIdAndDelete(id);
 
     res.json({ message: 'User and active sessions deleted successfully.' });
@@ -213,8 +215,25 @@ async function deleteUser(req, res) {
 async function getTeachers(req, res) {
   try {
     const { status = 'all' } = req.query;
-    const query = {};
 
+    // Proactively clean up any orphaned profiles whose user was deleted
+    const allProfiles = await TeacherProfile.find().select('_id user').lean();
+    const userIds = allProfiles.map((p) => p.user);
+    const existingUsers = await User.find({ _id: { $in: userIds } }).select('_id role').lean();
+    const existingUserMap = new Map(existingUsers.map((u) => [String(u._id), u]));
+
+    const orphanedIds = [];
+    for (const p of allProfiles) {
+      const u = existingUserMap.get(String(p.user));
+      if (!u) {
+        orphanedIds.push(p._id);
+      }
+    }
+    if (orphanedIds.length > 0) {
+      await TeacherProfile.deleteMany({ _id: { $in: orphanedIds } });
+    }
+
+    const query = {};
     if (status === 'verified') {
       query.isVerified = true;
     } else if (status === 'pending') {
@@ -222,11 +241,14 @@ async function getTeachers(req, res) {
     }
 
     const profiles = await TeacherProfile.find(query)
-      .populate('user', 'name email phone profilePicture emailVerifiedAt createdAt')
+      .populate('user', 'name email phone role profilePicture emailVerifiedAt createdAt')
       .sort({ createdAt: -1 })
       .lean();
 
-    res.json({ profiles });
+    // Filter to only genuine teacher user accounts (exclude deleted/null users and admins)
+    const validProfiles = profiles.filter((p) => p.user && p.user.role === 'teacher');
+
+    res.json({ profiles: validProfiles });
   } catch (error) {
     console.error('Admin getTeachers error:', error);
     res.status(500).json({ message: 'Unable to retrieve teacher profiles.' });
@@ -239,7 +261,7 @@ async function verifyTeacher(req, res) {
     const { id } = req.params;
     const { isVerified = true } = req.body;
 
-    const profile = await TeacherProfile.findById(id).populate('user', 'name email');
+    const profile = await TeacherProfile.findById(id).populate('user', 'name email role');
     if (!profile) return res.status(404).json({ message: 'Teacher profile not found.' });
 
     profile.isVerified = Boolean(isVerified);

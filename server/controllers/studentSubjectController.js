@@ -60,6 +60,7 @@ const detail = handler(async (req, res) => {
       return {
         _id: m._id, title: m.title, type: m.type, instructions: m.instructions, points: m.points,
         dueAt: m.dueAt, postedAt: m.postedAt, link: safeLink(m.link), attachmentName: m.attachmentKey ? m.attachmentName || 'Attachment' : '',
+        allowLateSubmissions: m.allowLateSubmissions ?? true,
         submission: sub ? {
           _id: sub._id,
           status: sub.status,

@@ -23,7 +23,7 @@ import { downloadFile } from '../services/download';
 import StudentRecipientPicker from './StudentRecipientPicker';
 import '../styles/teacher-classwork.css';
 
-const emptyForm = (type = 'assignment') => ({ type, title: '', instructions: '', points: '100', dueAt: '', scheduledAt: '', link: '', recipientStudents: [] });
+const emptyForm = (type = 'assignment') => ({ type, title: '', instructions: '', points: '100', dueAt: '', allowLateSubmissions: true, scheduledAt: '', link: '', recipientStudents: [] });
 const labelFor = (type) => type === 'quiz' ? 'Quiz Assignment' : 'Assignment';
 const localDate = (value) => {
   if (!value) return '';
@@ -86,6 +86,7 @@ export default function TeacherClasswork({ subject, teacherName }) {
       instructions: item.instructions || '',
       points: item.points == null ? '' : String(item.points),
       dueAt: localDate(item.dueAt),
+      allowLateSubmissions: item.allowLateSubmissions !== false,
       scheduledAt: localDate(item.scheduledAt),
       link: item.link || '',
       recipientStudents: (item.recipientStudents || []).map((s) => String(s._id || s)),
@@ -109,8 +110,10 @@ export default function TeacherClasswork({ subject, teacherName }) {
       for (const [key, value] of Object.entries(form)) {
         if (key === 'recipientStudents') {
           body.append('recipientStudents', JSON.stringify(value || []));
+        } else if (['dueAt', 'scheduledAt'].includes(key)) {
+          body.append(key, value ? new Date(value).toISOString() : '');
         } else {
-          body.append(key, ['dueAt', 'scheduledAt'].includes(key) ? (value ? new Date(value).toISOString() : '') : value);
+          body.append(key, String(value ?? ''));
         }
       }
       body.append('status', status); body.append('removeAttachment', String(removeAttachment));
@@ -289,7 +292,14 @@ export default function TeacherClasswork({ subject, teacherName }) {
           </details>
         </div>
         <div className="classwork-card-title"><h3>{labelFor(item.type)}: <span>{item.title}</span></h3><span>{item.points == null ? 'Ungraded' : `${item.points} Points`}</span></div>
-        <p className="classwork-meta">Due: {formattedDate(item.dueAt)}</p>
+        <p className="classwork-meta">
+          Due: {formattedDate(item.dueAt)}
+          {item.dueAt && (
+            <span className={`classwork-policy-pill ${item.allowLateSubmissions !== false ? 'policy-allowed' : 'policy-closed'}`}>
+              {item.allowLateSubmissions !== false ? ' · Late turn-in allowed' : ' · Submissions close on deadline'}
+            </span>
+          )}
+        </p>
         {item.status === 'scheduled' && <p className="classwork-meta">Posts: {formattedDate(item.scheduledAt)}</p>}
         {item.instructions && <p className="classwork-instructions">{item.instructions}</p>}
         <div className="classwork-attachments">
@@ -373,6 +383,20 @@ export default function TeacherClasswork({ subject, teacherName }) {
           <label>Points<select aria-label="Points" name="points" aria-invalid={Boolean(fieldErrors.points)} aria-describedby={fieldErrors.points ? "classwork-points-error" : undefined} value={['', '100'].includes(form.points) ? form.points : 'custom'} onChange={(event) => setForm((previous) => ({ ...previous, points: event.target.value === 'custom' ? '50' : event.target.value }))}><option value="100">100 Points</option><option value="">Ungraded</option><option value="custom">Custom points</option></select><span id="classwork-points-error"><FieldError errors={fieldErrors} name="points" /></span></label>
           {!['', '100'].includes(form.points) && <label>Custom points<input type="number" min="0" max="1000" name="points" aria-invalid={Boolean(fieldErrors.points)} aria-describedby={fieldErrors.points ? "classwork-points-error" : undefined} value={form.points} onChange={updateForm} /></label>}
           <label>Due date &amp; time<input type="datetime-local" name="dueAt" aria-invalid={Boolean(fieldErrors.dueAt)} aria-describedby={fieldErrors.dueAt ? "classwork-dueAt-error" : undefined} value={form.dueAt} onChange={updateForm} /><span id="classwork-dueAt-error"><FieldError errors={fieldErrors} name="dueAt" /></span></label>
+          {Boolean(form.dueAt) && (
+            <label className="classwork-checkbox-field">
+              <input
+                type="checkbox"
+                name="allowLateSubmissions"
+                checked={form.allowLateSubmissions !== false}
+                onChange={(event) => setForm((prev) => ({ ...prev, allowLateSubmissions: event.target.checked }))}
+              />
+              <span className="classwork-checkbox-copy">
+                <strong>Allow late turn-in after due date</strong>
+                <small>{form.allowLateSubmissions !== false ? 'Students can still submit late' : 'Submissions will close strictly when due'}</small>
+              </span>
+            </label>
+          )}
         </div>
         <label className="classwork-field">Title<input name="title" aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "classwork-title-error" : undefined} placeholder="Title" required maxLength={200} value={form.title} onChange={updateForm} /><span id="classwork-title-error"><FieldError errors={fieldErrors} name="title" /></span></label>
         <label className="classwork-field">Instructions<textarea name="instructions" aria-invalid={Boolean(fieldErrors.instructions)} aria-describedby={fieldErrors.instructions ? "classwork-instructions-error" : undefined} placeholder="Type instructions..." rows={7} maxLength={20000} value={form.instructions} onChange={updateForm} /><span id="classwork-instructions-error"><FieldError errors={fieldErrors} name="instructions" /></span></label>

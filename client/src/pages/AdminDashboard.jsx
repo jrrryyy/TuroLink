@@ -155,7 +155,7 @@ export default function AdminDashboard() {
         <div className="admin-metric-card">
           <div className="admin-metric-header">
             <span className="admin-metric-label">Total Platform Users</span>
-            <div className="admin-metric-icon-wrap icon-purple">
+            <div className="admin-metric-icon-wrap icon-forest">
               <Users size={20} />
             </div>
           </div>

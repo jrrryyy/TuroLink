@@ -88,7 +88,7 @@ const Register = () => {
         terms,
       });
 
-      navigate("/verify-email", { state: { email: form.email, message: result.message } });
+      navigate("/verify-email", { state: { email: form.email, message: result.message, expiresAt: result.expiresAt } });
     } catch (error) {
       if (error.response?.data?.code === 'ALREADY_VERIFIED' || /already verified/i.test(error.response?.data?.message || '')) {
         setShowAlreadyVerified(true);

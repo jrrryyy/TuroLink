@@ -11,7 +11,8 @@ function getCloudinary() {
   if (cloudinaryInstance) return cloudinaryInstance;
   try {
     const sdk = require('cloudinary').v2;
-    const rawUrl = (process.env.CLOUDINARY_URL || '').trim().replace(/^["']|["']$/g, '');
+    let rawUrl = (process.env.CLOUDINARY_URL || '').trim().replace(/^["']|["']$/g, '');
+    rawUrl = rawUrl.replace(/^CLOUDINARY_URL\s*=\s*/i, '').trim().replace(/^["']|["']$/g, '');
     if (rawUrl) {
       const match = rawUrl.match(/^cloudinary:\/\/([^:]+):([^@]+)@([^/?#]+)/i);
       if (match) {
@@ -171,12 +172,10 @@ async function uploadFile(buffer, options = {}) {
     }
   }
 
-  // Warn if writing locally on serverless
+  // Prevent corrupting database with ephemeral files on serverless
   if (process.env.VERCEL) {
-    console.warn(
-      'WARNING: Writing to local disk on Vercel serverless environment. ' +
-      'Files in /tmp are ephemeral and cannot be downloaded across sessions or devices. ' +
-      'Ensure CLOUDINARY_URL is configured in Vercel project environment variables.'
+    throw new Error(
+      'Cloud storage is not connected on this serverless deployment. Ensure CLOUDINARY_URL is configured in Vercel project environment variables and the deployment was redeployed.'
     );
   }
 

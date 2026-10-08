@@ -247,16 +247,33 @@
   font-weight: 600;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #2b5134;
-  color: #ffffff;
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
 
-:root[data-theme='dark'] .view-profile-role-pill,
-.dark-theme .view-profile-role-pill {
+.view-profile-role-pill.verified {
+  background: #2b5134;
+  color: #ffffff;
+}
+
+.view-profile-role-pill.unverified {
+  background: rgba(43, 81, 52, 0.1);
+  color: #2b5134;
+  border: 1px solid rgba(43, 81, 52, 0.22);
+}
+
+:root[data-theme='dark'] .view-profile-role-pill.verified,
+.dark-theme .view-profile-role-pill.verified {
   background: #3e734c;
+  color: #ffffff;
+}
+
+:root[data-theme='dark'] .view-profile-role-pill.unverified,
+.dark-theme .view-profile-role-pill.unverified {
+  background: rgba(255, 255, 255, 0.08);
+  color: #b5c7a5;
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .view-profile-subtitle {

@@ -28,6 +28,7 @@ import {
 
 import { useTheme } from "../context/ThemeContext";
 import TeacherClasswork from "../components/TeacherClasswork";
+import TeacherEnrolledStudents from "../components/TeacherEnrolledStudents";
 import StudentRecipientPicker from "../components/StudentRecipientPicker";
 import DashboardLayout from "../components/DashboardLayout";
 import { useSearchParams } from "react-router-dom";
@@ -1411,6 +1412,23 @@ const TeacherMySubjects = () => {
                 Materials
               </button>
 
+              <button
+                type="button"
+                className={
+                  activeTab ===
+                  "students"
+                    ? "active"
+                    : ""
+                }
+                onClick={() =>
+                  setActiveTab(
+                    "students"
+                  )
+                }
+              >
+                Students ({selectedSubject.enrolledStudents?.length || 0})
+              </button>
+
             </div>
 
 
@@ -1919,6 +1937,14 @@ const TeacherMySubjects = () => {
 
             {activeTab === "materials" && (
               <TeacherClasswork key={selectedSubject._id} subject={selectedSubject} teacherName={user?.name} />
+            )}
+
+            {/* =============================================
+                STUDENTS
+            ============================================= */}
+
+            {activeTab === "students" && (
+              <TeacherEnrolledStudents key={selectedSubject._id} subject={selectedSubject} />
             )}
           </>
         )}

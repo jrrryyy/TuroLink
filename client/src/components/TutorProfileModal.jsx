@@ -10,6 +10,7 @@ import {
   Clock,
   Sparkles,
   CheckCircle,
+  GraduationCap,
 } from 'lucide-react';
 import api from '../services/api';
 import { profilePictureUrl } from '../services/profile';
@@ -182,10 +183,17 @@ export default function TutorProfileModal({ tutorId, isOpen, onClose }) {
                       <h2 id="tutor-profile-name" className="view-profile-name">
                         {tutor.name}
                       </h2>
-                      <span className="view-profile-role-pill">
-                        <Award size={13} />
-                        Verified Tutor
-                      </span>
+                      {tutor.isVerified ? (
+                        <span className="view-profile-role-pill verified">
+                          <Award size={13} />
+                          Verified Teacher
+                        </span>
+                      ) : (
+                        <span className="view-profile-role-pill unverified">
+                          <GraduationCap size={13} />
+                          Teacher
+                        </span>
+                      )}
                     </div>
 
                     <p className="view-profile-subtitle">{tutor.subject || 'Instructor'}</p>

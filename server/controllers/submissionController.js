@@ -76,6 +76,12 @@ const submitWork = handler(async (req, res) => {
     throw fail('Please attach a file or enter a note to turn in your work.');
   }
 
+  const now = new Date();
+  const isLate = Boolean(material.dueAt && now > new Date(material.dueAt));
+  if (material.allowLateSubmissions === false && isLate) {
+    throw fail('The deadline for this assignment has passed and late submissions are closed.', 403);
+  }
+
   let newKey = '';
   try {
     if (req.file) {
@@ -90,9 +96,6 @@ const submitWork = handler(async (req, res) => {
       });
       newKey = uploadResult.url;
     }
-
-    const now = new Date();
-    const isLate = Boolean(material.dueAt && now > new Date(material.dueAt));
 
     let submission = await Submission.findOne({ materialId: material._id, studentId: req.user._id });
     const oldKey = submission?.attachmentKey;

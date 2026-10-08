@@ -29,7 +29,18 @@ const teacherProfileSchema = new mongoose.Schema(
 
     verificationDocument: {
       type: String,
-      default: "", isVerified: { type: Boolean, default: false }, verificationReviewedAt: { type: Date, default: null },
+      default: "",
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    verificationReviewedAt: {
+      type: Date,
+      default: null,
     },
 
     activeStudents: {

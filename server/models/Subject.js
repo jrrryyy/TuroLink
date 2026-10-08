@@ -86,6 +86,7 @@ const materialSchema = new mongoose.Schema({
   instructions: { type: String, default: '' },
   points: { type: Number, default: null, min: 0, max: 1000 },
   dueAt: { type: Date, default: null },
+  allowLateSubmissions: { type: Boolean, default: true },
   status: { type: String, enum: ['draft', 'scheduled', 'posted', 'archived'], default: 'posted' },
   scheduledAt: { type: Date, default: null },
   postedAt: { type: Date, default: null },

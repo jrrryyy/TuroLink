@@ -72,6 +72,7 @@ function MaterialSubmission({ subject, material, reload }) {
   const fileInputRef = useRef(null);
 
   const isPastDue = Boolean(material.dueAt && new Date() > new Date(material.dueAt));
+  const isLateClosed = Boolean(isPastDue && material.allowLateSubmissions === false);
 
   let statusKey = 'assigned';
   let statusLabel = 'Assigned';
@@ -89,6 +90,9 @@ function MaterialSubmission({ subject, material, reload }) {
       statusKey = 'ontime';
       statusLabel = 'Turned in on time';
     }
+  } else if (isLateClosed) {
+    statusKey = 'closed';
+    statusLabel = 'Closed';
   } else if (isPastDue) {
     statusKey = 'missing';
     statusLabel = 'Missing';
@@ -96,6 +100,10 @@ function MaterialSubmission({ subject, material, reload }) {
 
   const handleTurnIn = async (e) => {
     e.preventDefault();
+    if (isLateClosed) {
+      setError('The deadline for this assignment has passed and late submissions are closed.');
+      return;
+    }
     if (!file && !text.trim()) {
       setError('Please attach a file or write a note to turn in your work.');
       return;
@@ -119,6 +127,10 @@ function MaterialSubmission({ subject, material, reload }) {
   };
 
   const handleUnsubmit = async () => {
+    if (isLateClosed) {
+      alert('The deadline has passed and late submissions are closed; this work cannot be unsubmitted.');
+      return;
+    }
     if (!window.confirm('Unsubmit your work? You can re-submit after updating your attachment.')) return;
     setBusy(true);
     setError('');
@@ -158,6 +170,7 @@ function MaterialSubmission({ subject, material, reload }) {
           {statusKey === 'ontime' && <CheckCircle size={13} />}
           {statusKey === 'late' && <Clock size={13} />}
           {statusKey === 'missing' && <AlertCircle size={13} />}
+          {statusKey === 'closed' && <AlertCircle size={13} />}
           {statusLabel}
         </span>
       </div>
@@ -207,7 +220,7 @@ function MaterialSubmission({ subject, material, reload }) {
 
           {error && <p className="subject-feed-error" role="alert">{error}</p>}
 
-          {submission.status !== 'graded' && (
+          {submission.status !== 'graded' && !isLateClosed && (
             <div className="turnin-footer-actions">
               <button
                 type="button"
@@ -220,6 +233,19 @@ function MaterialSubmission({ subject, material, reload }) {
               <span className="turnin-unsubmit-tip">Unsubmit to attach a different file or update your note.</span>
             </div>
           )}
+          {submission.status !== 'graded' && isLateClosed && (
+            <div className="turnin-footer-actions">
+              <span className="turnin-unsubmit-tip">Submissions are closed. This work cannot be unsubmitted after the deadline.</span>
+            </div>
+          )}
+        </div>
+      ) : isLateClosed ? (
+        <div className="turnin-closed-notice" style={{ padding: '14px 16px', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', color: '#9a3412', display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <AlertCircle size={20} />
+          <div>
+            <strong style={{ display: 'block', fontSize: '13px', marginBottom: '2px' }}>Submissions are closed</strong>
+            <span style={{ fontSize: '12px' }}>The deadline for this assignment has passed and the teacher has closed late submissions.</span>
+          </div>
         </div>
       ) : (
         <form onSubmit={handleTurnIn} className="material-turnin-form">

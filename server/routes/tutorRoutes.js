@@ -30,7 +30,7 @@ async function publicProfile(profile) {
   return {
     id: profile.user._id, name: profile.user.name, profilePicture: profile.user.profilePicture || '',
     bio: profile.user.bio || profile.teachingBio, subject: profile.subjectToTeach,
-    hourlyRate: profile.hourlyRate, ...await stats(profile.user._id),
+    hourlyRate: profile.hourlyRate, isVerified: Boolean(profile.isVerified), ...await stats(profile.user._id),
   };
 }
 

@@ -49,8 +49,11 @@ app.use(express.json());
 app.use(['/api', '/auth', '/teacher', '/student', '/courses', '/subjects', '/tutors', '/student-subjects', '/notifications', '/messages', '/admin'], require('./services/authSecurity').csrf);
 
 app.get("/", (req, res) => {
+  const { getProvider, isCloudConfigured } = require("./services/cloudStorage");
   res.json({
     message: "TuroLink API is running.",
+    storageProvider: getProvider(),
+    cloudConnected: isCloudConfigured(),
   });
 });
 

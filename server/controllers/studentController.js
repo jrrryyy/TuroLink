@@ -9,12 +9,39 @@ const getDashboardData = async (req, res) => {
 
     const now = new Date();
     const local = new Date(+now + 8 * 3600000);
-    const months = Array.from({ length: 6 }, (_, i) => new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth() - 5 + i, 1)));
     const totals = await Booking.aggregate([
       { $match: { student: user._id, status: 'confirmed', end: { $lte: now, $gte: new Date(+months[0] - 8 * 3600000) } } },
-      { $group: { _id: { $dateToString: { date: '$end', format: '%Y-%m', timezone: 'Asia/Manila' } }, hours: { $sum: { $divide: [{ $subtract: ['$end', '$start'] }, 3600000] } } } }
+      {
+        $group: {
+          _id: { $dateToString: { date: '$end', format: '%Y-%m', timezone: 'Asia/Manila' } },
+          hours: { $sum: { $divide: [{ $subtract: ['$end', '$start'] }, 3600000] } },
+          sessions: { $sum: 1 },
+        },
+      },
     ]);
-    const sessionHours = months.map(month => ({ month: month.toLocaleDateString('en', { month: 'short', timeZone: 'UTC' }), hours: Math.round((totals.find(row => row._id === month.toISOString().slice(0, 7))?.hours || 0) * 10) / 10 }));
+    const sessionHours = months.map(month => {
+      const monthKey = month.toISOString().slice(0, 7);
+      const row = totals.find(r => r._id === monthKey);
+      return {
+        month: month.toLocaleDateString('en-PH', { month: 'short', timeZone: 'Asia/Manila' }),
+        fullMonth: month.toLocaleDateString('en-PH', { month: 'long', year: 'numeric', timeZone: 'Asia/Manila' }),
+        hours: Math.round(((row?.hours) || 0) * 10) / 10,
+        sessions: row?.sessions || 0,
+      };
+    });
+
+    const totalSessionHours = Math.round(sessionHours.reduce((sum, s) => sum + s.hours, 0) * 10) / 10;
+    const totalCompletedSessions = sessionHours.reduce((sum, s) => sum + s.sessions, 0);
+    const avgMonthlyHours = Math.round((totalSessionHours / (sessionHours.length || 1)) * 10) / 10;
+    const peakMonthItem = sessionHours.reduce((max, s) => (s.hours > max.hours ? s : max), sessionHours[0] || { month: '', hours: 0, sessions: 0 });
+    const sessionAnalytics = {
+      totalHours: totalSessionHours,
+      totalSessions: totalCompletedSessions,
+      avgMonthlyHours,
+      peakMonth: peakMonthItem.hours > 0 ? peakMonthItem.month : 'N/A',
+      peakHours: peakMonthItem.hours,
+      monthly: sessionHours,
+    };
 
     // ── Calculate student assessment performance ────────────────────────────
     const enrolledSubjects = await Subject.find({ enrolledStudents: user._id }).lean();
@@ -115,6 +142,7 @@ const getDashboardData = async (req, res) => {
       enrolledCourses: user.enrolledCourses,
 
       sessionHours,
+      sessionAnalytics,
 
       upcomingClasses: await upcomingBookings(user._id, 'student'),
 

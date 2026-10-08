@@ -710,7 +710,9 @@ export default function Messages() {
                           <div className="messages-popover-user-meta">
                             <h4>{activeRecipient.name}</h4>
                             <span className="messages-popover-role-pill">
-                              {activeRecipient.role === 'teacher' ? 'Verified Tutor' : 'Student'}
+                              {activeRecipient.role === 'teacher'
+                                ? (activeRecipient.isVerified ? 'Verified Teacher' : 'Teacher')
+                                : 'Student'}
                             </span>
                           </div>
                         </div>

@@ -19,6 +19,7 @@ import { Link } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import DashboardLayout from "../components/DashboardLayout";
+import StudentSessionHistoryGraph from "../components/StudentSessionHistoryGraph";
 import "../styles/student-dashboard.css";
 
 const StudentDashboard = () => {
@@ -858,43 +859,10 @@ const StudentDashboard = () => {
                   </Link>
                 </section>
 
-                <section className="student-panel student-history" aria-labelledby="student-history-heading">
-                  <div className="student-panel-heading">
-                    <div>
-                      <span className="student-eyebrow">ACTIVITY</span>
-                      <h2 id="student-history-heading">Session History</h2>
-                    </div>
-                    <Clock3 size={18} className="student-panel-header-icon" />
-                  </div>
-                  {sessionHours.some((session) => session.hours > 0) ? (
-                    <div
-                      className="student-history-chart"
-                      role="img"
-                      aria-label={sessionHours.map((session) => session.month + ": " + session.hours + " hours").join(", ")}
-                    >
-                      {sessionHours.map((session, index) => (
-                        <div className="student-history-column" key={session.month + index} aria-hidden="true">
-                          <div className="student-history-track">
-                            <div
-                              className="student-history-bar"
-                              style={{
-                                height: `${(Math.max(0, Number(session.hours) || 0) / maxHours) * 100}%`,
-                              }}
-                            >
-                              <span>{session.hours}h</span>
-                            </div>
-                          </div>
-                          <span className="student-history-month">{session.month}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="student-empty">
-                      <Clock3 size={28} />
-                      <p>Your session hours will appear here as you complete tutoring sessions.</p>
-                    </div>
-                  )}
-                </section>
+                <StudentSessionHistoryGraph
+                  sessionHours={sessionHours}
+                  sessionAnalytics={data?.sessionAnalytics}
+                />
               </div>
             </div>
           </>

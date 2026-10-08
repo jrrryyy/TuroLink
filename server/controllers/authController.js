@@ -47,7 +47,7 @@ async function createAccount(req, res, role = 'student', google) {
     if (role === 'teacher') await TeacherProfile.create({ user: user._id, degreeTitle: req.body.degreeTitle, subjectToTeach: req.body.subjectToTeach, teachingBio: req.body.teachingBio, verificationDocument, subjects: [{ name: req.body.subjectToTeach }] });
     profileComplete = true;
     await sendVerification(user, req);
-    return res.status(201).json({ verificationRequired: true, email, message: 'Check your email to activate your account. The link expires in 1 hour.' });
+    return res.status(201).json({ verificationRequired: true, email, expiresAt: Date.now() + 180000, expiresIn: 180, message: 'Check your email to activate your account. The link expires in 3 minutes.' });
   } catch (error) {
     if (user && !profileComplete) { await TeacherProfile.deleteOne({ user: user._id }); await User.deleteOne({ _id: user._id }); }
     if (user && profileComplete && error.status === 503) return res.status(202).json({ verificationRequired: true, emailDeliveryFailed: true, email: user.email, message: error.message });
@@ -72,7 +72,19 @@ async function login(req, res) {
 async function verifyEmail(req, res) {
   const token = req.body.token;
   if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) return res.status(400).json({ message: 'This verification link is invalid.' });
-  const user = await User.findOneAndUpdate({ verificationHash: hash(token), verificationExpiresAt: { $gt: new Date() }, emailVerifiedAt: null }, { $set: { emailVerifiedAt: new Date() }, $unset: { verificationHash: 1, verificationExpiresAt: 1, verificationSentAt: 1 } });
+  const tokenHash = hash(token);
+  const expiredUser = await User.findOne({
+    verificationHash: tokenHash,
+    emailVerifiedAt: null,
+    verificationExpiresAt: { $lte: new Date() },
+  });
+  if (expiredUser) {
+    return res.status(400).json({
+      code: 'TOKEN_EXPIRED',
+      message: 'This verification link has expired (links are valid for 3 minutes). Please request a new verification email.',
+    });
+  }
+  const user = await User.findOneAndUpdate({ verificationHash: tokenHash, verificationExpiresAt: { $gt: new Date() }, emailVerifiedAt: null }, { $set: { emailVerifiedAt: new Date() }, $unset: { verificationHash: 1, verificationExpiresAt: 1, verificationSentAt: 1 } });
   if (!user) {
     return res.status(400).json({
       code: 'ALREADY_VERIFIED',
@@ -87,7 +99,11 @@ async function resend(req, res) {
     assertMailConfigured();
     const user = await User.findOne({ email: normalizeEmail(req.body.email), emailVerifiedAt: null });
     if (user) await sendVerification(user, req);
-    res.json({ message: 'If this email has an unverified account, a link has been sent. Check spam too. Please wait 60 seconds before requesting another.' });
+    res.json({
+      message: 'If this email has an unverified account, a link has been sent. Check spam too. Please wait 60 seconds before requesting another.',
+      expiresAt: Date.now() + 180000,
+      expiresIn: 180,
+    });
   } catch (error) { res.status(error.status || 500).json({ message: error.status ? error.message : 'Unable to send verification email.' }); }
 }
 async function logout(req, res) {

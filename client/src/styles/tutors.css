@@ -360,4 +360,32 @@
   box-shadow: 0 4px 10px rgba(53, 92, 66, 0.35);
 }
 
+.tutor-role-pill {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.2;
+}
+
+.tutor-role-pill.verified {
+  background: var(--layout-green, #274c33);
+  color: #ffffff;
+}
+
+.tutor-role-pill.unverified {
+  background: var(--layout-hover, rgba(51, 80, 53, 0.08));
+  color: var(--layout-green, #274c33);
+  border: 1px solid var(--layout-border, rgba(51, 80, 53, 0.16));
+}
+
+.dark-dashboard-layout .tutor-role-pill.unverified {
+  background: rgba(255, 255, 255, 0.08);
+  color: #b5c7a5;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
 
