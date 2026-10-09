@@ -1,0 +1,596 @@
+/* ========================================================
+   ADMIN REPORTS & COMPLAINTS STYLING
+   ======================================================== */
+
+.admin-reports-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Page Intro */
+.admin-reports-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-reports-header h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--admin-text-main, #0f172a);
+  margin: 0;
+}
+
+.admin-reports-header p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--admin-text-muted, #64748b);
+}
+
+/* Metrics Row */
+.admin-reports-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.admin-report-stat-card {
+  background: var(--admin-card-bg, #ffffff);
+  border: 1px solid var(--admin-border, #e2e8f0);
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.admin-report-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-report-stat-icon.pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.admin-report-stat-icon.investigating {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.admin-report-stat-icon.resolved {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.admin-report-stat-icon.banned {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.admin-report-stat-info strong {
+  display: block;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--admin-text-main, #0f172a);
+  line-height: 1.2;
+}
+
+.admin-report-stat-info span {
+  font-size: 0.8rem;
+  color: var(--admin-text-muted, #64748b);
+  font-weight: 600;
+}
+
+/* Filter controls bar */
+.admin-reports-controls {
+  background: var(--admin-card-bg, #ffffff);
+  border: 1px solid var(--admin-border, #e2e8f0);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-reports-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--admin-border, #e2e8f0);
+  padding-bottom: 12px;
+}
+
+.admin-reports-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--admin-text-muted, #64748b);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.admin-reports-tab-btn:hover {
+  background: #f8fafc;
+  color: var(--admin-text-main, #0f172a);
+}
+
+.admin-reports-tab-btn.active {
+  background: #274c33;
+  color: #ffffff;
+}
+
+.admin-reports-tab-badge {
+  font-size: 0.75rem;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.admin-reports-tab-btn.active .admin-reports-tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.admin-reports-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-reports-search-wrap {
+  flex: 1;
+  min-width: 240px;
+  position: relative;
+}
+
+.admin-reports-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.admin-reports-search-input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  background: var(--admin-input-bg, #ffffff);
+  color: var(--admin-text-main, #0f172a);
+  font-size: 0.88rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.admin-reports-search-input:focus {
+  border-color: #274c33;
+}
+
+.admin-reports-select {
+  padding: 9px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border, #e2e8f0);
+  background: var(--admin-input-bg, #ffffff);
+  color: var(--admin-text-main, #0f172a);
+  font-size: 0.88rem;
+  outline: none;
+  cursor: pointer;
+}
+
+/* Reports List */
+.admin-reports-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.admin-report-card {
+  background: var(--admin-card-bg, #ffffff);
+  border: 1px solid var(--admin-border, #e2e8f0);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.15s ease;
+}
+
+.admin-report-card.banned-user {
+  border-left: 4px solid #dc2626;
+}
+
+.admin-report-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-report-parties {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.admin-report-user-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-report-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #274c33;
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+}
+
+.admin-report-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-report-user-meta strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.92rem;
+  color: var(--admin-text-main, #0f172a);
+}
+
+.admin-report-user-meta span {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--admin-text-muted, #64748b);
+}
+
+.admin-report-arrow-icon {
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+}
+
+/* Category & Status tags */
+.admin-report-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-report-category-pill {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.admin-report-category-pill.fraud {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.admin-report-category-pill.fake_profile {
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.admin-report-category-pill.harassment {
+  background: #fdf2f8;
+  color: #be185d;
+  border: 1px solid #fbcfe8;
+}
+
+.admin-report-category-pill.scam {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #ddd6fe;
+}
+
+.admin-report-category-pill.inappropriate_content {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.admin-report-category-pill.other {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.admin-report-status-pill {
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: capitalize;
+}
+
+.admin-report-status-pill.pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.admin-report-status-pill.investigating {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.admin-report-status-pill.resolved {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.admin-report-status-pill.dismissed {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.admin-banned-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: #dc2626;
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Description box */
+.admin-report-desc-box {
+  background: #f8faf9;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.admin-report-desc-box strong {
+  display: block;
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* Admin notes display */
+.admin-report-notes-box {
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  color: #92400e;
+}
+
+/* Footer / Actions */
+.admin-report-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px solid var(--admin-border, #f1f5f9);
+}
+
+.admin-report-timestamp {
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+.admin-report-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.admin-action-btn.ban {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+.admin-action-btn.ban:hover {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.admin-action-btn.unban {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #16a34a;
+}
+
+.admin-action-btn.unban:hover {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.admin-action-btn.resolve {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+}
+
+.admin-action-btn.resolve:hover {
+  background: #047857;
+  color: #ffffff;
+}
+
+.admin-action-btn.dismiss {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.admin-action-btn.dismiss:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* Ban Dialog Modal */
+.admin-ban-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  padding: 16px;
+}
+
+.admin-ban-dialog-card {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-ban-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-ban-dialog-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.admin-ban-dialog-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.admin-ban-dialog-card p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.admin-ban-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.88rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.admin-ban-input:focus {
+  border-color: #dc2626;
+}
+
+.admin-ban-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+/* Empty State */
+.admin-reports-empty {
+  background: var(--admin-card-bg, #ffffff);
+  border: 1px dashed var(--admin-border, #cbd5e1);
+  border-radius: 16px;
+  padding: 60px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: var(--admin-text-muted, #64748b);
+}
+
+.admin-reports-empty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.admin-reports-empty strong {
+  font-size: 1.1rem;
+  color: var(--admin-text-main, #0f172a);
+}

@@ -6,18 +6,29 @@ import {
   User,
   ShieldCheck,
   GraduationCap,
+  AlertTriangle,
 } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { profilePictureUrl } from '../services/profile';
+import ReportUserModal from './ReportUserModal';
 import '../styles/view-profile-modal.css';
 
-export default function UserProfileModal({ user, isOpen, onClose }) {
+export default function UserProfileModal({
+  user,
+  targetId: propTargetId,
+  isOpen = true,
+  onClose,
+  onStartConversation,
+}) {
+  const { user: currentUser } = useAuth();
   const modalRef = useRef(null);
-  const targetId = user?._id || user?.id;
-  const [profileData, setProfileData] = useState(user);
+  const targetId = propTargetId || user?._id || user?.id;
+  const [profileData, setProfileData] = useState(user || null);
+  const [showReportModal, setShowReportModal] = useState(false);
 
   useEffect(() => {
-    setProfileData(user);
+    setProfileData(user || null);
   }, [user]);
 
   // Fetch full user profile details if targetId is present
@@ -57,7 +68,8 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen || !user) return null;
+  const activeUser = profileData || user;
+  if (!isOpen || (!user && !propTargetId) || !activeUser) return null;
 
   const handleBackdropClick = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) {
@@ -65,9 +77,18 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
     }
   };
 
-  const activeUser = profileData || user;
   const isTeacher = activeUser.role === 'teacher';
   const firstLetter = activeUser.name?.trim().charAt(0).toUpperCase() || 'U';
+
+  const currentUserId = currentUser?._id || currentUser?.id;
+  const profileUserId = activeUser?._id || activeUser?.id || targetId;
+
+  const isOwnProfile = Boolean(
+    currentUser && (
+      (currentUserId && profileUserId && String(currentUserId) === String(profileUserId)) ||
+      (currentUser?.email && activeUser?.email && currentUser.email.toLowerCase() === activeUser.email.toLowerCase())
+    )
+  );
 
   return (
     <div
@@ -100,6 +121,20 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
             </div>
             <span className="view-profile-status-indicator" title="Active on TuroLink" />
           </div>
+
+          {!isOwnProfile && (
+            <div className="view-profile-top-actions">
+              <button
+                type="button"
+                className="view-profile-report-btn"
+                onClick={() => setShowReportModal(true)}
+                title="Report User to Administration"
+              >
+                <AlertTriangle size={14} />
+                <span>Report User</span>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="view-profile-body">
@@ -167,6 +202,12 @@ export default function UserProfileModal({ user, isOpen, onClose }) {
             Close
           </button>
         </div>
+
+        <ReportUserModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          targetUser={activeUser}
+        />
       </div>
     </div>
   );

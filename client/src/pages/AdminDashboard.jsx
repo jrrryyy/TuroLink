@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Sparkles,
   ExternalLink,
+  ShieldAlert,
 } from 'lucide-react';
 import api from '../services/api';
 import DashboardLayout from '../components/DashboardLayout';
@@ -53,6 +54,7 @@ export default function AdminDashboard() {
     totalBookings: 0,
     activeSessions: 0,
     pendingVerifications: 0,
+    pendingReports: stats?.metrics?.pendingReports || 0,
   };
 
   return (
@@ -93,6 +95,29 @@ export default function AdminDashboard() {
                 fontWeight: 800,
               }}>
                 {metrics.pendingVerifications}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            className="admin-hero-btn secondary"
+            onClick={() => navigate('/admin/reports')}
+            style={{
+              borderColor: metrics.pendingReports > 0 ? '#f43f5e' : undefined,
+              color: metrics.pendingReports > 0 ? '#e11d48' : undefined,
+            }}
+          >
+            <ShieldAlert size={16} /> Complaints & Reports
+            {metrics.pendingReports > 0 && (
+              <span style={{
+                background: '#f43f5e',
+                color: '#fff',
+                fontSize: '0.72rem',
+                padding: '2px 7px',
+                borderRadius: '10px',
+                fontWeight: 800,
+              }}>
+                {metrics.pendingReports}
               </span>
             )}
           </button>
@@ -220,6 +245,26 @@ export default function AdminDashboard() {
           </div>
           <div className="admin-metric-subtext">
             <span>Sessions scheduled & completed</span>
+          </div>
+        </div>
+
+        {/* Complaints & Reports */}
+        <div
+          className="admin-metric-card"
+          onClick={() => navigate('/admin/reports')}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="admin-metric-header">
+            <span className="admin-metric-label">Pending Complaints</span>
+            <div className="admin-metric-icon-wrap" style={{ background: '#fef2f2', color: '#dc2626' }}>
+              <ShieldAlert size={20} />
+            </div>
+          </div>
+          <div className="admin-metric-value" style={{ color: metrics.pendingReports > 0 ? '#dc2626' : undefined }}>
+            {loading ? '...' : metrics.pendingReports}
+          </div>
+          <div className="admin-metric-subtext">
+            <span>{metrics.pendingReports > 0 ? 'Requires administrative action' : 'All reports resolved'}</span>
           </div>
         </div>
       </div>

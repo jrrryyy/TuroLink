@@ -122,6 +122,9 @@ const userSchema = new mongoose.Schema(
       pushNotifications: { type: Boolean, default: false },
     },
     blockedUsers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    isBanned: { type: Boolean, default: false },
+    bannedAt: { type: Date, default: null },
+    bannedReason: { type: String, default: '' },
   },
   {
     timestamps: true,

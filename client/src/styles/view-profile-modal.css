@@ -99,6 +99,57 @@
   flex-shrink: 0;
 }
 
+/* Floating Top Actions (e.g. Report button) */
+.view-profile-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.view-profile-report-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  color: #dc2626;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  letter-spacing: 0.1px;
+}
+
+.view-profile-report-btn:hover {
+  background: rgba(220, 38, 38, 0.16);
+  border-color: rgba(220, 38, 38, 0.45);
+  color: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.15);
+}
+
+.view-profile-report-btn:active {
+  transform: translateY(0);
+}
+
+:root[data-theme='dark'] .view-profile-report-btn,
+.dark-theme .view-profile-report-btn {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #f87171;
+}
+
+:root[data-theme='dark'] .view-profile-report-btn:hover,
+.dark-theme .view-profile-report-btn:hover {
+  background: rgba(239, 68, 68, 0.24);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fca5a5;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
 /* Scrollable Content Body */
 .view-profile-body {
   padding: 12px 32px 28px;
@@ -583,6 +634,17 @@
 @media (max-width: 600px) {
   .view-profile-modal {
     border-radius: 22px;
+  }
+  .view-profile-top-bar {
+    padding: 0 20px;
+    margin-top: -42px;
+  }
+  .view-profile-top-actions {
+    margin-bottom: 4px;
+  }
+  .view-profile-report-btn {
+    padding: 5px 10px;
+    font-size: 11.5px;
   }
   .view-profile-body {
     padding: 0 20px 24px;

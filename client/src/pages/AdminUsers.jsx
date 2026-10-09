@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCheck,
+  UserX,
 } from 'lucide-react';
 import api from '../services/api';
 import DashboardLayout from '../components/DashboardLayout';
@@ -104,6 +105,25 @@ export default function AdminUsers() {
     } catch (err) {
       const msg = err.response?.data?.message || 'Unable to delete user.';
       setFeedback({ type: 'error', text: msg });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Handle ban / unban
+  const handleToggleBan = async (u) => {
+    try {
+      setActionLoading(true);
+      if (u.isBanned) {
+        await api.post(`/admin/users/${u._id}/unban`);
+        setFeedback({ type: 'success', text: `Lifted lifetime ban for ${u.name}.` });
+      } else {
+        await api.post(`/admin/users/${u._id}/ban`, { reason: 'Direct ban by administrator.' });
+        setFeedback({ type: 'success', text: `Banned ${u.name} for life and revoked active sessions.` });
+      }
+      fetchUsers();
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.response?.data?.message || 'Failed to update ban status.' });
     } finally {
       setActionLoading(false);
     }
@@ -243,6 +263,21 @@ export default function AdminUsers() {
                     </td>
                     <td>
                       <span className={`admin-badge ${u.role}`}>{u.role}</span>
+                      {u.isBanned && (
+                        <span style={{
+                          marginLeft: '6px',
+                          background: '#fee2e2',
+                          color: '#b91c1c',
+                          fontSize: '0.68rem',
+                          fontWeight: 800,
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                        }}>
+                          Banned
+                        </span>
+                      )}
                     </td>
                     <td>
                       <button
@@ -280,6 +315,23 @@ export default function AdminUsers() {
                         >
                           <Shield size={14} /> Edit Role
                         </button>
+
+                        {!isSelf && (
+                          <button
+                            type="button"
+                            className="admin-action-btn"
+                            style={{
+                              background: u.isBanned ? '#ecfdf5' : '#fef2f2',
+                              color: u.isBanned ? '#047857' : '#dc2626',
+                              borderColor: u.isBanned ? '#a7f3d0' : '#fecaca',
+                            }}
+                            title={u.isBanned ? "Lift Lifetime Ban" : "Ban User for Life"}
+                            onClick={() => handleToggleBan(u)}
+                            disabled={actionLoading}
+                          >
+                            <UserX size={14} /> {u.isBanned ? 'Unban' : 'Ban'}
+                          </button>
+                        )}
 
                         {!isSelf && (
                           <button

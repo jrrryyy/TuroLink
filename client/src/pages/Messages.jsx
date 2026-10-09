@@ -23,10 +23,12 @@ import {
   Eye,
   FileText,
   Image as ImageIcon,
+  AlertTriangle,
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import TutorProfileModal from '../components/TutorProfileModal';
 import UserProfileModal from '../components/UserProfileModal';
+import ReportUserModal from '../components/ReportUserModal';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { profilePictureUrl } from '../services/profile';
@@ -228,6 +230,7 @@ export default function Messages() {
   const [linksOpen, setLinksOpen] = useState(false);
   const [showBlockModal, setShowBlockModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [isBlockedByMe, setIsBlockedByMe] = useState(false);
   const [isBlockedByThem, setIsBlockedByThem] = useState(false);
   const [blockLoading, setBlockLoading] = useState(false);
@@ -853,6 +856,21 @@ export default function Messages() {
                               <span>Delete Conversation</span>
                             </div>
                           </button>
+
+                          {/* 5. Report User to Administration */}
+                          <button
+                            type="button"
+                            className="messages-popover-item danger"
+                            onClick={() => {
+                              setInfoMenuOpen(false);
+                              setShowReportModal(true);
+                            }}
+                          >
+                            <div className="messages-popover-item-left">
+                              <AlertTriangle size={16} />
+                              <span>Report User to Admin</span>
+                            </div>
+                          </button>
                         </div>
                       </div>
                     )}
@@ -1226,6 +1244,17 @@ export default function Messages() {
           </div>
         </div>
       )}
+
+      {/* ── Report User to Admin Modal ────────────────────────────────────── */}
+      <ReportUserModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetUser={activeRecipient}
+        onReportSubmitted={() => {
+          setToastMessage('Report submitted to administration for review.');
+          setTimeout(() => setToastMessage(''), 4000);
+        }}
+      />
 
       {/* ── Delete Conversation Confirmation Modal ────────────────────────── */}
       {showDeleteModal && (

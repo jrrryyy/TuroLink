@@ -5,6 +5,7 @@ const protect = async (req, res, next) => {
     const token = cookie(req, 'turolink_session');
     const session = token && await Session.findOne({ tokenHash: hash(token), expiresAt: { $gt: new Date() } }).populate('user');
     if (!session?.user) return res.status(401).json({ message: 'Please log in again.' });
+    if (session.user.isBanned) return res.status(403).json({ code: 'USER_BANNED', message: session.user.bannedReason ? `Your account has been permanently suspended: ${session.user.bannedReason}` : 'Your account has been permanently suspended by administration.' });
     if (!session.user.emailVerifiedAt) return res.status(403).json({ code: 'EMAIL_UNVERIFIED', message: 'Verify your email before signing in.' });
     req.user = session.user;
     req.authSession = session;

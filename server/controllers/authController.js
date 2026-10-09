@@ -64,6 +64,7 @@ async function login(req, res) {
   try {
     const user = await User.findOne({ email: req.body.email });
     if (!user?.password || !await bcrypt.compare(req.body.password, user.password)) return res.status(401).json({ message: 'Invalid email or password.' });
+    if (user.isBanned) return res.status(403).json({ code: 'USER_BANNED', message: user.bannedReason ? `Your account has been permanently suspended: ${user.bannedReason}` : 'Your account has been permanently suspended by administration.' });
     if (!user.emailVerifiedAt) return res.status(403).json({ code: 'EMAIL_UNVERIFIED', message: 'Verify your email before signing in. Request a verification link below.' });
     await startSession(req, res, user, Boolean(req.body.rememberMe));
     res.json({ user: publicUser(user) });

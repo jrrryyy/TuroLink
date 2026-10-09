@@ -36,6 +36,7 @@ async function authenticate(req, res) {
   } catch { return res.status(401).json({ message: 'Google authentication failed. Reload and try again.' }); }
   const user = await User.findOne({ googleSub: identity.sub });
   if (user) {
+    if (user.isBanned) return res.status(403).json({ code: 'USER_BANNED', message: user.bannedReason ? `Your account has been permanently suspended: ${user.bannedReason}` : 'Your account has been permanently suspended by administration.' });
     if (!user.emailVerifiedAt) return res.status(403).json({ code: 'EMAIL_UNVERIFIED', email: user.email, message: 'Verify your TuroLink email before signing in.' });
     await startSession(req, res, user);
     return res.json({ user: publicUser(user) });

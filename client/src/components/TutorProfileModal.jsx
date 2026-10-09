@@ -11,9 +11,12 @@ import {
   Sparkles,
   CheckCircle,
   GraduationCap,
+  AlertTriangle,
 } from 'lucide-react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { profilePictureUrl } from '../services/profile';
+import ReportUserModal from './ReportUserModal';
 import '../styles/view-profile-modal.css';
 
 const money = (value) =>
@@ -38,10 +41,12 @@ function availabilityTags(slots = []) {
 }
 
 export default function TutorProfileModal({ tutorId, isOpen, onClose }) {
+  const { user: currentUser } = useAuth();
   const [tutor, setTutor] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const modalRef = useRef(null);
   const navigate = useNavigate();
 
@@ -121,6 +126,15 @@ export default function TutorProfileModal({ tutorId, isOpen, onClose }) {
   const tags = tutor ? availabilityTags(tutor.slots || []) : [];
   const firstName = tutor?.name ? tutor.name.split(' ')[0] : 'Tutor';
 
+  const currentUserId = currentUser?._id || currentUser?.id;
+  const tutorUserId = tutor?._id || tutor?.id || (typeof tutor?.userId === 'object' ? tutor?.userId?._id : tutor?.userId);
+  const isOwnProfile = Boolean(
+    currentUser && (
+      (currentUserId && tutorUserId && String(currentUserId) === String(tutorUserId)) ||
+      (currentUser?.email && tutor?.email && currentUser.email.toLowerCase() === tutor.email.toLowerCase())
+    )
+  );
+
   return (
     <div
       className="view-profile-overlay"
@@ -153,6 +167,20 @@ export default function TutorProfileModal({ tutorId, isOpen, onClose }) {
               </div>
               <span className="view-profile-status-indicator" title="Active on TuroLink" />
             </div>
+
+            {!isOwnProfile && (
+              <div className="view-profile-top-actions">
+                <button
+                  type="button"
+                  className="view-profile-report-btn"
+                  onClick={() => setShowReportModal(true)}
+                  title="Report Tutor to Administration"
+                >
+                  <AlertTriangle size={14} />
+                  <span>Report Tutor</span>
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -314,6 +342,19 @@ export default function TutorProfileModal({ tutorId, isOpen, onClose }) {
               Book a Session
             </button>
           </div>
+        )}
+
+        {tutor && (
+          <ReportUserModal
+            isOpen={showReportModal}
+            onClose={() => setShowReportModal(false)}
+            targetUser={{
+              _id: tutor.id,
+              name: tutor.name,
+              role: 'teacher',
+              profilePicture: tutor.profilePicture,
+            }}
+          />
         )}
       </div>
     </div>

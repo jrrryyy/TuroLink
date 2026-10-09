@@ -35,6 +35,7 @@ import {
   ChevronRight,
   ChevronDown,
   User,
+  ShieldAlert,
 } from "lucide-react";
 
 import {
@@ -171,6 +172,7 @@ const DashboardLayout = ({
           {(isAdminView ? [
             { label: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
             { label: "User Management", icon: Users, path: "/admin/users" },
+            { label: "Reports & Complaints", icon: ShieldAlert, path: "/admin/reports" },
             { label: "Teacher Approvals", icon: ShieldCheck, path: "/admin/teachers" },
             { label: "Platform Subjects", icon: BookOpen, path: "/admin/subjects" },
             { label: "All Bookings", icon: CalendarDays, path: "/admin/bookings" },

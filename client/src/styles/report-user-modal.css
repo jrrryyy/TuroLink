@@ -1,0 +1,439 @@
+/* ========================================================
+   REPORT USER MODAL STYLES
+   ======================================================== */
+
+.report-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 16px;
+  animation: reportModalFadeIn 0.2s ease-out;
+}
+
+@keyframes reportModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.report-modal-card {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  animation: reportModalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes reportModalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.report-modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #f1f5f3;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.report-modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-modal-icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.report-modal-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.report-modal-header p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.report-modal-close-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.report-modal-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Body */
+.report-modal-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Target User Card */
+.report-target-user-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8faf9;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 10px 14px;
+}
+
+.report-target-user-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-target-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #274c33;
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 0.95rem;
+}
+
+.report-target-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.report-target-info strong {
+  display: block;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.report-target-info span {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-transform: capitalize;
+}
+
+.report-target-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border-radius: 20px;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.report-target-badge.teacher {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.report-target-badge.student {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+/* Category Grid */
+.report-category-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-section-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.report-category-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.report-category-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.report-category-btn:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.report-category-btn.active {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
+.report-category-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.report-category-btn.active .report-category-dot {
+  border-color: #dc2626;
+  background: #dc2626;
+}
+
+.report-category-dot-inner {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+.report-category-text strong {
+  display: block;
+  font-size: 0.88rem;
+  color: #1e293b;
+}
+
+.report-category-btn.active .report-category-text strong {
+  color: #991b1b;
+}
+
+.report-category-text span {
+  font-size: 0.77rem;
+  color: #64748b;
+}
+
+/* Textarea */
+.report-textarea-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  font-family: inherit;
+  font-size: 0.88rem;
+  color: #0f172a;
+  resize: vertical;
+  min-height: 90px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.report-textarea:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1);
+}
+
+.report-textarea-counter {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-align: right;
+}
+
+/* Notice */
+.report-security-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.78rem;
+  color: #475569;
+  line-height: 1.4;
+}
+
+.report-security-notice svg {
+  color: #dc2626;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Error message */
+.report-modal-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+/* Footer */
+.report-modal-footer {
+  padding: 14px 24px 20px;
+  border-top: 1px solid #f1f5f3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.report-btn-cancel {
+  padding: 9px 18px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.report-btn-cancel:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.report-btn-submit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 10px;
+  border: none;
+  background: #dc2626;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+  transition: all 0.15s ease;
+}
+
+.report-btn-submit:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.report-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Success View */
+.report-success-view {
+  padding: 36px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.report-success-icon-wrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.report-success-view h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.report-success-view p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.report-success-done-btn {
+  margin-top: 10px;
+  padding: 10px 28px;
+  border-radius: 10px;
+  border: none;
+  background: #274c33;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.report-success-done-btn:hover {
+  background: #1e3a27;
+}

@@ -27,6 +27,7 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminTeacherVerification from "./pages/AdminTeacherVerification";
 import AdminSubjects from "./pages/AdminSubjects";
 import AdminBookings from "./pages/AdminBookings";
+import AdminReports from "./pages/AdminReports";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -262,6 +263,15 @@ function App() {
         element={
           <ProtectedRoute allowedRole="admin">
             <AdminBookings />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/reports"
+        element={
+          <ProtectedRoute allowedRole="admin">
+            <AdminReports />
           </ProtectedRoute>
         }
       />

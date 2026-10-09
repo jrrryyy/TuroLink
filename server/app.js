@@ -46,7 +46,7 @@ app.use(
 );
 
 app.use(express.json());
-app.use(['/api', '/auth', '/teacher', '/student', '/courses', '/subjects', '/tutors', '/student-subjects', '/notifications', '/messages', '/admin'], require('./services/authSecurity').csrf);
+app.use(['/api', '/auth', '/teacher', '/student', '/courses', '/subjects', '/tutors', '/student-subjects', '/notifications', '/messages', '/admin', '/reports'], require('./services/authSecurity').csrf);
 
 app.get("/", (req, res) => {
   const { getProvider, isCloudConfigured } = require("./services/cloudStorage");
@@ -73,6 +73,7 @@ app.use(["/api/student-subjects", "/student-subjects"], require('./routes/studen
 app.use(["/api/notifications", "/notifications"], require('./routes/notificationRoutes'));
 app.use(["/api/messages", "/messages"], require('./routes/messageRoutes'));
 app.use(["/api/admin", "/admin"], adminRoutes);
+app.use(["/api/reports", "/reports"], require('./routes/reportRoutes'));
 
 app.use((error, req, res, next) => {
   if (res.headersSent) return next(error);

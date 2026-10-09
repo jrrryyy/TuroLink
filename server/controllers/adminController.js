@@ -3,6 +3,7 @@ const TeacherProfile = require('../models/TeacherProfile');
 const Subject = require('../models/Subject');
 const Booking = require('../models/Booking');
 const Session = require('../models/AuthSession');
+const Report = require('../models/Report');
 
 // ── GET /api/admin/stats ──────────────────────────────────────────────────
 async function getStats(req, res) {
@@ -15,6 +16,7 @@ async function getStats(req, res) {
       verifiedUsers,
       totalSubjects,
       totalBookings,
+      pendingReportsCount,
       recentUsers,
       recentBookings,
       pendingTeachers,
@@ -26,10 +28,11 @@ async function getStats(req, res) {
       User.countDocuments({ emailVerifiedAt: { $ne: null } }),
       Subject.countDocuments(),
       Booking.countDocuments(),
+      Report.countDocuments({ status: 'pending' }),
       User.find()
         .sort({ createdAt: -1 })
         .limit(6)
-        .select('name email role profilePicture emailVerifiedAt createdAt')
+        .select('name email role profilePicture isBanned emailVerifiedAt createdAt')
         .lean(),
       Booking.find()
         .sort({ createdAt: -1 })
@@ -58,6 +61,7 @@ async function getStats(req, res) {
         totalBookings,
         activeSessions,
         pendingVerifications: validPendingTeachers.length,
+        pendingReports: pendingReportsCount,
       },
       recentUsers,
       recentBookings,
@@ -98,7 +102,7 @@ async function getUsers(req, res) {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(take)
-        .select('name email phone role profilePicture emailVerifiedAt createdAt updatedAt')
+        .select('name email phone role profilePicture emailVerifiedAt isBanned bannedAt bannedReason createdAt updatedAt')
         .lean(),
       User.countDocuments(query),
     ]);
@@ -356,6 +360,207 @@ async function updateBookingStatus(req, res) {
   }
 }
 
+// ── GET /api/admin/reports ────────────────────────────────────────────────
+async function getReports(req, res) {
+  try {
+    const { status = 'all', category = 'all', search = '', page = 1, limit = 20 } = req.query;
+    const query = {};
+
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+
+    if (category && category !== 'all') {
+      query.category = category;
+    }
+
+    if (search.trim()) {
+      const regex = new RegExp(search.trim(), 'i');
+      const matchingUsers = await User.find({
+        $or: [{ name: regex }, { email: regex }],
+      }).select('_id');
+      const userIds = matchingUsers.map((u) => u._id);
+
+      query.$or = [
+        { reason: regex },
+        { description: regex },
+        { reporter: { $in: userIds } },
+        { reportedUser: { $in: userIds } },
+      ];
+    }
+
+    const skip = (Math.max(1, parseInt(page, 10)) - 1) * parseInt(limit, 10);
+    const take = parseInt(limit, 10);
+
+    const [reports, total, pendingCount] = await Promise.all([
+      Report.find(query)
+        .populate('reporter', 'name email role profilePicture phone')
+        .populate('reportedUser', 'name email role profilePicture isBanned bannedAt bannedReason phone')
+        .populate('resolvedBy', 'name email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(take)
+        .lean(),
+      Report.countDocuments(query),
+      Report.countDocuments({ status: 'pending' }),
+    ]);
+
+    res.json({
+      reports,
+      total,
+      pendingCount,
+      page: parseInt(page, 10),
+      totalPages: Math.ceil(total / take) || 1,
+    });
+  } catch (error) {
+    console.error('Admin getReports error:', error);
+    res.status(500).json({ message: 'Unable to retrieve reports.' });
+  }
+}
+
+// ── GET /api/admin/reports/stats ──────────────────────────────────────────
+async function getReportStats(req, res) {
+  try {
+    const [total, pending, investigating, resolved, dismissed, bannedCount] = await Promise.all([
+      Report.countDocuments(),
+      Report.countDocuments({ status: 'pending' }),
+      Report.countDocuments({ status: 'investigating' }),
+      Report.countDocuments({ status: 'resolved' }),
+      Report.countDocuments({ status: 'dismissed' }),
+      User.countDocuments({ isBanned: true }),
+    ]);
+
+    res.json({
+      total,
+      pending,
+      investigating,
+      resolved,
+      dismissed,
+      bannedCount,
+    });
+  } catch (error) {
+    console.error('Admin getReportStats error:', error);
+    res.status(500).json({ message: 'Unable to retrieve report statistics.' });
+  }
+}
+
+// ── PATCH /api/admin/reports/:id ──────────────────────────────────────────
+async function updateReport(req, res) {
+  try {
+    const { id } = req.params;
+    const { status, adminNotes, actionTaken } = req.body || {};
+
+    const report = await Report.findById(id);
+    if (!report) return res.status(404).json({ message: 'Report not found.' });
+
+    if (status && ['pending', 'investigating', 'resolved', 'dismissed'].includes(status)) {
+      report.status = status;
+      if (['resolved', 'dismissed'].includes(status)) {
+        report.resolvedAt = new Date();
+        report.resolvedBy = req.user._id;
+      }
+    }
+
+    if (adminNotes !== undefined) {
+      report.adminNotes = String(adminNotes).trim();
+    }
+
+    if (actionTaken && ['none', 'banned', 'warned', 'dismissed'].includes(actionTaken)) {
+      report.actionTaken = actionTaken;
+    }
+
+    await report.save();
+
+    const populated = await Report.findById(id)
+      .populate('reporter', 'name email role profilePicture phone')
+      .populate('reportedUser', 'name email role profilePicture isBanned bannedAt bannedReason phone')
+      .populate('resolvedBy', 'name email')
+      .lean();
+
+    res.json({ message: 'Report updated successfully.', report: populated });
+  } catch (error) {
+    console.error('Admin updateReport error:', error);
+    res.status(500).json({ message: 'Unable to update report.' });
+  }
+}
+
+// ── POST /api/admin/users/:id/ban ─────────────────────────────────────────
+async function banUser(req, res) {
+  try {
+    const { id } = req.params;
+    const { reason = 'Violation of platform terms and conditions.', reportId } = req.body || {};
+
+    if (id === req.user._id.toString()) {
+      return res.status(400).json({ message: 'You cannot ban your own administrator account.' });
+    }
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    user.isBanned = true;
+    user.bannedAt = new Date();
+    user.bannedReason = String(reason).trim() || 'Account permanently suspended by administration.';
+    await user.save();
+
+    // Immediately terminate all active sessions to force logout
+    await Session.deleteMany({ user: id });
+
+    // Mark related reports as resolved with 'banned' action
+    const updateReportsFilter = reportId ? { _id: reportId } : { reportedUser: id, status: { $in: ['pending', 'investigating'] } };
+    await Report.updateMany(updateReportsFilter, {
+      $set: {
+        status: 'resolved',
+        actionTaken: 'banned',
+        resolvedAt: new Date(),
+        resolvedBy: req.user._id,
+        adminNotes: `Banned for life by admin. Reason: ${user.bannedReason}`,
+      },
+    });
+
+    res.json({
+      message: `${user.name} has been banned for life and all active sessions were terminated.`,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isBanned: user.isBanned,
+        bannedAt: user.bannedAt,
+        bannedReason: user.bannedReason,
+      },
+    });
+  } catch (error) {
+    console.error('Admin banUser error:', error);
+    res.status(500).json({ message: 'Unable to ban user.' });
+  }
+}
+
+// ── POST /api/admin/users/:id/unban ───────────────────────────────────────
+async function unbanUser(req, res) {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    user.isBanned = false;
+    user.bannedAt = null;
+    user.bannedReason = '';
+    await user.save();
+
+    res.json({
+      message: `${user.name}'s lifetime suspension has been lifted.`,
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isBanned: false,
+      },
+    });
+  } catch (error) {
+    console.error('Admin unbanUser error:', error);
+    res.status(500).json({ message: 'Unable to unban user.' });
+  }
+}
+
 module.exports = {
   getStats,
   getUsers,
@@ -368,4 +573,9 @@ module.exports = {
   deleteSubject,
   getBookings,
   updateBookingStatus,
+  getReports,
+  getReportStats,
+  updateReport,
+  banUser,
+  unbanUser,
 };

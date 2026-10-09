@@ -27,4 +27,13 @@ router.delete('/subjects/:id', adminController.deleteSubject);
 router.get('/bookings', adminController.getBookings);
 router.patch('/bookings/:id/status', adminController.updateBookingStatus);
 
+// User Banning & Lifetime Suspension
+router.post('/users/:id/ban', adminController.banUser);
+router.post('/users/:id/unban', adminController.unbanUser);
+
+// Complaints & Reports Management
+router.get('/reports', adminController.getReports);
+router.get('/reports/stats', adminController.getReportStats);
+router.patch('/reports/:id', adminController.updateReport);
+
 module.exports = router;
