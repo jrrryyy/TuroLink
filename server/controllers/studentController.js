@@ -9,6 +9,7 @@ const getDashboardData = async (req, res) => {
 
     const now = new Date();
     const local = new Date(+now + 8 * 3600000);
+    const months = Array.from({ length: 6 }, (_, i) => new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth() - 5 + i, 1)));
     const totals = await Booking.aggregate([
       { $match: { student: user._id, status: 'confirmed', end: { $lte: now, $gte: new Date(+months[0] - 8 * 3600000) } } },
       {

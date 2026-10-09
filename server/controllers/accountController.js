@@ -95,7 +95,9 @@ const updateAccount = async (req, res) => {
       uploaded = uploadResult.url;
       changes.profilePicture = uploaded;
     } else if (req.body.removePicture === 'true') changes.profilePicture = '';
-    const updated = await User.findOneAndUpdate({ _id: user._id, password: user.password }, { $set: changes }, { returnDocument: 'after', runValidators: true });
+    const filter = { _id: user._id };
+    if (user.password) filter.password = user.password;
+    const updated = await User.findOneAndUpdate(filter, { $set: changes }, { returnDocument: 'after', runValidators: true });
     if (!updated) {
       await removePicture(uploaded);
       return res.status(409).json({ message: 'Your account changed during this request. Reload and try again.' });
@@ -105,8 +107,15 @@ const updateAccount = async (req, res) => {
     res.json({ message: 'Changes saved successfully.', user: publicUser(updated) });
   } catch (error) {
     await removePicture(uploaded);
-    console.error('Account update failed:', error.name);
-    res.status(500).json({ message: 'Unable to save changes. Please try again.' });
+    console.error('Account update failed:', error);
+    if (error.name === 'ValidationError') {
+      const errors = {};
+      Object.keys(error.errors || {}).forEach((key) => {
+        errors[key] = error.errors[key].message;
+      });
+      return res.status(400).json({ message: 'Please correct the highlighted fields.', errors });
+    }
+    res.status(500).json({ message: error.message || 'Unable to save changes. Please try again.' });
   }
 };
 module.exports = { updateAccount, publicUser };

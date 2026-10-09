@@ -134,9 +134,7 @@ async function uploadFile(buffer, options = {}) {
       // will be lost on the next request and cannot be downloaded across devices.
       const isCloudEnv = Boolean(
         process.env.VERCEL ||
-        process.env.NODE_ENV === 'production' ||
-        process.env.CLOUDINARY_URL ||
-        process.env.CLOUDINARY_CLOUD_NAME
+        process.env.NODE_ENV === 'production'
       );
       if (isCloudEnv) {
         throw new Error(

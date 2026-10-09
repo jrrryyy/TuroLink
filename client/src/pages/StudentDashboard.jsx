@@ -190,7 +190,7 @@ const StudentDashboard = () => {
               <div className="student-hero-stat-pill highlight">
                 <Award size={15} />
                 <span>
-                  <strong>{overallAverage !== null ? `${overallAverage}%` : "No grades yet"}</strong> Avg Score
+                  <strong>{typeof overallAverage === 'number' ? `${overallAverage}%` : "No grades yet"}</strong> Avg Score
                 </span>
               </div>
             </div>
@@ -256,7 +256,7 @@ const StudentDashboard = () => {
                 </div>
                 <div className="student-metric-value-row">
                   <strong className="student-metric-big">
-                    {overallAverage !== null ? `${overallAverage}%` : "—"}
+                    {typeof overallAverage === 'number' ? `${overallAverage}%` : "—"}
                   </strong>
                   <span className={`student-tier-badge ${overallTier.tierClass}`}>
                     {overallTier.label}
@@ -564,7 +564,7 @@ const StudentDashboard = () => {
                       <div className="student-graph-footer-stats">
                         <div className="student-graph-stat-item">
                           <span>Overall Average</span>
-                          <strong>{overallAverage}%</strong>
+                          <strong>{typeof overallAverage === 'number' ? `${overallAverage}%` : "—"}</strong>
                         </div>
                         <div className="student-graph-stat-item">
                           <span>Highest Score</span>
