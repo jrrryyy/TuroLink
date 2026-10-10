@@ -8,19 +8,27 @@ import {
   Copy,
   Check,
   GraduationCap,
-  Sparkles
+  Sparkles,
+  UserX,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 import api from '../services/api';
 import { profilePictureUrl } from '../services/profile';
 import UserProfileModal from './UserProfileModal';
 import '../styles/teacher-students.css';
 
-export default function TeacherEnrolledStudents({ subject }) {
+export default function TeacherEnrolledStudents({ subject, onStudentRemoved }) {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedCode, setCopiedCode] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [startingChatId, setStartingChatId] = useState(null);
+
+  const [studentToKick, setStudentToKick] = useState(null);
+  const [kicking, setKicking] = useState(false);
+  const [kickError, setKickError] = useState('');
+  const [feedback, setFeedback] = useState('');
 
   const students = useMemo(() => {
     return Array.isArray(subject?.enrolledStudents) ? subject.enrolledStudents : [];
@@ -59,8 +67,35 @@ export default function TeacherEnrolledStudents({ subject }) {
     }
   };
 
+  const handleConfirmKick = async () => {
+    if (!studentToKick || !subject?._id || kicking) return;
+    setKicking(true);
+    setKickError('');
+    try {
+      await api.delete(`/subjects/${subject._id}/students/${studentToKick._id}`);
+      const kickedName = studentToKick.name;
+      setStudentToKick(null);
+      setFeedback(`${kickedName} has been removed from this subject.`);
+      setTimeout(() => setFeedback(''), 4500);
+      onStudentRemoved?.();
+    } catch (err) {
+      setKickError(err.response?.data?.message || 'Failed to remove student from subject.');
+    } finally {
+      setKicking(false);
+    }
+  };
+
   return (
     <div className="teacher-enrolled-students-wrapper">
+      {feedback && (
+        <div className="teacher-student-toast" role="status">
+          <span>{feedback}</span>
+          <button type="button" onClick={() => setFeedback('')} aria-label="Dismiss notification">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
       {/* Header Bar */}
       <div className="enrolled-students-header">
         <div className="enrolled-students-header-left">
@@ -193,6 +228,19 @@ export default function TeacherEnrolledStudents({ subject }) {
                     <MessageSquare size={14} />
                     <span>{startingChatId === student._id ? 'Opening…' : 'Message'}</span>
                   </button>
+
+                  <button
+                    type="button"
+                    className="student-action-btn kick-btn"
+                    onClick={() => {
+                      setKickError('');
+                      setStudentToKick(student);
+                    }}
+                    title={`Kick ${student.name} from this subject`}
+                  >
+                    <UserX size={14} />
+                    <span>Kick</span>
+                  </button>
                 </div>
               </div>
             );
@@ -210,6 +258,60 @@ export default function TeacherEnrolledStudents({ subject }) {
             handleMessageStudent(recipientId);
           }}
         />
+      )}
+
+      {/* Kick Student Confirmation Modal */}
+      {studentToKick && (
+        <div className="kick-student-modal-overlay" onClick={() => !kicking && setStudentToKick(null)}>
+          <div className="kick-student-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+            <div className="kick-student-modal-icon">
+              <UserX size={26} />
+            </div>
+            <h3>Remove Student?</h3>
+            <p className="kick-modal-desc">
+              Are you sure you want to remove <strong>{studentToKick.name}</strong> from <strong>{subject?.code}: {subject?.title}</strong>?
+            </p>
+
+            <div className="kick-student-preview-card">
+              <div className="kick-student-avatar">
+                {studentToKick.profilePicture ? (
+                  <img src={profilePictureUrl(studentToKick.profilePicture)} alt={studentToKick.name} />
+                ) : (
+                  (studentToKick.name || 'S').charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="kick-student-info">
+                <strong>{studentToKick.name}</strong>
+                <span>{studentToKick.email}</span>
+              </div>
+            </div>
+
+            <p className="kick-modal-warning">
+              This student will immediately lose access to all class materials, announcements, and submissions for this subject.
+            </p>
+
+            {kickError && <div className="kick-modal-error">{kickError}</div>}
+
+            <div className="kick-modal-actions">
+              <button
+                type="button"
+                className="kick-cancel-btn"
+                disabled={kicking}
+                onClick={() => setStudentToKick(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="kick-confirm-btn"
+                disabled={kicking}
+                onClick={handleConfirmKick}
+              >
+                {kicking ? 'Removing…' : 'Yes, Remove Student'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

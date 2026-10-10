@@ -483,3 +483,215 @@
   .subject-feed-comments article { padding: 14px; }
   .subject-feed-comments textarea { min-height: 80px; padding: 12px; }
 }
+
+/* ── Classroom Header with Leave Button ── */
+.student-classroom-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.student-classroom-header-info {
+  flex: 1;
+  min-width: 250px;
+}
+
+.student-leave-subject-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 6px;
+}
+
+.student-leave-subject-btn:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.student-card-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 24px 24px;
+}
+
+.student-card-leave-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  background: rgba(220, 38, 38, 0.04);
+  color: #dc2626;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.student-card-leave-btn:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+/* ── Leave Subject Modal ── */
+.student-leave-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 16px;
+  animation: leaveFadeIn 0.2s ease-out;
+}
+
+@keyframes leaveFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.student-leave-modal {
+  background: var(--layout-card, #ffffff);
+  border: 1px solid var(--layout-border, #e2e8f0);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 440px;
+  padding: 28px 24px 22px;
+  text-align: center;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+  animation: leaveSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes leaveSlideUp {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.student-leave-modal-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+}
+
+.student-leave-modal h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--layout-text, #0f172a);
+  margin: 0 0 10px;
+}
+
+.student-leave-modal p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--layout-muted, #64748b);
+  margin: 0 0 20px;
+}
+
+.student-leave-modal-error {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 13px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.student-leave-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.student-leave-cancel-btn {
+  flex: 1;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--layout-border, #e2e8f0);
+  background: var(--layout-card, #ffffff);
+  color: var(--layout-text, #334155);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.student-leave-cancel-btn:hover {
+  background: var(--layout-hover, #f8fafc);
+}
+
+.student-leave-confirm-btn {
+  flex: 1;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: 0;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+}
+
+.student-leave-confirm-btn:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.student-leave-confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.student-subject-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 20px;
+  animation: leaveFadeIn 0.25s ease-out;
+}
+
+.student-subject-toast button {
+  background: none;
+  border: none;
+  color: #065f46;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  padding: 2px;
+}

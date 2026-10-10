@@ -11,6 +11,7 @@ const {
   deleteSubject,
   createAnnouncement,
   deleteAnnouncement,
+  kickStudent,
 } = require(
   "../controllers/subjectController"
 );
@@ -90,6 +91,18 @@ router.delete(
   protect,
   requireTeacher,
   deleteSubject
+);
+
+
+// ============================================
+// KICK STUDENT FROM SUBJECT
+// ============================================
+
+router.delete(
+  "/:id/students/:studentId",
+  protect,
+  requireTeacher,
+  kickStudent
 );
 
 

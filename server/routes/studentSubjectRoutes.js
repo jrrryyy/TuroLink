@@ -4,6 +4,7 @@ const controller = require('../controllers/studentSubjectController');
 router.use(protect, (req, res, next) => (req.user.role === 'student' || req.user.role === 'admin') ? next() : res.status(403).json({ message: 'Student access only.' }));
 router.get('/', controller.list);
 router.get('/:id', controller.detail);
+router.delete('/:id/leave', controller.leaveSubject);
 router.put('/:id/announcements/:announcementId/like', controller.like);
 router.post('/:id/announcements/:announcementId/comments', controller.comment);
 router.get('/:id/announcements/:announcementId/attachment', controller.attachment);

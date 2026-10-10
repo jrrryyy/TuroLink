@@ -598,6 +598,55 @@ const deleteAnnouncement =
   };
 
 
+// ============================================
+// KICK / REMOVE STUDENT FROM SUBJECT
+// DELETE /api/subjects/:id/students/:studentId
+// ============================================
+
+const kickStudent = async (req, res) => {
+  try {
+    const { id, studentId } = req.params;
+
+    if (!mongoose.isObjectIdOrHexString(id) || !mongoose.isObjectIdOrHexString(studentId)) {
+      return res.status(400).json({ message: "Invalid subject or student ID." });
+    }
+
+    const subject = await Subject.findOne({
+      _id: id,
+      teacherId: req.user._id,
+    });
+
+    if (!subject) {
+      return res.status(404).json({ message: "Subject not found or you are not authorized." });
+    }
+
+    const isEnrolled = subject.enrolledStudents.some(
+      (enrolledId) => String(enrolledId._id || enrolledId) === String(studentId)
+    );
+
+    if (!isEnrolled) {
+      return res.status(404).json({ message: "Student is not enrolled in this subject." });
+    }
+
+    await Subject.updateOne(
+      { _id: id },
+      {
+        $pull: {
+          enrolledStudents: studentId,
+          "announcements.$[].recipientStudents": studentId,
+          "materials.$[].recipientStudents": studentId,
+        },
+      }
+    );
+
+    res.status(200).json({ message: "Student removed from subject successfully." });
+  } catch (error) {
+    console.error("Kick student error:", error);
+    res.status(500).json({ message: "Failed to remove student from subject." });
+  }
+};
+
+
 module.exports = {
   getTeacherSubjects,
   getSubject,
@@ -606,4 +655,5 @@ module.exports = {
   deleteSubject,
   createAnnouncement,
   deleteAnnouncement,
+  kickStudent,
 };

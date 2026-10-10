@@ -1944,7 +1944,11 @@ const TeacherMySubjects = () => {
             ============================================= */}
 
             {activeTab === "students" && (
-              <TeacherEnrolledStudents key={selectedSubject._id} subject={selectedSubject} />
+              <TeacherEnrolledStudents
+                key={selectedSubject._id}
+                subject={selectedSubject}
+                onStudentRemoved={loadSubjects}
+              />
             )}
           </>
         )}

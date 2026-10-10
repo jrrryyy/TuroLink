@@ -177,4 +177,24 @@ const engagement = handler(async (req, res) => {
   if (req.user.role === 'student' && !studentRecipientAccess(post, req.user._id)) throw fail('Announcement not available.', 404);
   res.json({ likes: post.likes.length, liked: post.likes.some((id) => id.equals(req.user._id)), comments: post.comments.map((c) => ({ _id: c._id, text: c.text, createdAt: c.createdAt, name: c.author?.name || 'Former user' })) });
 });
-module.exports = { list, detail, like, comment, attachment, engagement };
+
+const leaveSubject = handler(async (req, res) => {
+  if (!mongoose.isObjectIdOrHexString(req.params.id)) throw fail('Subject not found.', 404);
+  const subject = await Subject.findOne({ _id: req.params.id, enrolledStudents: req.user._id });
+  if (!subject) throw fail('Subject not found or you are not enrolled in this subject.', 404);
+
+  await Subject.updateOne(
+    { _id: req.params.id },
+    {
+      $pull: {
+        enrolledStudents: req.user._id,
+        'announcements.$[].recipientStudents': req.user._id,
+        'materials.$[].recipientStudents': req.user._id,
+      },
+    }
+  );
+
+  res.json({ message: 'You have left the subject successfully.' });
+});
+
+module.exports = { list, detail, like, comment, attachment, engagement, leaveSubject };
