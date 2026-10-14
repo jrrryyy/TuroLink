@@ -36,9 +36,24 @@ export function validateRegistration(input = {}, { teacher = false, accountOnly 
 
 export function validateSubject(input = {}, { partial = false } = {}) {
   const errors = {};
-  for (const [field, label, limit] of [['code', 'subject code', 30], ['title', 'subject title', 200], ['description', 'description', 5000]]) {
-    if (partial && input[field] === undefined) continue;
-    if ((field !== 'description' && !text(input[field])) || (input[field] !== undefined && typeof input[field] !== 'string') || text(input[field]).length > limit) errors[field] = `Enter ${field === 'description' ? 'a' : 'a nonempty'} ${label} of up to ${limit} characters.`;
+  if (!partial || input.title !== undefined) {
+    const titleVal = text(input.title);
+    if (!titleVal || typeof input.title !== 'string') {
+      errors.title = 'Enter a subject name of up to 200 characters.';
+    } else if (titleVal.length > 200) {
+      errors.title = 'Subject name must be 200 characters or fewer.';
+    } else if (/\d/.test(titleVal)) {
+      errors.title = 'Subject name must contain letters and spaces only (no numbers).';
+    } else if (!/^[\p{L}\s.,'’()&-]+$/u.test(titleVal) || !/\p{L}/u.test(titleVal)) {
+      errors.title = 'Subject name must contain letters and spaces only.';
+    }
+  }
+  if (!partial || input.description !== undefined) {
+    if (input.description !== undefined && typeof input.description !== 'string') {
+      errors.description = 'Enter a valid description of up to 5,000 characters.';
+    } else if (text(input.description).length > 5000) {
+      errors.description = 'Description must be 5,000 characters or fewer.';
+    }
   }
   return errors;
 }

@@ -377,20 +377,7 @@ const DashboardLayout = ({
                       <ChevronRight size={15} className="dashboard-profile-item-arrow" />
                     </button>
 
-                    <button
-                      type="button"
-                      className="dashboard-profile-menu-item"
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        setActiveModal('language');
-                      }}
-                    >
-                      <div className="dashboard-profile-item-left">
-                        <Globe size={17} className="dashboard-profile-item-icon green" />
-                        <span>Language</span>
-                      </div>
-                      <span className="dashboard-profile-badge-text">US English</span>
-                    </button>
+                    
                   </div>
 
                   <div className="dashboard-profile-divider" />

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import DashboardLayout from '../components/DashboardLayout';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { profilePictureUrl } from '../services/profile';
 import { useAuth } from '../context/AuthContext';
 import '../styles/admin-modern.css';
@@ -37,6 +38,7 @@ export default function AdminUsers() {
   const [roleModalUser, setRoleModalUser] = useState(null);
   const [newRole, setNewRole] = useState('student');
   const [deleteModalUser, setDeleteModalUser] = useState(null);
+  const [banConfirmTarget, setBanConfirmTarget] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const fetchUsers = useCallback(async () => {
@@ -110,8 +112,10 @@ export default function AdminUsers() {
     }
   };
 
-  // Handle ban / unban
-  const handleToggleBan = async (u) => {
+  // Handle ban / unban execution
+  const executeBanToggle = async () => {
+    if (!banConfirmTarget) return;
+    const u = banConfirmTarget;
     try {
       setActionLoading(true);
       if (u.isBanned) {
@@ -121,6 +125,7 @@ export default function AdminUsers() {
         await api.post(`/admin/users/${u._id}/ban`, { reason: 'Direct ban by administrator.' });
         setFeedback({ type: 'success', text: `Banned ${u.name} for life and revoked active sessions.` });
       }
+      setBanConfirmTarget(null);
       fetchUsers();
     } catch (err) {
       setFeedback({ type: 'error', text: err.response?.data?.message || 'Failed to update ban status.' });
@@ -326,7 +331,7 @@ export default function AdminUsers() {
                               borderColor: u.isBanned ? '#a7f3d0' : '#fecaca',
                             }}
                             title={u.isBanned ? "Lift Lifetime Ban" : "Ban User for Life"}
-                            onClick={() => handleToggleBan(u)}
+                            onClick={() => setBanConfirmTarget(u)}
                             disabled={actionLoading}
                           >
                             <UserX size={14} /> {u.isBanned ? 'Unban' : 'Ban'}
@@ -449,39 +454,40 @@ export default function AdminUsers() {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {deleteModalUser && (
-        <div className="admin-modal-backdrop" onClick={() => setDeleteModalUser(null)}>
-          <div className="admin-modal-card" onClick={(e) => e.stopPropagation()}>
-            <div className="admin-modal-title" style={{ color: 'var(--admin-danger)' }}>
-              Confirm Account Deletion
-            </div>
-            <div className="admin-modal-subtitle">
-              Are you sure you want to permanently delete <strong>{deleteModalUser.name}</strong> ({deleteModalUser.email})? This action removes all active sessions and linked teacher records.
-            </div>
+      {/* BAN / UNBAN CONFIRMATION MODAL */}
+      <ConfirmationModal
+        isOpen={Boolean(banConfirmTarget)}
+        title={banConfirmTarget?.isBanned ? `Lift Ban for ${banConfirmTarget?.name}?` : `Ban ${banConfirmTarget?.name}?`}
+        message={
+          banConfirmTarget?.isBanned
+            ? `Are you sure you want to lift the lifetime ban for ${banConfirmTarget?.name}? They will regain access to their account and services.`
+            : `Are you sure you want to ban ${banConfirmTarget?.name}? This will immediately terminate all active sessions and permanently block access to their account.`
+        }
+        confirmText={banConfirmTarget?.isBanned ? 'Lift Ban' : 'Ban User'}
+        cancelText="Cancel"
+        isDanger={!banConfirmTarget?.isBanned}
+        icon={banConfirmTarget?.isBanned ? <UserCheck size={24} /> : <UserX size={24} />}
+        isLoading={actionLoading}
+        onCancel={() => {
+          if (!actionLoading) setBanConfirmTarget(null);
+        }}
+        onConfirm={executeBanToggle}
+      />
 
-            <div className="admin-modal-footer">
-              <button
-                type="button"
-                className="admin-btn-secondary"
-                onClick={() => setDeleteModalUser(null)}
-                disabled={actionLoading}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="admin-action-btn delete"
-                style={{ padding: '9px 18px', fontSize: '0.88rem' }}
-                onClick={handleDeleteSubmit}
-                disabled={actionLoading}
-              >
-                {actionLoading ? 'Deleting...' : 'Delete Permanently'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* DELETE CONFIRMATION MODAL */}
+      <ConfirmationModal
+        isOpen={Boolean(deleteModalUser)}
+        title="Confirm Account Deletion"
+        message={`Are you sure you want to permanently delete ${deleteModalUser?.name} (${deleteModalUser?.email})? This action removes all active sessions and linked records.`}
+        confirmText="Delete Permanently"
+        cancelText="Cancel"
+        isDanger={true}
+        isLoading={actionLoading}
+        onCancel={() => {
+          if (!actionLoading) setDeleteModalUser(null);
+        }}
+        onConfirm={handleDeleteSubmit}
+      />
     </DashboardLayout>
   );
 }

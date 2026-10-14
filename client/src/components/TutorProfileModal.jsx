@@ -268,7 +268,7 @@ export default function TutorProfileModal({ tutorId, isOpen, onClose }) {
                     {tutor.subjects.map((s) => (
                       <span key={s._id} className="view-profile-chip">
                         <BookOpen size={13} />
-                        {s.code}: {s.title}
+                        {s.title}
                       </span>
                     ))}
                   </div>

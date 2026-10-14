@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import DashboardLayout from '../components/DashboardLayout';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { profilePictureUrl } from '../services/profile';
 import '../styles/admin-modern.css';
 
@@ -22,6 +23,7 @@ export default function AdminBookings() {
   const [search, setSearch] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [cancelTarget, setCancelTarget] = useState(null);
 
   const fetchBookings = async () => {
     try {
@@ -48,6 +50,21 @@ export default function AdminBookings() {
       fetchBookings();
     } catch (err) {
       setFeedback({ type: 'error', text: 'Unable to update booking status.' });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const executeCancelBooking = async () => {
+    if (!cancelTarget) return;
+    try {
+      setActionLoadingId(cancelTarget._id);
+      const res = await api.patch(`/admin/bookings/${cancelTarget._id}/status`, { status: 'cancelled' });
+      setFeedback({ type: 'success', text: res.data.message || 'Session cancelled successfully.' });
+      setCancelTarget(null);
+      fetchBookings();
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.response?.data?.message || 'Unable to update booking status.' });
     } finally {
       setActionLoadingId(null);
     }
@@ -237,7 +254,7 @@ export default function AdminBookings() {
                           type="button"
                           className="admin-action-btn delete"
                           disabled={actionLoadingId === b._id}
-                          onClick={() => handleStatusChange(b._id, 'cancelled')}
+                          onClick={() => setCancelTarget(b)}
                         >
                           <XCircle size={14} /> Cancel
                         </button>
@@ -256,6 +273,26 @@ export default function AdminBookings() {
           </tbody>
         </table>
       </div>
+
+      {/* CANCEL BOOKING CONFIRMATION MODAL */}
+      <ConfirmationModal
+        isOpen={Boolean(cancelTarget)}
+        title="Cancel Tutoring Session?"
+        message={
+          cancelTarget
+            ? `Are you sure you want to cancel the ${cancelTarget.subject || 'tutoring'} session between ${cancelTarget.student?.name || 'the student'} and ${cancelTarget.teacher?.name || 'the instructor'}? This will immediately mark the booking as cancelled.`
+            : 'Are you sure you want to cancel this booking?'
+        }
+        confirmText="Cancel Session"
+        cancelText="Keep Session"
+        isDanger={true}
+        icon={<XCircle size={24} />}
+        isLoading={Boolean(actionLoadingId)}
+        onCancel={() => {
+          if (!actionLoadingId) setCancelTarget(null);
+        }}
+        onConfirm={executeCancelBooking}
+      />
     </DashboardLayout>
   );
 }

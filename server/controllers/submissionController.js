@@ -6,6 +6,7 @@ const Subject = require('../models/Subject');
 const Submission = require('../models/Submission');
 const Notification = require('../models/Notification');
 const { uploadFile, deleteFile, streamDownload, isCloudConfigured } = require('../services/cloudStorage');
+const { autoGradeMissedMaterials } = require('../services/autoGradeService');
 
 const storageDirectory = path.resolve(__dirname, '../storage/submissions');
 
@@ -229,6 +230,8 @@ const listMaterialSubmissions = handler(async (req, res) => {
   const material = subject.materials.id(req.params.materialId);
   if (!material) throw fail('Material not found.', 404);
 
+  await autoGradeMissedMaterials({ subjectId: subject._id });
+
   const submissions = await Submission.find({
     subjectId: subject._id,
     materialId: material._id,
@@ -324,11 +327,28 @@ const gradeSubmission = handler(async (req, res) => {
   const material = subject.materials.id(req.params.materialId);
   if (!material) throw fail('Material not found.', 404);
 
-  const submission = await Submission.findOne({
-    _id: req.params.submissionId,
-    subjectId: subject._id,
-    materialId: material._id,
-  });
+  let submission = null;
+  if (mongoose.isObjectIdOrHexString(req.params.submissionId)) {
+    submission = await Submission.findOne({
+      $or: [
+        { _id: req.params.submissionId, subjectId: subject._id, materialId: material._id },
+        { studentId: req.params.submissionId, subjectId: subject._id, materialId: material._id },
+      ],
+    });
+  }
+  if (!submission && (req.body.studentId || req.params.submissionId)) {
+    const studentId = req.body.studentId || req.params.submissionId;
+    const isEnrolled = (subject.enrolledStudents || []).some((id) => String(id._id || id) === String(studentId));
+    if (isEnrolled) {
+      submission = new Submission({
+        subjectId: subject._id,
+        materialId: material._id,
+        studentId,
+        status: 'graded',
+        submittedAt: new Date(),
+      });
+    }
+  }
   if (!submission) throw fail('Submission not found.', 404);
 
   const rawGrade = req.body.grade;

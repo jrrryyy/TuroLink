@@ -61,7 +61,6 @@ export default function AdminSubjects() {
     if (!q) return true;
     return (
       s.title?.toLowerCase().includes(q) ||
-      s.code?.toLowerCase().includes(q) ||
       s.teacher?.name?.toLowerCase().includes(q) ||
       s.teacher?.email?.toLowerCase().includes(q)
     );
@@ -110,7 +109,7 @@ export default function AdminSubjects() {
           <Search size={18} />
           <input
             type="text"
-            placeholder="Search by subject title, code, or instructor..."
+            placeholder="Search by subject title or instructor..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -122,7 +121,7 @@ export default function AdminSubjects() {
         <table className="admin-table">
           <thead>
             <tr>
-              <th>Subject / Code</th>
+              <th>Subject</th>
               <th>Instructor</th>
               <th>Enrollment</th>
               <th>Curriculum Materials</th>
@@ -144,7 +143,7 @@ export default function AdminSubjects() {
                     <div>
                       <div className="admin-user-name" style={{ fontSize: '0.95rem' }}>{s.title}</div>
                       <div className="admin-user-email" style={{ fontWeight: 600, color: 'var(--admin-primary)' }}>
-                        {s.code} · Grade {s.gradeLevel || 'N/A'}
+                        Grade {s.gradeLevel || 'N/A'}
                       </div>
                     </div>
                   </td>
@@ -212,7 +211,7 @@ export default function AdminSubjects() {
               Confirm Subject Removal
             </div>
             <div className="admin-modal-subtitle">
-              Are you sure you want to permanently remove <strong>"{deleteModalSubject.title}"</strong> ({deleteModalSubject.code})? All associated announcements, materials, and student enrollments will be wiped.
+              Are you sure you want to permanently remove <strong>"{deleteModalSubject.title}"</strong> ? All associated announcements, materials, and student enrollments will be wiped.
             </div>
 
             <div className="admin-modal-footer">

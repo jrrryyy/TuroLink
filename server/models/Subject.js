@@ -119,7 +119,7 @@ const subjectSchema =
 
       code: {
         type: String,
-        required: true,
+        default: "",
         trim: true,
       },
 

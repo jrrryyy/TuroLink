@@ -6,6 +6,7 @@ const fsSync = require('node:fs');
 const path = require('node:path');
 const { getUploadPath } = require('../config/storage');
 const { uploadFile, deleteFile, streamDownload } = require('../services/cloudStorage');
+const { autoGradeMissedMaterials } = require('../services/autoGradeService');
 
 const storageDirectory = path.resolve(__dirname, '../storage/materials');
 
@@ -52,6 +53,7 @@ async function ownedSubject(req, populate = false) {
   if (!mongoose.isValidObjectId(req.params.id)) throw badRequest('Invalid subject.');
   const query = Subject.findOne({ _id: req.params.id, teacherId: req.user._id });
   if (populate) {
+    query.populate('enrolledStudents', 'name email profilePicture');
     query.populate('materials.recipientStudents', 'name email profilePicture');
   }
   const subject = await query;
@@ -80,7 +82,7 @@ function validatedFields(body, subject) {
   const instructions = typeof body.instructions === 'string' ? body.instructions.trim() : '';
   if (instructions.length > 20000) throw badRequest('Instructions are too long.', 'instructions');
   const points = body.points === '' || body.points === null || body.points === undefined ? null : Number(body.points);
-  if (points !== null && (!Number.isFinite(points) || points < 0 || points > 1000)) throw badRequest('Points must be between 0 and 1000, or Ungraded.', 'points');
+  if (points !== null && (!Number.isFinite(points) || !Number.isInteger(points) || points < 0 || points > 1000)) throw badRequest('Points must be an integer between 0 and 1000, or Ungraded.', 'points');
   const dueAt = dateValue(body.dueAt, 'due date');
   const scheduledAt = body.status === 'scheduled' ? dateValue(body.scheduledAt, 'scheduled date') : null;
   if (body.status === 'scheduled' && (!scheduledAt || scheduledAt <= new Date())) throw badRequest('Schedule a time in the future.', 'scheduledAt');
@@ -154,6 +156,7 @@ const listMaterials = handler(async (req, res) => {
   // Check access before performing any work.
   await ownedSubject(req);
   await publishDueMaterials();
+  await autoGradeMissedMaterials({ subjectId: req.params.id });
   const subject = await ownedSubject(req, true);
 
   const materials = subject.materials || [];
@@ -180,19 +183,23 @@ const listMaterials = handler(async (req, res) => {
     }
   });
 
-  const enrolledCount = (subject.enrolledStudents || []).length;
+  const enrolledStudents = (subject.enrolledStudents || []).filter(Boolean);
+  const enrolledCount = enrolledStudents.length;
   const materialsWithStats = materials.map((mat) => {
     const obj = mat.toObject ? mat.toObject() : { ...mat };
     const stats = subMap.get(String(mat._id)) || { turnedInCount: 0, gradedCount: 0 };
-    const assignedCount = mat.recipientStudents && mat.recipientStudents.length > 0
-      ? mat.recipientStudents.length
+    const validRecipients = (mat.recipientStudents || []).filter(Boolean);
+    const assignedCount = validRecipients.length > 0
+      ? validRecipients.length
       : enrolledCount;
 
     const turnedIn = stats.turnedInCount;
     const graded = stats.gradedCount;
     const pendingGrading = Math.max(0, turnedIn - graded);
-    const isAllGraded = turnedIn > 0 && pendingGrading === 0;
-    const isPartiallyGraded = graded > 0 && pendingGrading > 0;
+    const isAllGraded = assignedCount > 0
+      ? graded >= assignedCount
+      : (turnedIn > 0 && pendingGrading === 0);
+    const isPartiallyGraded = !isAllGraded && graded > 0;
     const needsGrading = pendingGrading > 0;
 
     obj.submissionStats = {

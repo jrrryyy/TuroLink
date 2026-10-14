@@ -3,6 +3,7 @@ const path = require('node:path');
 const fs = require('node:fs/promises');
 const Subject = require('../models/Subject');
 const { publishDueMaterials } = require('./materialController');
+const { autoGradeMissedMaterials } = require('../services/autoGradeService');
 const { streamDownload } = require('../services/cloudStorage');
 const fail = (message, status = 400) => Object.assign(new Error(message), { status });
 const handler = (fn) => async (req, res) => {
@@ -38,6 +39,7 @@ async function accessible(req, allowTeacher = false) {
 const detail = handler(async (req, res) => {
   await accessible(req);
   await publishDueMaterials();
+  await autoGradeMissedMaterials({ subjectId: req.params.id, studentId: req.user._id });
   const subject = await accessible(req);
   const announcements = subject.announcements
     .filter(visible)

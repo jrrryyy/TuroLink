@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import DashboardLayout from '../components/DashboardLayout';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { profilePictureUrl } from '../services/profile';
 import '../styles/admin-modern.css';
 
@@ -23,6 +24,7 @@ export default function AdminTeacherVerification() {
   const [filter, setFilter] = useState('all'); // 'all', 'pending', 'verified'
   const [feedback, setFeedback] = useState(null);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+  const [revokeProfileId, setRevokeProfileId] = useState(null);
 
   const fetchProfiles = async () => {
     try {
@@ -41,7 +43,7 @@ export default function AdminTeacherVerification() {
     fetchProfiles();
   }, [filter]);
 
-  const handleVerify = async (profileId, isVerified) => {
+  const executeVerify = async (profileId, isVerified) => {
     try {
       setActionLoadingId(profileId);
       const res = await api.patch(`/admin/teachers/${profileId}/verify`, { isVerified });
@@ -200,7 +202,7 @@ export default function AdminTeacherVerification() {
                       className="admin-btn-primary"
                       style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                       disabled={actionLoadingId === p._id}
-                      onClick={() => handleVerify(p._id, true)}
+                      onClick={() => executeVerify(p._id, true)}
                     >
                       <CheckCircle2 size={16} />
                       {actionLoadingId === p._id ? 'Processing...' : 'Approve & Verify'}
@@ -211,7 +213,7 @@ export default function AdminTeacherVerification() {
                       className="admin-action-btn delete"
                       style={{ flex: 1, padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                       disabled={actionLoadingId === p._id}
-                      onClick={() => handleVerify(p._id, false)}
+                      onClick={() => setRevokeProfileId(p._id)}
                     >
                       <XCircle size={16} />
                       {actionLoadingId === p._id ? 'Processing...' : 'Revoke Verification'}
@@ -236,6 +238,20 @@ export default function AdminTeacherVerification() {
           <p>There are currently no teacher applications matching the "{filter}" filter.</p>
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={Boolean(revokeProfileId)}
+        title="Revoke Verification?"
+        message="Are you sure you want to revoke this teacher's verification status?"
+        confirmText="Revoke"
+        isDanger={true}
+        onCancel={() => setRevokeProfileId(null)}
+        onConfirm={() => {
+          const pId = revokeProfileId;
+          setRevokeProfileId(null);
+          if (pId) executeVerify(pId, false);
+        }}
+      />
     </DashboardLayout>
   );
 }

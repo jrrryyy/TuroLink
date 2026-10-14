@@ -678,14 +678,9 @@ export default function Messages() {
                           {activeRecipient.name?.charAt(0).toUpperCase() || 'U'}
                         </div>
                       )}
-                      <span className="messages-online-dot" />
-                    </div>
-
+                      </div>
                     <div className="messages-chat-header-names">
                       <h3>{activeRecipient.name}</h3>
-                      <span className="messages-chat-header-status">
-                        ● Active now
-                      </span>
                     </div>
                   </div>
 

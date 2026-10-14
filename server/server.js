@@ -10,13 +10,15 @@ async function start() {
 }
 start().catch(error => { console.error('Unable to initialize authentication:', error.name); process.exitCode = 1; });
 
-// Publish scheduled classwork and check session reminders every 30 seconds
+// Publish scheduled classwork, check session reminders, and auto-grade missed materials every 30 seconds
 const { publishDueMaterials } = require('./controllers/materialController');
 const { checkUpcomingSessionReminders } = require('./services/sessionReminderService');
+const { autoGradeMissedMaterials } = require('./services/autoGradeService');
 const materialPublisher = setInterval(() => {
   if (require('mongoose').connection.readyState === 1) {
     publishDueMaterials().catch((error) => console.error('Classwork scheduler:', error.name));
     checkUpcomingSessionReminders().catch((error) => console.error('Session reminder scheduler:', error.name));
+    autoGradeMissedMaterials().catch((error) => console.error('Auto grade scheduler:', error.name));
   }
 }, 30000);
 materialPublisher.unref();

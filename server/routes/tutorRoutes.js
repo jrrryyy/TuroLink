@@ -37,11 +37,11 @@ async function publicProfile(profile) {
 router.get('/availability', role('teacher'), run(async (req, res) => {
   const profile = await Profile.findOne({ user: req.user._id });
   if (!profile) throw fail('Teacher profile not found.', 404);
-  res.json({ hourlyRate: profile.hourlyRate, subjects: await Subject.find({ teacherId: req.user._id }).select('code title').sort({ title: 1 }).lean(), slots: await Slot.find({ teacher: req.user._id, start: { $gt: new Date() } }).populate('subjectId', 'code title').sort({ start: 1 }).lean() });
+  res.json({ hourlyRate: profile.hourlyRate, subjects: await Subject.find({ teacherId: req.user._id }).select('title').sort({ title: 1 }).lean(), slots: await Slot.find({ teacher: req.user._id, start: { $gt: new Date() } }).populate('subjectId', 'title').sort({ start: 1 }).lean() });
 }));
 router.put('/availability/rate', role('teacher'), run(async (req, res) => {
   const rate = req.body.hourlyRate;
-  if (typeof rate !== 'number' || !Number.isFinite(rate) || rate < 1 || rate > 100000 || Math.abs(rate * 100 - Math.round(rate * 100)) > .00001) throw fail('Enter a rate between ₱1 and ₱100,000, with at most two decimals.');
+  if (typeof rate !== 'number' || !Number.isInteger(rate) || rate < 1 || rate > 100000) throw fail('Enter a whole integer rate between ₱1 and ₱100,000 (no decimals).');
   const profile = await Profile.findOneAndUpdate({ user: req.user._id }, { $set: { hourlyRate: rate } });
   if (!profile) throw fail('Teacher profile not found.', 404);
   res.json({ message: 'Hourly rate saved.' });
@@ -252,7 +252,7 @@ router.get('/:id', run(async (req, res) => {
   const reviews = await Booking.find({ teacher: req.params.id, 'review.rating': { $exists: true } }).populate('student', 'name').sort({ 'review.createdAt': -1 }).limit(50).lean();
   res.json({
     ...await publicProfile(profile),
-    subjects: await Subject.find({ teacherId: req.params.id }).select('code title').sort({ title: 1 }).lean(),
+    subjects: await Subject.find({ teacherId: req.params.id }).select('title').sort({ title: 1 }).lean(),
     slots: await Slot.find({ teacher: req.params.id, booked: false, subjectId: { $in: await Subject.find({ teacherId: req.params.id }).distinct('_id') }, start: { $gt: new Date() } }).select('start subjectId').sort({ start: 1 }).lean(),
     reviews: reviews.map((b) => ({ id: b._id, name: b.student?.name?.split(' ')[0] || 'Student', ...b.review })),
   });

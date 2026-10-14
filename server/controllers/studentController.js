@@ -2,6 +2,7 @@ const Booking = require('../models/Booking');
 const Subject = require('../models/Subject');
 const Submission = require('../models/Submission');
 const { upcomingBookings } = require('../services/bookingSummary');
+const { autoGradeMissedMaterials } = require('../services/autoGradeService');
 
 const getDashboardData = async (req, res) => {
   try {
@@ -45,6 +46,7 @@ const getDashboardData = async (req, res) => {
     };
 
     // ── Calculate student assessment performance ────────────────────────────
+    await autoGradeMissedMaterials({ studentId: user._id });
     const enrolledSubjects = await Subject.find({ enrolledStudents: user._id }).lean();
     const submissions = await Submission.find({ studentId: user._id }).lean();
 

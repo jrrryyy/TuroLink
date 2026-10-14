@@ -1,7 +1,8 @@
 import TeacherAnnouncementInteraction from '../components/TeacherAnnouncementInteraction';
 import { downloadFile } from '../services/download';
 import { validateSubject, validateAnnouncement as announcementErrors } from "../../../shared/validation.mjs";
-import FieldError from "../components/FieldError";
+import FieldError from '../components/FieldError';
+import ConfirmationModal from '../components/ConfirmationModal';
 import "../styles/validation.css";
 import {
   useEffect,
@@ -17,7 +18,9 @@ import {
   FileText,
   Link as LinkIcon,
   MessageCircle,
+  MoreVertical,
   Paperclip,
+  Pencil,
   Plus,
   Search,
   Trash2,
@@ -67,9 +70,11 @@ const TeacherMySubjects = () => {
   ] = useState(true);
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const [subjectToDelete, setSubjectToDelete] = useState(null);
+  const [announcementToDelete, setAnnouncementToDelete] = useState(null);
   const searchTerm = searchParams.get("q") || "";
   const filteredSubjects = subjects.filter((subject) =>
-    [subject.code, subject.title, subject.description].some((value) => value?.toLowerCase().includes(searchTerm.trim().toLowerCase()))
+    [subject.title, subject.description].some((value) => value?.toLowerCase().includes(searchTerm.trim().toLowerCase()))
   );
 
   const [
@@ -133,7 +138,6 @@ const TeacherMySubjects = () => {
     subjectForm,
     setSubjectForm,
   ] = useState({
-    code: "",
     title: "",
     description: "",
   });
@@ -162,6 +166,10 @@ const TeacherMySubjects = () => {
     announcementRecipients,
     setAnnouncementRecipients,
   ] = useState([]);
+
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [existingAttachment, setExistingAttachment] = useState(null);
+  const [removeAttachment, setRemoveAttachment] = useState(false);
 
 
   // =====================================================
@@ -246,6 +254,10 @@ const TeacherMySubjects = () => {
 
   const clearAnnouncementForm =
     () => {
+      setEditingAnnouncement(null);
+      setExistingAttachment(null);
+      setRemoveAttachment(false);
+
       setAnnouncementContent(
         ""
       );
@@ -350,10 +362,7 @@ const TeacherMySubjects = () => {
         await api.post(
           "/subjects",
           {
-            code:
-              subjectForm.code.trim(),
-
-            title:
+                        title:
               subjectForm.title.trim(),
 
             description:
@@ -362,7 +371,6 @@ const TeacherMySubjects = () => {
         );
 
         setSubjectForm({
-          code: "",
           title: "",
           description: "",
         });
@@ -533,18 +541,15 @@ const TeacherMySubjects = () => {
   // DELETE SUBJECT
   // =====================================================
 
-  const handleDeleteSubject =
-    async (subjectId) => {
-      const confirmed =
-        window.confirm(
-          "Are you sure you want to delete this subject? All announcements inside it will also be deleted."
-        );
+  const handleDeleteSubject = (subjectId) => {
+    setSubjectToDelete(subjectId);
+  };
 
-      if (!confirmed) {
-        return;
-      }
-
-      try {
+  const executeDeleteSubject = async () => {
+    const subjectId = subjectToDelete;
+    if (!subjectId) return;
+    setSubjectToDelete(null);
+    try {
         setError("");
 
         await api.delete(
@@ -683,7 +688,11 @@ const TeacherMySubjects = () => {
   // =====================================================
 
   const validateAnnouncement = () => {
-    const errors = announcementErrors({ content: announcementContent, link: announcementLink }, announcementFile);
+    const hasExistingFile = Boolean(existingAttachment && !removeAttachment);
+    const errors = announcementErrors(
+      { content: announcementContent, link: announcementLink },
+      announcementFile || hasExistingFile
+    );
     if (Object.keys(errors).length) { setError(Object.values(errors)[0]); return false; }
     return true;
   };
@@ -710,6 +719,10 @@ const TeacherMySubjects = () => {
           "attachment",
           announcementFile
         );
+      }
+
+      if (removeAttachment) {
+        formData.append("removeAttachment", "true");
       }
 
       if (
@@ -769,11 +782,13 @@ const TeacherMySubjects = () => {
         const formData =
           createAnnouncementFormData();
 
-        const response =
-          await api.post(
-            `/subjects/${selectedSubject._id}/announcements`,
-            formData
-          );
+        const isEditing = Boolean(editingAnnouncement);
+        const url = isEditing
+          ? `/subjects/${selectedSubject._id}/announcements/${editingAnnouncement._id}`
+          : `/subjects/${selectedSubject._id}/announcements`;
+        const method = isEditing ? api.put : api.post;
+
+        const response = await method(url, formData);
 
         clearAnnouncementForm();
 
@@ -783,7 +798,7 @@ const TeacherMySubjects = () => {
 
         setSuccessMessage(
           response.data?.message ||
-            "Announcement posted successfully."
+            (isEditing ? "Announcement updated successfully." : "Announcement posted successfully.")
         );
 
         await refreshSelectedSubject();
@@ -812,53 +827,69 @@ const TeacherMySubjects = () => {
 
 
   // =====================================================
+  // EDIT ANNOUNCEMENT
+  // =====================================================
+
+  const handleEditAnnouncement = (announcement) => {
+    setEditingAnnouncement(announcement);
+    setAnnouncementContent(announcement.content || "");
+    setAnnouncementLink(announcement.link || "");
+    setAnnouncementFile(null);
+    setRemoveAttachment(false);
+    setExistingAttachment(
+      announcement.attachment
+        ? {
+            url: announcement.attachment,
+            name: announcement.attachmentName || "Attachment",
+            type: announcement.attachmentType || "",
+          }
+        : null
+    );
+    setAnnouncementRecipients(announcement.recipientStudents || []);
+    setShowLinkInput(Boolean(announcement.link));
+    setShowAnnouncementComposer(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+
+  // =====================================================
   // DELETE ANNOUNCEMENT
   // =====================================================
 
-  const handleDeleteAnnouncement =
-    async (
-      announcementId
-    ) => {
-      if (
-        !selectedSubject?._id
-      ) {
-        return;
-      }
+  const handleDeleteAnnouncement = (announcementId) => {
+    setAnnouncementToDelete(announcementId);
+  };
 
-      const confirmed =
-        window.confirm(
-          "Are you sure you want to delete this announcement?"
-        );
+  const executeDeleteAnnouncement = async () => {
+    const announcementId = announcementToDelete;
+    if (!announcementId || !selectedSubject?._id) return;
+    setAnnouncementToDelete(null);
 
-      if (!confirmed) {
-        return;
-      }
+    try {
+      setError("");
 
-      try {
-        setError("");
+      await api.delete(
+        `/subjects/${selectedSubject._id}/announcements/${announcementId}`
+      );
 
-        await api.delete(
-          `/subjects/${selectedSubject._id}/announcements/${announcementId}`
-        );
+      setSuccessMessage(
+        "Announcement deleted successfully."
+      );
 
-        setSuccessMessage(
-          "Announcement deleted successfully."
-        );
+      await refreshSelectedSubject();
+    } catch (error) {
+      console.error(
+        "Delete announcement error:",
+        error
+      );
 
-        await refreshSelectedSubject();
-      } catch (error) {
-        console.error(
-          "Delete announcement error:",
-          error
-        );
-
-        setError(
-          error.response?.data
-            ?.message ||
-            "Unable to delete announcement."
-        );
-      }
-    };
+      setError(
+        error.response?.data
+          ?.message ||
+          "Unable to delete announcement."
+      );
+    }
+  };
 
 
   // =====================================================
@@ -1119,7 +1150,7 @@ const TeacherMySubjects = () => {
                 <Search size={16} />
                 <input
                   type="text"
-                  placeholder="Search subjects by code, title, or description..."
+                  placeholder="Search subjects by title or description..."
                   value={searchTerm}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -1196,7 +1227,6 @@ const TeacherMySubjects = () => {
 
                         <h2>
                           <button type="button" className="teacher-subject-open" onClick={(event) => { event.stopPropagation(); openSubject(subject); }}>
-                          {subject.code}:{" "}
                           {subject.title}
                           </button>
                         </h2>
@@ -1282,8 +1312,6 @@ const TeacherMySubjects = () => {
 
 
                 <h1>
-                  {selectedSubject.code}
-                  :{" "}
                   {selectedSubject.title}
                 </h1>
 
@@ -1444,7 +1472,7 @@ const TeacherMySubjects = () => {
                   <div className="teacher-announcement-composer-heading">
 
                     <h2>
-                      New Announcement
+                      {editingAnnouncement ? "Edit Announcement" : "New Announcement"}
                     </h2>
 
                     <button
@@ -1466,8 +1494,6 @@ const TeacherMySubjects = () => {
 
                     <span>
                       To:{" "}
-                      {selectedSubject.code}
-                      :{" "}
                       {selectedSubject.title}
                     </span>
 
@@ -1497,6 +1523,30 @@ const TeacherMySubjects = () => {
                     }
                   />
 
+
+                  {/* =====================================
+                      EXISTING ATTACHMENT PREVIEW (EDITING)
+                  ===================================== */}
+
+                  {existingAttachment && !removeAttachment && !announcementFile && (
+                    <div className="teacher-announcement-attachment-preview">
+                      <div className="teacher-announcement-attachment-info">
+                        <FileText size={18} />
+                        <div>
+                          <strong>{existingAttachment.name}</strong>
+                          <span>Current attachment</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setRemoveAttachment(true)}
+                        aria-label="Remove attachment"
+                        title="Remove file"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  )}
 
                   {/* =====================================
                       SELECTED FILE PREVIEW
@@ -1675,32 +1725,34 @@ const TeacherMySubjects = () => {
                           postAnnouncement
                         }
                       >
-                        Post
+                        {editingAnnouncement ? "Save Changes" : "Post"}
                       </button>
 
 
-                      <button
-                        type="button"
-                        className="dropdown"
-                        title="Schedule announcement"
-                        onClick={() => {
-                          if (
-                            !validateAnnouncement()
-                          ) {
-                            return;
-                          }
+                      {!editingAnnouncement && (
+                        <button
+                          type="button"
+                          className="dropdown"
+                          title="Schedule announcement"
+                          onClick={() => {
+                            if (
+                              !validateAnnouncement()
+                            ) {
+                              return;
+                            }
 
-                          setError("");
+                            setError("");
 
-                          setShowScheduleModal(
-                            true
-                          );
-                        }}
-                      >
-                        <ChevronDown
-                          size={18}
-                        />
-                      </button>
+                            setShowScheduleModal(
+                              true
+                            );
+                          }}
+                        >
+                          <ChevronDown
+                            size={18}
+                          />
+                        </button>
+                      )}
 
                     </div>
 
@@ -1809,20 +1861,36 @@ const TeacherMySubjects = () => {
                               </small>
 
 
-                              <button
-                                type="button"
-                                className="teacher-announcement-delete"
-                                title="Delete announcement"
-                                onClick={() =>
-                                  handleDeleteAnnouncement(
-                                    announcement._id
-                                  )
-                                }
-                              >
-                                <Trash2
-                                  size={15}
-                                />
-                              </button>
+                              <details className="teacher-announcement-menu">
+                                <summary aria-label="Announcement actions" title="More options">
+                                  <MoreVertical size={18} />
+                                </summary>
+                                <div>
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.currentTarget.closest('details').open = false;
+                                      handleEditAnnouncement(announcement);
+                                    }}
+                                  >
+                                    <Pencil size={14} />
+                                    <span>Edit</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="danger"
+                                    onClick={(event) => {
+                                      event.currentTarget.closest('details').open = false;
+                                      handleDeleteAnnouncement(
+                                        announcement._id
+                                      );
+                                    }}
+                                  >
+                                    <Trash2 size={14} />
+                                    <span>Delete</span>
+                                  </button>
+                                </div>
+                              </details>
 
                             </div>
 
@@ -2016,26 +2084,6 @@ const TeacherMySubjects = () => {
 
             <label>
 
-              Subject Code
-
-              <input
-                type="text"
-                name="code" aria-invalid={Boolean(subjectErrors.code)} aria-describedby={subjectErrors.code ? "code-error" : undefined}
-                placeholder="ITE 314"
-                value={
-                  subjectForm.code
-                }
-                onChange={
-                  handleSubjectChange
-                }
-                required
-              />
-
-            <FieldError errors={subjectErrors} name="code" /></label>
-
-
-            <label>
-
               Subject Name
 
               <input
@@ -2204,6 +2252,27 @@ const TeacherMySubjects = () => {
 
         </div>
       )}
+
+      {/* Custom Confirmation Popups */}
+      <ConfirmationModal
+        isOpen={Boolean(subjectToDelete)}
+        title="Delete Subject?"
+        message="Are you sure you want to delete this subject? All announcements, materials, and student enrollments inside it will also be permanently deleted."
+        confirmText="Delete Subject"
+        isDanger={true}
+        onCancel={() => setSubjectToDelete(null)}
+        onConfirm={executeDeleteSubject}
+      />
+
+      <ConfirmationModal
+        isOpen={Boolean(announcementToDelete)}
+        title="Delete Announcement?"
+        message="Are you sure you want to delete this announcement? This action cannot be undone."
+        confirmText="Delete Announcement"
+        isDanger={true}
+        onCancel={() => setAnnouncementToDelete(null)}
+        onConfirm={executeDeleteAnnouncement}
+      />
 
       </div>
     </DashboardLayout>

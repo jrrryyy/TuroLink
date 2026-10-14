@@ -203,9 +203,19 @@ async function deleteUser(req, res) {
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: 'User not found.' });
 
-    // Clean up associated sessions, teacher profiles, subjects
+    // Clean up associated sessions, teacher profiles, enrollments, and user
     await Session.deleteMany({ user: id });
     await TeacherProfile.deleteMany({ user: id });
+    await Subject.updateMany(
+      {},
+      {
+        $pull: {
+          enrolledStudents: id,
+          'materials.$[].recipientStudents': id,
+          'announcements.$[].recipientStudents': id,
+        },
+      }
+    ).catch(() => {});
     await User.findByIdAndDelete(id);
 
     res.json({ message: 'User and active sessions deleted successfully.' });

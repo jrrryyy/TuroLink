@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Subject =
   require("../models/Subject");
+const Submission = require("../models/Submission");
 const { uploadFile, deleteFile } = require("../services/cloudStorage");
 
 
@@ -101,14 +102,13 @@ const createSubject =
       } = req.body;
 
       if (
-        !code?.trim() ||
         !title?.trim()
       ) {
         return res
           .status(400)
           .json({
             message:
-              "Subject code and title are required.",
+              "Subject title is required.",
           });
       }
 
@@ -117,8 +117,7 @@ const createSubject =
           teacherId:
             req.user._id,
 
-          code:
-            code.trim(),
+          code: code?.trim() || "",
 
           title:
             title.trim(),
@@ -243,6 +242,8 @@ const deleteSubject =
               "Subject not found.",
           });
       }
+
+      await Submission.deleteMany({ subjectId: req.params.id }).catch(() => {});
 
       res.status(200).json({
         message:
@@ -599,6 +600,114 @@ const deleteAnnouncement =
 
 
 // ============================================
+// UPDATE ANNOUNCEMENT
+// PUT /api/subjects/:id/announcements/:announcementId
+// ============================================
+
+const updateAnnouncement = async (req, res) => {
+  try {
+    const { content, link, removeAttachment } = req.body;
+
+    const subject = await Subject.findOne({
+      _id: req.params.id,
+      teacherId: req.user._id,
+    });
+
+    if (!subject) {
+      return res.status(404).json({ message: "Subject not found." });
+    }
+
+    const announcement = subject.announcements.id(req.params.announcementId);
+    if (!announcement) {
+      return res.status(404).json({ message: "Announcement not found." });
+    }
+
+    const willHaveAttachment = (announcement.attachment && removeAttachment !== "true") || Boolean(req.file);
+    if (!content?.trim() && !willHaveAttachment && !link?.trim()) {
+      return res.status(400).json({ message: "Add announcement text, a file, or a link." });
+    }
+
+    let cleanLink = "";
+    if (link?.trim()) {
+      try {
+        const parsed = new URL(link.trim());
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          return res.status(400).json({ message: "Link must use http or https." });
+        }
+        cleanLink = parsed.toString();
+      } catch {
+        return res.status(400).json({ message: "Please enter a valid link." });
+      }
+    }
+
+    // Attachment update
+    const oldAttachment = announcement.attachment;
+    if (req.file) {
+      const uploadResult = await uploadFile(req.file.buffer, {
+        folder: "announcements",
+        filename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        resourceType: "auto",
+      });
+      announcement.attachment = uploadResult.url;
+      announcement.attachmentName = req.file.originalname;
+      announcement.attachmentType = req.file.mimetype;
+      if (oldAttachment) {
+        await deleteFile(oldAttachment, { folder: "announcements", resourceType: "auto" }).catch(() => {});
+      }
+    } else if (removeAttachment === "true") {
+      if (oldAttachment) {
+        await deleteFile(oldAttachment, { folder: "announcements", resourceType: "auto" }).catch(() => {});
+      }
+      announcement.attachment = "";
+      announcement.attachmentName = "";
+      announcement.attachmentType = "";
+    }
+
+    // Recipient students update
+    if (req.body.recipientStudents !== undefined) {
+      let recipientStudents = [];
+      try {
+        const raw = typeof req.body.recipientStudents === "string"
+          ? JSON.parse(req.body.recipientStudents)
+          : req.body.recipientStudents;
+        const list = Array.isArray(raw) ? raw : [raw];
+        recipientStudents = list
+          .map((id) => String(id?._id || id).trim())
+          .filter((id) => id && id !== "all" && mongoose.isValidObjectId(id));
+      } catch {
+        recipientStudents = String(req.body.recipientStudents)
+          .split(",")
+          .map((id) => id.trim())
+          .filter((id) => id && id !== "all" && mongoose.isValidObjectId(id));
+      }
+      if (recipientStudents.length > 0 && subject.enrolledStudents) {
+        const enrolledSet = new Set(
+          (subject.enrolledStudents || []).map((s) => (s._id ? s._id.toString() : s.toString()))
+        );
+        recipientStudents = recipientStudents.filter((id) => enrolledSet.has(id));
+      }
+      announcement.recipientStudents = recipientStudents;
+    }
+
+    announcement.content = content?.trim() || "";
+    announcement.link = cleanLink;
+
+    await subject.save();
+
+    res.status(200).json({
+      message: "Announcement updated successfully.",
+      announcement,
+    });
+  } catch (error) {
+    console.error("Update announcement error:", error);
+    res.status(500).json({ message: "Failed to update announcement." });
+  }
+};
+
+
+
+// ============================================
 // KICK / REMOVE STUDENT FROM SUBJECT
 // DELETE /api/subjects/:id/students/:studentId
 // ============================================
@@ -654,6 +763,7 @@ module.exports = {
   updateSubject,
   deleteSubject,
   createAnnouncement,
+  updateAnnouncement,
   deleteAnnouncement,
   kickStudent,
 };

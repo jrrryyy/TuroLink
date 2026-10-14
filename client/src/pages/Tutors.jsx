@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, MessageCircle, Search, Star, Awar
 import DashboardLayout from '../components/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { profilePictureUrl } from '../services/profile';
 import TutorProfileModal from '../components/TutorProfileModal';
 import '../styles/tutors.css';
@@ -128,7 +129,7 @@ export function TutorDetails() {
     {tutor && <div className="tutor-detail-grid"><div><section className="tutor-panel tutor-profile-heading"><Avatar tutor={tutor} /><div><div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '2px' }}><h1 style={{ margin: 0 }}>{tutor.name}</h1>{tutor.isVerified ? <span className="tutor-role-pill verified"><Award size={13} /> Verified Teacher</span> : <span className="tutor-role-pill unverified"><GraduationCap size={13} /> Teacher</span>}</div><p>{tutor.subject}</p><Rating tutor={tutor} /><div style={{ marginTop: '10px' }}><button type="button" className="tutor-chat-btn" onClick={startChat} disabled={chatLoading}><MessageCircle size={16} />{chatLoading ? 'Connecting…' : `Chat with ${tutor.name.split(' ')[0]}`}</button></div></div><strong>{tutor.hourlyRate ? `${money(tutor.hourlyRate)}/hr` : 'Rate not set'}</strong></section>
       <section className="tutor-panel"><h2>About {tutor.name.split(' ')[0]}</h2><p className="tutor-bio">{tutor.bio || 'This teacher has not added a bio yet.'}</p></section>
       <section className="tutor-panel"><h2>Student Reviews</h2>{!tutor.reviews.length && <p className="tutor-muted">No reviews yet. Students can review after their session ends.</p>}{tutor.reviews.map((r) => <article className="tutor-review" key={r.id}><div><strong>{r.name}</strong><span>★ {r.rating} · {dateLabel(r.createdAt)}</span></div><p>{r.text}</p></article>)}</section></div>
-      <section className="tutor-panel tutor-booking"><h2>Book a Session</h2><p className="tutor-muted">Choose a subject and time. Your session is confirmed when the teacher accepts your request.</p><p className="tutor-muted">One hour · Manila time (UTC+8)</p><label>Subject<select aria-label="Session subject" value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setDay(''); setSlotId(''); }}><option value="">{tutor.subjects?.length ? 'Select a subject' : 'No subjects available'}</option>{tutor.subjects?.map((s) => <option key={s._id} value={s._id}>{s.code}: {s.title}</option>)}</select></label><Calendar key={subjectId} slots={availableSlots} selected={day} onSelect={(d) => { setDay(d); setSlotId(''); }} />
+      <section className="tutor-panel tutor-booking"><h2>Book a Session</h2><p className="tutor-muted">Choose a subject and time. Your session is confirmed when the teacher accepts your request.</p><p className="tutor-muted">One hour · Manila time (UTC+8)</p><label>Subject<select aria-label="Session subject" value={subjectId} onChange={(e) => { setSubjectId(e.target.value); setDay(''); setSlotId(''); }}><option value="">{tutor.subjects?.length ? 'Select a subject' : 'No subjects available'}</option>{tutor.subjects?.map((s) => <option key={s._id} value={s._id}>{s.title}</option>)}</select></label><Calendar key={subjectId} slots={availableSlots} selected={day} onSelect={(d) => { setDay(d); setSlotId(''); }} />
         <h3>{day ? `Available slots · ${day}` : 'Select an available date'}</h3><div className="tutor-slot-grid">{availableSlots.filter((s) => dayKey(s.start) === day).map((s) => <button key={s._id} disabled={busy} className={slotId === s._id ? 'selected' : ''} aria-pressed={slotId === s._id} onClick={() => setSlotId(s._id)}>{time(s.start)}</button>)}</div>
         {!availableSlots.length && <p className="tutor-muted">{subjectId ? 'No available slots for this subject. Please check again later.' : 'Choose a subject to see available times.'}</p>}
         {selected && <p>{dateLabel(selected.start)} · {time(selected.start)}–{time(new Date(new Date(selected.start).getTime() + 3600000))}</p>}
@@ -141,13 +142,14 @@ export function TutorDetails() {
 function AssignSlotSubject({ slot, subjects, busy, action }) {
   const [subjectId, setSubjectId] = useState('');
   return <form className="tutor-slot-assignment" onSubmit={(e) => { e.preventDefault(); action(() => api.patch(`/tutors/availability/${slot._id}`, { subjectId }), 'Subject assigned.'); }}>
-    <select required aria-label={`Assign subject for ${dateLabel(slot.start)} ${time(slot.start)}`} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}><option value="">Assign subject</option>{subjects.map((s) => <option key={s._id} value={s._id}>{s.code}: {s.title}</option>)}</select>
+    <select required aria-label={`Assign subject for ${dateLabel(slot.start)} ${time(slot.start)}`} value={subjectId} onChange={(e) => setSubjectId(e.target.value)}><option value="">Assign subject</option>{subjects.map((s) => <option key={s._id} value={s._id}>{s.title}</option>)}</select>
     <button className="tutor-secondary" disabled={busy || !subjectId}>Save Subject</button>
   </form>;
 }
 export function TeacherAvailability() {
   const state = useData('/tutors/availability');
   const [today] = useState(() => dayKey(Date.now()));
+  const [slotToRemove, setSlotToRemove] = useState(null);
   const [rate, setRate] = useState('');
   const [offeredSubject, setOfferedSubject] = useState('');
   const [date, setDate] = useState('');
@@ -165,10 +167,25 @@ export function TeacherAvailability() {
   };
   return <Shell><section className="tutor-panel"><span className="teacher-eyebrow">MAKE TIME TO TEACH</span><h1>Teaching Availability</h1><p className="tutor-muted">Set your rate, choose a subject, and open a one-hour slot. You decide which requests to accept. All times are in Manila (UTC+8).</p><Status state={state} />
     {notice && <p className="tutor-success" role="status">{notice}</p>}{error && <p className="tutor-alert" role="alert">{error}</p>}
-    <h2>Your teaching rate</h2><form className="tutor-inline-form" onSubmit={(e) => { e.preventDefault(); action(() => api.put('/tutors/availability/rate', { hourlyRate: Number(rate) }), 'Hourly rate saved. Existing bookings keep their original price.'); }}><label>Hourly rate (PHP)<input type="number" min="1" max="100000" step="0.01" required value={rate} placeholder={state.data?.hourlyRate || 'Enter rate'} onChange={(e) => setRate(e.target.value)} /></label><button className="tutor-button" disabled={busy}>Save Rate</button><span>Current rate: {state.data?.hourlyRate ? money(state.data.hourlyRate) : 'Not set'}</span></form>
-    <h2>Open a new time slot</h2><form className="tutor-inline-form" onSubmit={(e) => { e.preventDefault(); action(() => api.post('/tutors/availability', { start: `${date}T${hour}:00:00+08:00`, subjectId: offeredSubject }), 'Available slot added.'); }}><label>Subject<select required aria-label="Available subject" value={offeredSubject} onChange={(e) => setOfferedSubject(e.target.value)}><option value="">Select a subject</option>{state.data?.subjects?.map((s) => <option key={s._id} value={s._id}>{s.code}: {s.title}</option>)}</select></label><label>Date<input type="date" required min={today} value={date} onChange={(e) => setDate(e.target.value)} /></label><label>Start time<select value={hour} onChange={(e) => setHour(e.target.value)}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={String(h).padStart(2, '0')}>{h % 12 || 12}:00 {h < 12 ? 'AM' : 'PM'}</option>)}</select></label><button className="tutor-button" disabled={busy || !state.data?.hourlyRate || !offeredSubject}>Add Slot</button></form>
+    <h2>Your teaching rate</h2><form className="tutor-inline-form" onSubmit={(e) => { e.preventDefault(); action(() => api.put('/tutors/availability/rate', { hourlyRate: Number(rate) }), 'Hourly rate saved. Existing bookings keep their original price.'); }}><label>Hourly rate (PHP)<input type="number" min="1" max="100000" step="1" required value={rate} placeholder={state.data?.hourlyRate || 'Enter rate'} onChange={(e) => setRate(e.target.value)} /></label><button className="tutor-button" disabled={busy}>Save Rate</button><span>Current rate: {state.data?.hourlyRate ? money(state.data.hourlyRate) : 'Not set'}</span></form>
+    <h2>Open a new time slot</h2><form className="tutor-inline-form" onSubmit={(e) => { e.preventDefault(); action(() => api.post('/tutors/availability', { start: `${date}T${hour}:00:00+08:00`, subjectId: offeredSubject }), 'Available slot added.'); }}><label>Subject<select required aria-label="Available subject" value={offeredSubject} onChange={(e) => setOfferedSubject(e.target.value)}><option value="">Select a subject</option>{state.data?.subjects?.map((s) => <option key={s._id} value={s._id}>{s.title}</option>)}</select></label><label>Date<input type="date" required min={today} value={date} onChange={(e) => setDate(e.target.value)} /></label><label>Start time<select value={hour} onChange={(e) => setHour(e.target.value)}>{Array.from({ length: 24 }, (_, h) => <option key={h} value={String(h).padStart(2, '0')}>{h % 12 || 12}:00 {h < 12 ? 'AM' : 'PM'}</option>)}</select></label><button className="tutor-button" disabled={busy || !state.data?.hourlyRate || !offeredSubject}>Add Slot</button></form>
     {state.data && !state.data.subjects?.length && <p>Create a subject before adding availability. <Link to="/teacher/my-subjects">Go to My Subjects</Link></p>}<h2>Upcoming Availability</h2>{state.data && !state.data.slots.length && <p>No slots yet. Add your first available time above.</p>}
-    <div className="tutor-schedule-list">{state.data?.slots.map((s) => <article className="tutor-schedule-row" key={s._id}><span><strong>{s.subjectId ? `${s.subjectId.code}: ${s.subjectId.title}` : 'Subject not assigned'}</strong><br />{dateLabel(s.start)} · {time(s.start)}–{time(new Date(new Date(s.start).getTime() + 3600000))}</span>{s.booked ? <span className="tutor-badge">Reserved</span> : <><AssignSlotSubject slot={s} subjects={state.data.subjects || []} busy={busy} action={action} /><button className="tutor-secondary" disabled={busy} onClick={() => action(() => api.delete(`/tutors/availability/${s._id}`), 'Slot removed.')}>Remove</button></>}</article>)}</div>
+    <div className="tutor-schedule-list">{state.data?.slots.map((s) => <article className="tutor-schedule-row" key={s._id}><span><strong>{s.subjectId ? s.subjectId.title : 'Subject not assigned'}</strong><br />{dateLabel(s.start)} · {time(s.start)}–{time(new Date(new Date(s.start).getTime() + 3600000))}</span>{s.booked ? <span className="tutor-badge">Reserved</span> : <><AssignSlotSubject slot={s} subjects={state.data.subjects || []} busy={busy} action={action} /><button className="tutor-secondary" disabled={busy} onClick={() => setSlotToRemove(s)}>Remove</button></>}</article>)}</div>
+      <ConfirmationModal
+      isOpen={Boolean(slotToRemove)}
+      title="Remove Availability Slot?"
+      message="Are you sure you want to remove this availability slot? Students will no longer be able to book this session."
+      confirmText="Remove Slot"
+      isDanger={true}
+      onCancel={() => setSlotToRemove(null)}
+      onConfirm={() => {
+        const id = slotToRemove?._id;
+        setSlotToRemove(null);
+        if (id) {
+          action(() => api.delete(`/tutors/availability/${id}`), 'Slot removed.');
+        }
+      }}
+    />
   </section></Shell>;
 }
 

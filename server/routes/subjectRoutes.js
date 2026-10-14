@@ -10,6 +10,7 @@ const {
   updateSubject,
   deleteSubject,
   createAnnouncement,
+  updateAnnouncement,
   deleteAnnouncement,
   kickStudent,
 } = require(
@@ -117,6 +118,19 @@ router.post(
   uploadValidation(announcementUpload.single("attachment"), "attachment"),
   validation("announcement"),
   createAnnouncement
+);
+
+
+// ============================================
+// UPDATE ANNOUNCEMENT
+// ============================================
+
+router.put(
+  "/:id/announcements/:announcementId",
+  protect,
+  requireTeacher,
+  uploadValidation(announcementUpload.single("attachment"), "attachment"),
+  updateAnnouncement
 );
 
 

@@ -5,8 +5,6 @@ import {
   Search,
   MessageSquare,
   Mail,
-  Copy,
-  Check,
   GraduationCap,
   Sparkles,
   UserX,
@@ -21,7 +19,6 @@ import '../styles/teacher-students.css';
 export default function TeacherEnrolledStudents({ subject, onStudentRemoved }) {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
-  const [copiedCode, setCopiedCode] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState(null);
   const [startingChatId, setStartingChatId] = useState(null);
 
@@ -44,16 +41,6 @@ export default function TeacherEnrolledStudents({ subject, onStudentRemoved }) {
     });
   }, [students, searchTerm]);
 
-  const handleCopyCode = async () => {
-    if (!subject?.code) return;
-    try {
-      await navigator.clipboard.writeText(subject.code);
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2000);
-    } catch {
-      // Fallback
-    }
-  };
 
   const handleMessageStudent = async (studentId) => {
     setStartingChatId(studentId);
@@ -105,24 +92,8 @@ export default function TeacherEnrolledStudents({ subject, onStudentRemoved }) {
           <div>
             <h3>Enrolled Students</h3>
             <p className="enrolled-students-subtitle">
-              {students.length} {students.length === 1 ? 'student' : 'students'} currently enrolled in {subject?.code}
+              {students.length} {students.length === 1 ? 'student' : 'students'} currently enrolled in {subject?.title || 'this subject'}
             </p>
-          </div>
-        </div>
-
-        <div className="enrolled-students-header-right">
-          <div className="subject-code-share-pill" title="Students use this code to join">
-            <span className="code-label">Class Code:</span>
-            <strong className="code-value">{subject?.code}</strong>
-            <button
-              type="button"
-              className="copy-code-btn"
-              onClick={handleCopyCode}
-              aria-label="Copy class code"
-            >
-              {copiedCode ? <Check size={14} className="copied" /> : <Copy size={14} />}
-              <span>{copiedCode ? 'Copied' : 'Copy'}</span>
-            </button>
           </div>
         </div>
       </div>
@@ -163,16 +134,8 @@ export default function TeacherEnrolledStudents({ subject, onStudentRemoved }) {
           </div>
           <h4>No Students Enrolled Yet</h4>
           <p>
-            Share your subject code <strong>{subject?.code}</strong> with students. Once they enroll from their dashboard, they will appear here.
+            Students enrolled in this subject will appear here once they join.
           </p>
-          <button
-            type="button"
-            className="empty-state-copy-btn"
-            onClick={handleCopyCode}
-          >
-            {copiedCode ? <Check size={16} /> : <Copy size={16} />}
-            <span>{copiedCode ? 'Class Code Copied!' : `Copy Class Code (${subject?.code})`}</span>
-          </button>
         </div>
       ) : filteredStudents.length === 0 ? (
         <div className="enrolled-students-no-match">
@@ -269,7 +232,7 @@ export default function TeacherEnrolledStudents({ subject, onStudentRemoved }) {
             </div>
             <h3>Remove Student?</h3>
             <p className="kick-modal-desc">
-              Are you sure you want to remove <strong>{studentToKick.name}</strong> from <strong>{subject?.code}: {subject?.title}</strong>?
+              Are you sure you want to remove <strong>{studentToKick.name}</strong> from <strong>{subject?.title}</strong>?
             </p>
 
             <div className="kick-student-preview-card">

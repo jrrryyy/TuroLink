@@ -21,6 +21,7 @@ import api from '../services/api';
 import { profilePictureUrl } from '../services/profile';
 import { downloadFile } from '../services/download';
 import StudentRecipientPicker from './StudentRecipientPicker';
+import ConfirmationModal from './ConfirmationModal';
 import '../styles/teacher-classwork.css';
 
 const emptyForm = (type = 'assignment') => ({ type, title: '', instructions: '', points: '100', dueAt: '', allowLateSubmissions: true, scheduledAt: '', link: '', recipientStudents: [] });
@@ -45,7 +46,6 @@ export default function TeacherClasswork({ subject, teacherName }) {
   const [showLink, setShowLink] = useState(false);
   const [busy, setBusy] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
-  const deleteRef = useRef(null);
   const createRef = useRef(null);
   const editorRef = useRef(null);
   const endpoint = `/subjects/${subject._id}/materials`;
@@ -139,12 +139,13 @@ export default function TeacherClasswork({ subject, teacherName }) {
   };
 
   const confirmDelete = async () => {
+    if (!deleteTarget) return;
     setBusy(true); setError('');
     try {
       await api.delete(`${endpoint}/${deleteTarget._id}`);
       if (editing?._id === deleteTarget._id) setEditing(null);
-      deleteRef.current.close(); setDeleteTarget(null); setSuccess('Classwork deleted.'); await refresh();
-    } catch (err) { setError(err.response?.data?.message || 'Unable to delete classwork.'); deleteRef.current.close(); }
+      setDeleteTarget(null); setSuccess('Classwork deleted.'); await refresh();
+    } catch (err) { setError(err.response?.data?.message || 'Unable to delete classwork.'); }
     finally { setBusy(false); }
   };
 
@@ -230,14 +231,31 @@ export default function TeacherClasswork({ subject, teacherName }) {
   const saved = materials.filter((item) => ['draft', 'scheduled', 'archived'].includes(item.status));
 
   const card = (item) => {
-    const stats = item.submissionStats || {
-      totalAssigned: item.recipientStudents?.length || 0,
-      turnedIn: 0,
-      graded: 0,
-      pendingGrading: 0,
-      isAllGraded: false,
-      isPartiallyGraded: false,
-      needsGrading: false,
+    const rawStats = item.submissionStats || {};
+    const assignedCount = item.recipientStudents && item.recipientStudents.length > 0
+      ? item.recipientStudents.length
+      : (rawStats.totalAssigned || 0);
+    const turnedIn = rawStats.turnedIn || 0;
+    const graded = rawStats.graded || 0;
+    const pendingGrading = rawStats.pendingGrading != null ? rawStats.pendingGrading : Math.max(0, turnedIn - graded);
+    const isAllGraded = rawStats.isAllGraded != null
+      ? rawStats.isAllGraded
+      : (assignedCount > 0 ? graded >= assignedCount : (turnedIn > 0 && pendingGrading === 0));
+    const isPartiallyGraded = rawStats.isPartiallyGraded != null
+      ? rawStats.isPartiallyGraded
+      : (!isAllGraded && graded > 0);
+    const needsGrading = rawStats.needsGrading != null
+      ? rawStats.needsGrading
+      : (pendingGrading > 0);
+
+    const stats = {
+      totalAssigned: assignedCount,
+      turnedIn,
+      graded,
+      pendingGrading,
+      isAllGraded,
+      isPartiallyGraded,
+      needsGrading,
     };
 
     return (
@@ -261,21 +279,21 @@ export default function TeacherClasswork({ subject, teacherName }) {
           {(!item.status || item.status === 'posted') && (
             <>
               {stats.isAllGraded && (
-                <span className="classwork-grading-badge badge-all-graded" title="All turned-in submissions are graded">
+                <span className="classwork-grading-badge badge-all-graded" title="Graded">
                   <CheckCircle2 size={12} />
-                  <span>Graded ({stats.graded}/{stats.turnedIn})</span>
+                  <span>Graded{item.recipientStudents?.length === 1 ? '' : ` (${stats.graded}/${stats.totalAssigned || stats.turnedIn})`}</span>
                 </span>
               )}
               {stats.isPartiallyGraded && (
                 <span className="classwork-grading-badge badge-partially-graded" title="Partially graded submissions">
                   <Clock size={12} />
-                  <span>Graded ({stats.graded}/{stats.turnedIn})</span>
+                  <span>Graded ({stats.graded}/{stats.totalAssigned || stats.turnedIn})</span>
                 </span>
               )}
               {stats.needsGrading && stats.graded === 0 && (
                 <span className="classwork-grading-badge badge-needs-grading" title="New submissions waiting to be graded">
                   <AlertCircle size={12} />
-                  <span>{stats.turnedIn} to Grade</span>
+                  <span>{stats.pendingGrading || stats.turnedIn} to Grade</span>
                 </span>
               )}
             </>
@@ -287,7 +305,7 @@ export default function TeacherClasswork({ subject, teacherName }) {
             <div>
               {item.status !== 'archived' && <button type="button" disabled={busy} onClick={(event) => { event.currentTarget.closest('details').open = false; openEditor(item.type, item); }}>Edit</button>}
               <button type="button" disabled={busy} onClick={(event) => { event.currentTarget.closest('details').open = false; changeStatus(item, item.status === 'archived' ? 'restore' : 'archive'); }}>{item.status === 'archived' ? 'Restore to drafts' : 'Archive'}</button>
-              <button type="button" disabled={busy} onClick={(event) => { event.currentTarget.closest('details').open = false; setDeleteTarget(item); deleteRef.current.showModal(); }}>Delete</button>
+              <button type="button" disabled={busy} onClick={(event) => { event.currentTarget.closest('details').open = false; setDeleteTarget(item); }}>Delete</button>
             </div>
           </details>
         </div>
@@ -320,19 +338,23 @@ export default function TeacherClasswork({ subject, teacherName }) {
                 <div className="classwork-grading-pill pill-all-graded">
                   <CheckCircle2 size={15} />
                   <span className="pill-title">Graded</span>
-                  <span className="pill-detail">· All {stats.turnedIn} {stats.turnedIn === 1 ? 'submission' : 'submissions'} graded</span>
+                  <span className="pill-detail">
+                    · {item.recipientStudents?.length === 1
+                        ? `Graded for ${item.recipientStudents[0]?.name || 'Student'}`
+                        : `All ${stats.graded} ${stats.graded === 1 ? 'submission' : 'submissions'} graded`}
+                  </span>
                 </div>
               ) : stats.isPartiallyGraded ? (
                 <div className="classwork-grading-pill pill-partially-graded">
                   <Clock size={15} />
                   <span className="pill-title">Partially Graded</span>
-                  <span className="pill-detail">· {stats.graded}/{stats.turnedIn} graded ({stats.pendingGrading} pending)</span>
+                  <span className="pill-detail">· {stats.graded}/{stats.totalAssigned || stats.turnedIn} graded ({stats.pendingGrading} pending)</span>
                 </div>
               ) : stats.needsGrading ? (
                 <div className="classwork-grading-pill pill-needs-grading">
                   <AlertCircle size={15} />
                   <span className="pill-title">Needs Grading</span>
-                  <span className="pill-detail">· {stats.turnedIn} turned in</span>
+                  <span className="pill-detail">· {stats.pendingGrading || stats.turnedIn} turned in</span>
                 </div>
               ) : (
                 <div className="classwork-grading-pill pill-no-submissions">
@@ -371,7 +393,7 @@ export default function TeacherClasswork({ subject, teacherName }) {
       <fieldset disabled={busy}>
         <div className="classwork-editor-heading"><h2>{labelFor(form.type)}</h2><button type="button" aria-label="Close editor" onClick={() => setEditing(null)}><X size={20} /></button></div>
         <div className="classwork-editor-options">
-          <label>To<input value={`${subject.code}: ${subject.title}`} readOnly /></label>
+          <label>To<input value={subject.title} readOnly /></label>
           <label>Students
             <StudentRecipientPicker
               enrolledStudents={subject.enrolledStudents || []}
@@ -416,9 +438,22 @@ export default function TeacherClasswork({ subject, teacherName }) {
       </fieldset>
     </form>}
     {loading ? <p role="status">Loading materials...</p> : <div className="classwork-posts">{posted.map(card)}{posted.length === 0 && !editing && <div className="classwork-empty"><BookOpen size={32} /><h3>No materials posted yet</h3><p>Use Create to add an assignment or quiz assignment.</p></div>}</div>}
-    <dialog className="classwork-delete-dialog" ref={deleteRef} aria-labelledby="classwork-delete-title" onCancel={(event) => { if (busy) event.preventDefault(); }}>
-      <h2 id="classwork-delete-title">Delete this {deleteTarget ? labelFor(deleteTarget.type).toLowerCase() : 'material'}?</h2><p>{deleteTarget?.title}</p><p>This action cannot be undone.</p><div><button type="button" disabled={busy} onClick={() => deleteRef.current.close()}>Cancel</button><button type="button" disabled={busy} className="classwork-danger" onClick={confirmDelete}>{busy ? 'Deleting...' : 'Delete'}</button></div>
-    </dialog>
+    <ConfirmationModal
+      isOpen={Boolean(deleteTarget)}
+      title={`Delete ${deleteTarget ? labelFor(deleteTarget.type) : 'Classwork'}?`}
+      message={
+        deleteTarget?.title
+          ? `Are you sure you want to delete "${deleteTarget.title}"? This action cannot be undone.`
+          : 'Are you sure you want to delete this classwork? This action cannot be undone.'
+      }
+      confirmText={deleteTarget ? `Delete ${labelFor(deleteTarget.type)}` : 'Delete'}
+      isDanger={true}
+      isLoading={busy}
+      onCancel={() => {
+        if (!busy) setDeleteTarget(null);
+      }}
+      onConfirm={confirmDelete}
+    />
 
     <dialog
       className="teacher-submissions-modal"

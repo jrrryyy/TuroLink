@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { profilePictureUrl } from '../services/profile';
@@ -128,12 +129,16 @@ function MaterialSubmission({ subject, material, reload }) {
     }
   };
 
-  const handleUnsubmit = async () => {
+  const handleUnsubmit = () => {
     if (isLateClosed) {
       alert('The deadline has passed and late submissions are closed; this work cannot be unsubmitted.');
       return;
     }
-    if (!window.confirm('Unsubmit your work? You can re-submit after updating your attachment.')) return;
+    setShowUnsubmitConfirm(true);
+  };
+
+  const executeUnsubmit = async () => {
+    setShowUnsubmitConfirm(false);
     setBusy(true);
     setError('');
     try {
@@ -366,7 +371,7 @@ export default function StudentMySubjects() {
 
   const reload = async () => { const response = await api.get(endpoint); setResult({ endpoint, data: response.data }); };
   const data = result?.endpoint === endpoint ? result.data : null;
-  const filtered = Array.isArray(data) ? data.filter((s) => `${s.code} ${s.title} ${s.instructorName} ${s.upcomingTopic}`.toLowerCase().includes(query.toLowerCase().trim())) : [];
+  const filtered = Array.isArray(data) ? data.filter((s) => `${s.title} ${s.instructorName} ${s.upcomingTopic}`.toLowerCase().includes(query.toLowerCase().trim())) : [];
 
   const handleLeaveConfirm = async () => {
     if (!subjectToLeave || leaving) return;
@@ -374,15 +379,15 @@ export default function StudentMySubjects() {
     setLeaveError('');
     try {
       await api.delete(`/student-subjects/${subjectToLeave.id}/leave`);
-      const leftCode = subjectToLeave.code;
+      const leftTitle = subjectToLeave.title || 'the subject';
       setSubjectToLeave(null);
       if (id) {
         navigate('/student/my-subjects', {
           replace: true,
-          state: { message: `You have successfully left ${leftCode}.` }
+          state: { message: `You have successfully left ${leftTitle}.` }
         });
       } else {
-        setFeedbackMessage(`You have successfully left ${leftCode}.`);
+        setFeedbackMessage(`You have successfully left ${leftTitle}.`);
         reload();
       }
     } catch (err) {
@@ -472,7 +477,7 @@ export default function StudentMySubjects() {
                       className="student-card-leave-btn"
                       onClick={() => {
                         setLeaveError('');
-                        setSubjectToLeave({ id: s._id, code: s.code, title: s.title });
+                        setSubjectToLeave({ id: s._id, title: s.title });
                       }}
                       title="Leave Subject"
                     >
@@ -491,7 +496,7 @@ export default function StudentMySubjects() {
             <div className="student-classroom-header">
               <div className="student-classroom-header-info">
                 <span className="student-section-label">SUBJECT CLASSROOM</span>
-                <h1>{data.code}: {data.title}</h1>
+                <h1>{data.title}</h1>
                 <p className="subject-feed-muted">Enrolled Students: {data.enrolledCount} · Subject Rating: {data.rating ? `${data.rating}/5` : 'Not rated yet'}</p>
               </div>
               <button
@@ -499,7 +504,7 @@ export default function StudentMySubjects() {
                 className="student-leave-subject-btn"
                 onClick={() => {
                   setLeaveError('');
-                  setSubjectToLeave({ id: data._id || id, code: data.code, title: data.title });
+                  setSubjectToLeave({ id: data._id || id, title: data.title });
                 }}
                 title="Leave this subject"
               >
@@ -546,7 +551,7 @@ export default function StudentMySubjects() {
               </div>
               <h3>Leave Subject?</h3>
               <p>
-                Are you sure you want to leave <strong>{subjectToLeave.code}: {subjectToLeave.title}</strong>? You will no longer have access to its announcements, classwork, or learning materials.
+                Are you sure you want to leave <strong>{subjectToLeave.title}</strong>? You will no longer have access to its announcements, classwork, or learning materials.
               </p>
               {leaveError && <div className="student-leave-modal-error">{leaveError}</div>}
               <div className="student-leave-modal-actions">

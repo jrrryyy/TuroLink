@@ -1365,29 +1365,87 @@
 }
 
 
-.teacher-announcement-delete {
-  width: 32px;
-  height: 32px;
-
-  padding: 0;
-
-  border: 0;
-  border-radius: 50%;
-
-  background:
-    transparent;
-
-  color: #a4433b;
-
-  display: grid;
-  place-items: center;
-
-  cursor: pointer;
+.teacher-announcement-menu {
+  position: relative;
 }
 
+.teacher-announcement-menu summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--ts-muted, #64748b);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
 
-.teacher-announcement-delete:hover {
-  background: #f3dfdc;
+.teacher-announcement-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.teacher-announcement-menu summary:hover {
+  background: var(--ts-hover, rgba(0, 0, 0, 0.05));
+  color: var(--ts-text, #1e293b);
+}
+
+.teacher-announcement-menu > div {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: #ffffff;
+  border: 1px solid var(--ts-border, #e2e8f0);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 140px;
+  z-index: 50;
+  animation: turolinkFadeIn 0.15s ease-out;
+}
+
+.teacher-announcement-menu button {
+  border: 0;
+  background: transparent;
+  color: var(--ts-text, #1e293b);
+  padding: 8px 12px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.teacher-announcement-menu button:hover {
+  background: var(--ts-hover, rgba(0, 0, 0, 0.05));
+}
+
+.teacher-announcement-menu button.danger {
+  color: #b91c1c;
+}
+
+.teacher-announcement-menu button.danger:hover {
+  background: #fef2f2;
+}
+
+.teacher-subject-dark .teacher-announcement-menu > div {
+  background: #1e241f;
+  border-color: #2c362d;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+}
+
+.teacher-subject-dark .teacher-announcement-menu button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.teacher-subject-dark .teacher-announcement-menu button.danger:hover {
+  background: rgba(239, 68, 68, 0.12);
 }
 
 

@@ -31,9 +31,7 @@ export default function ProfileSupportModals({ activeModal, onClose, user, isTea
   const [bugDescription, setBugDescription] = useState('');
   const [bugSubmitted, setBugSubmitted] = useState(false);
 
-  // Language state
-  const [selectedLanguage, setSelectedLanguage] = useState('en-US');
-  const [languageSaved, setLanguageSaved] = useState(false);
+  
 
   if (!activeModal) return null;
 
@@ -66,16 +64,7 @@ export default function ProfileSupportModals({ activeModal, onClose, user, isTea
     }, 1800);
   };
 
-  const handleLanguageSelect = (langCode) => {
-    setSelectedLanguage(langCode);
-    setLanguageSaved(true);
-    setTimeout(() => {
-      setLanguageSaved(false);
-      onClose();
-    }, 1200);
-  };
-
-  return (
+    return (
     <div
       className="profile-modal-overlay"
       onClick={handleBackdropClick}
@@ -87,15 +76,13 @@ export default function ProfileSupportModals({ activeModal, onClose, user, isTea
         <div className="profile-modal-header">
           <div className="profile-modal-title-group">
             {activeModal === 'whatsNew' && <Sparkles className="profile-modal-icon green" size={20} />}
-            {activeModal === 'language' && <Globe className="profile-modal-icon green" size={20} />}
-            {activeModal === 'support' && <Headphones className="profile-modal-icon green" size={20} />}
+                        {activeModal === 'support' && <Headphones className="profile-modal-icon green" size={20} />}
             {activeModal === 'feedback' && <MessageSquare className="profile-modal-icon green" size={20} />}
             {activeModal === 'reportBug' && <Bug className="profile-modal-icon red" size={20} />}
 
             <h2>
               {activeModal === 'whatsNew' && "What's New in TuroLink"}
-              {activeModal === 'language' && "Language Preferences"}
-              {activeModal === 'support' && "Help & Support Center"}
+                            {activeModal === 'support' && "Help & Support Center"}
               {activeModal === 'feedback' && "Send Feedback"}
               {activeModal === 'reportBug' && "Report a Bug"}
             </h2>
@@ -164,59 +151,6 @@ export default function ProfileSupportModals({ activeModal, onClose, user, isTea
                   </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* 2. Language Selector */}
-          {activeModal === 'language' && (
-            <div className="profile-language-wrap">
-              <p className="profile-modal-desc">
-                Select your preferred display language for the TuroLink interface:
-              </p>
-
-              <div className="profile-language-list">
-                <button
-                  type="button"
-                  className={`profile-language-option ${selectedLanguage === 'en-US' ? 'active' : ''}`}
-                  onClick={() => handleLanguageSelect('en-US')}
-                >
-                  <div>
-                    <strong>English (United States)</strong>
-                    <span>US English · Default</span>
-                  </div>
-                  {selectedLanguage === 'en-US' && <CheckCircle2 size={18} className="profile-lang-check" />}
-                </button>
-
-                <button
-                  type="button"
-                  className={`profile-language-option ${selectedLanguage === 'fil-PH' ? 'active' : ''}`}
-                  onClick={() => handleLanguageSelect('fil-PH')}
-                >
-                  <div>
-                    <strong>Filipino (Tagalog)</strong>
-                    <span>Wikang Pambansa ng Pilipinas</span>
-                  </div>
-                  {selectedLanguage === 'fil-PH' && <CheckCircle2 size={18} className="profile-lang-check" />}
-                </button>
-
-                <button
-                  type="button"
-                  className="profile-language-option disabled"
-                  disabled
-                >
-                  <div>
-                    <strong>Cebuano (Bisaya)</strong>
-                    <span>Regional · Coming soon</span>
-                  </div>
-                </button>
-              </div>
-
-              {languageSaved && (
-                <div className="profile-modal-toast success">
-                  <CheckCircle2 size={16} />
-                  <span>Language updated successfully!</span>
-                </div>
-              )}
             </div>
           )}
 
