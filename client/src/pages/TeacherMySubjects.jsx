@@ -140,6 +140,7 @@ const TeacherMySubjects = () => {
   ] = useState({
     title: "",
     description: "",
+    upcomingTopic: "",
   });
 
 
@@ -362,17 +363,21 @@ const TeacherMySubjects = () => {
         await api.post(
           "/subjects",
           {
-                        title:
+            title:
               subjectForm.title.trim(),
 
             description:
               subjectForm.description.trim(),
+
+            upcomingTopic:
+              (subjectForm.upcomingTopic || "").trim(),
           }
         );
 
         setSubjectForm({
           title: "",
           description: "",
+          upcomingTopic: "",
         });
 
         setShowAddSubject(
@@ -2119,6 +2124,25 @@ const TeacherMySubjects = () => {
               />
 
             <FieldError errors={subjectErrors} name="description" /></label>
+
+
+            <label>
+
+              Upcoming Topic (Optional)
+
+              <input
+                type="text"
+                name="upcomingTopic"
+                placeholder="e.g. Chapter 1: Introduction to Mechanics"
+                value={
+                  subjectForm.upcomingTopic || ""
+                }
+                onChange={
+                  handleSubjectChange
+                }
+              />
+
+            </label>
 
 
             <div className="teacher-subject-modal-buttons">

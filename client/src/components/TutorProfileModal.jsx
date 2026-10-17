@@ -165,7 +165,6 @@ export default function TutorProfileModal({ tutorId, isOpen, onClose }) {
                   tutor.name?.charAt(0) || 'T'
                 )}
               </div>
-              <span className="view-profile-status-indicator" title="Active on TuroLink" />
             </div>
 
             {!isOwnProfile && (

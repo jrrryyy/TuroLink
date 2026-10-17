@@ -1,0 +1,205 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" width="100%" height="100%" style="background:#0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#818cf8" />
+    </linearGradient>
+    <linearGradient id="tier1Grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Title & Subtitle -->
+  <text x="600" y="45" text-anchor="middle" fill="url(#headerGrad)" font-size="28" font-weight="800" letter-spacing="0.5">TuroLink — System Architecture Diagram</text>
+  <text x="600" y="72" text-anchor="middle" fill="#94a3b8" font-size="14">Multi-Tier Microservice-Ready Web Application &amp; Analytics Framework</text>
+
+  <!-- ================= TIER 1: PRESENTATION TIER ================= -->
+  <g transform="translate(40, 95)" filter="url(#shadow)">
+    <rect width="1120" height="120" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" />
+    <rect width="180" height="28" rx="6" x="20" y="-14" fill="#0284c7" />
+    <text x="110" y="5" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="700">PRESENTATION TIER</text>
+    <text x="215" y="8" fill="#94a3b8" font-size="12">Client SPA (React 19, Vite 8, TailwindCSS 4, Lucide Icons, Axios)</text>
+
+    <!-- Component 1: Student Portal -->
+    <g transform="translate(30, 26)">
+      <rect width="250" height="74" rx="8" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="125" y="28" text-anchor="middle" fill="#38bdf8" font-size="14" font-weight="700">Student Portal</text>
+      <text x="125" y="48" text-anchor="middle" fill="#cbd5e1" font-size="11">Dashboard • Booking • Submissions</text>
+      <text x="125" y="62" text-anchor="middle" fill="#64748b" font-size="10">Session Analytics &amp; Mastery Graph</text>
+    </g>
+
+    <!-- Component 2: Teacher Portal -->
+    <g transform="translate(310, 26)">
+      <rect width="250" height="74" rx="8" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="125" y="28" text-anchor="middle" fill="#a78bfa" font-size="14" font-weight="700">Teacher Portal</text>
+      <text x="125" y="48" text-anchor="middle" fill="#cbd5e1" font-size="11">Classwork • Grading • Schedule</text>
+      <text x="125" y="62" text-anchor="middle" fill="#64748b" font-size="10">Completed Hours &amp; Trends Graph</text>
+    </g>
+
+    <!-- Component 3: Admin Operations -->
+    <g transform="translate(590, 26)">
+      <rect width="250" height="74" rx="8" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="125" y="28" text-anchor="middle" fill="#f43f5e" font-size="14" font-weight="700">Admin Operations Center</text>
+      <text x="125" y="48" text-anchor="middle" fill="#cbd5e1" font-size="11">Teacher Approvals • Dispute Reports</text>
+      <text x="125" y="62" text-anchor="middle" fill="#64748b" font-size="10">Platform Governance &amp; User Bans</text>
+    </g>
+
+    <!-- Component 4: SVG Analytics Engine -->
+    <g transform="translate(870, 26)">
+      <rect width="220" height="74" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.2" stroke-dasharray="4 2" />
+      <text x="110" y="28" text-anchor="middle" fill="#34d399" font-size="14" font-weight="700">Native SVG Viz Engine</text>
+      <text x="110" y="48" text-anchor="middle" fill="#cbd5e1" font-size="11">Bézier Splines • Histograms</text>
+      <text x="110" y="62" text-anchor="middle" fill="#64748b" font-size="10">Hover Tooltips &amp; Dynamic Scale</text>
+    </g>
+  </g>
+
+  <!-- Connectors: Tier 1 to Tier 2 -->
+  <path d="M 600 215 L 600 245" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4 3" marker-end="url(#arrow)" />
+  <text x="615" y="235" fill="#38bdf8" font-size="11" font-weight="600">HTTPS / JSON REST API</text>
+
+  <!-- ================= TIER 2: API GATEWAY & ROUTING ================= -->
+  <g transform="translate(40, 250)" filter="url(#shadow)">
+    <rect width="1120" height="100" rx="12" fill="#1e293b" stroke="#818cf8" stroke-width="1.5" />
+    <rect width="230" height="28" rx="6" x="20" y="-14" fill="#4f46e5" />
+    <text x="135" y="5" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="700">API GATEWAY &amp; ROUTING TIER</text>
+    <text x="265" y="8" fill="#94a3b8" font-size="12">Node.js Express 5.2 Server Application</text>
+
+    <!-- Component 1: Express Routers -->
+    <g transform="translate(30, 22)">
+      <rect width="320" height="60" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="160" y="26" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="700">Domain REST Routers</text>
+      <text x="160" y="44" text-anchor="middle" fill="#94a3b8" font-size="11">/api/student • /api/teacher • /api/admin • /api/reports</text>
+    </g>
+
+    <!-- Component 2: Auth Middleware -->
+    <g transform="translate(380, 22)">
+      <rect width="360" height="60" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="180" y="26" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="700">Security &amp; Session Middleware</text>
+      <text x="180" y="44" text-anchor="middle" fill="#94a3b8" font-size="11">JWT Verification • CORS • Cookies • Rate Limiting (express-rate-limit)</text>
+    </g>
+
+    <!-- Component 3: Multer Stream -->
+    <g transform="translate(770, 22)">
+      <rect width="320" height="60" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="160" y="26" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="700">Multipart Media Ingestion</text>
+      <text x="160" y="44" text-anchor="middle" fill="#94a3b8" font-size="11">Multer File Parser • Cloud Blob Stream Buffer</text>
+    </g>
+  </g>
+
+  <!-- Connectors: Tier 2 to Tier 3 -->
+  <path d="M 600 350 L 600 380" stroke="#818cf8" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- ================= TIER 3: BUSINESS LOGIC & ANALYTICS ================= -->
+  <g transform="translate(40, 385)" filter="url(#shadow)">
+    <rect width="1120" height="110" rx="12" fill="#1e293b" stroke="#34d399" stroke-width="1.5" />
+    <rect width="250" height="28" rx="6" x="20" y="-14" fill="#059669" />
+    <text x="145" y="5" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="700">BUSINESS LOGIC &amp; ANALYTICS</text>
+    <text x="285" y="8" fill="#94a3b8" font-size="12">Domain Controllers &amp; Automated Background Services</text>
+
+    <!-- Box 1 -->
+    <g transform="translate(30, 24)">
+      <rect width="250" height="68" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="125" y="26" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">Student Analytics Controller</text>
+      <text x="125" y="44" text-anchor="middle" fill="#cbd5e1" font-size="11">6-Mo. Tutoring Hour Aggregation</text>
+      <text x="125" y="58" text-anchor="middle" fill="#64748b" font-size="10">Percentage Mastery &amp; Subject Mean</text>
+    </g>
+
+    <!-- Box 2 -->
+    <g transform="translate(310, 24)">
+      <rect width="250" height="68" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="125" y="26" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">Teacher Analytics Controller</text>
+      <text x="125" y="44" text-anchor="middle" fill="#cbd5e1" font-size="11">7-Day &amp; 6-Month Teaching Trends</text>
+      <text x="125" y="58" text-anchor="middle" fill="#64748b" font-size="10">Multidimensional Rating Breakdown</text>
+    </g>
+
+    <!-- Box 3 -->
+    <g transform="translate(590, 24)">
+      <rect width="250" height="68" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="125" y="26" text-anchor="middle" fill="#34d399" font-size="13" font-weight="700">Admin Governance Controller</text>
+      <text x="125" y="44" text-anchor="middle" fill="#cbd5e1" font-size="11">Dispute Metrics &amp; Resolution Ratio</text>
+      <text x="125" y="58" text-anchor="middle" fill="#64748b" font-size="10">Teacher Verification Auditing</text>
+    </g>
+
+    <!-- Box 4 -->
+    <g transform="translate(870, 24)">
+      <rect width="220" height="68" rx="6" fill="#0f172a" stroke="#eab308" stroke-width="1.2" />
+      <text x="110" y="26" text-anchor="middle" fill="#facc15" font-size="13" font-weight="700">Automated Background Svc</text>
+      <text x="110" y="44" text-anchor="middle" fill="#cbd5e1" font-size="11">autoGradeMissedMaterials</text>
+      <text x="110" y="58" text-anchor="middle" fill="#64748b" font-size="10">Auto 0-grade on expired deadlines</text>
+    </g>
+  </g>
+
+  <!-- Connectors: Tier 3 to Tier 4 -->
+  <path d="M 600 495 L 600 525" stroke="#34d399" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- ================= TIER 4: DATA ACCESS & MODELING ================= -->
+  <g transform="translate(40, 530)" filter="url(#shadow)">
+    <rect width="1120" height="95" rx="12" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" />
+    <rect width="230" height="28" rx="6" x="20" y="-14" fill="#d97706" />
+    <text x="135" y="5" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="700">DATA ACCESS &amp; ODM TIER</text>
+    <text x="265" y="8" fill="#94a3b8" font-size="12">Mongoose 9.10 Object-Document Mapper (Schema Rules &amp; Unique Indexes)</text>
+
+    <!-- Model badges -->
+    <g transform="translate(30, 24)">
+      <rect width="195" height="52" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="97" y="24" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="700">User &amp; TeacherProfile</text>
+      <text x="97" y="40" text-anchor="middle" fill="#94a3b8" font-size="10">Roles, Auth, Bio, Verification</text>
+    </g>
+    <g transform="translate(250, 24)">
+      <rect width="195" height="52" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="97" y="24" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="700">Booking &amp; TutorSlot</text>
+      <text x="97" y="40" text-anchor="middle" fill="#94a3b8" font-size="10">{ teacher, start } unique index</text>
+    </g>
+    <g transform="translate(470, 24)">
+      <rect width="195" height="52" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="97" y="24" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="700">Subject &amp; Material</text>
+      <text x="97" y="40" text-anchor="middle" fill="#94a3b8" font-size="10">Curricula, points, dueAt</text>
+    </g>
+    <g transform="translate(690, 24)">
+      <rect width="195" height="52" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="97" y="24" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="700">Submission Model</text>
+      <text x="97" y="40" text-anchor="middle" fill="#94a3b8" font-size="10">{ materialId, studentId } unique</text>
+    </g>
+    <g transform="translate(910, 24)">
+      <rect width="180" height="52" rx="6" fill="#0f172a" stroke="#475569" stroke-width="1" />
+      <text x="90" y="24" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="700">Report Model</text>
+      <text x="90" y="40" text-anchor="middle" fill="#94a3b8" font-size="10">Status, categories, adminNotes</text>
+    </g>
+  </g>
+
+  <!-- Connectors: Tier 4 to Tier 5 -->
+  <path d="M 600 625 L 600 655" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 3" />
+
+  <!-- ================= TIER 5: STORAGE TIER ================= -->
+  <g transform="translate(40, 660)" filter="url(#shadow)">
+    <rect width="1120" height="110" rx="12" fill="#1e293b" stroke="#06b6d4" stroke-width="1.5" />
+    <rect width="180" height="28" rx="6" x="20" y="-14" fill="#0891b2" />
+    <text x="110" y="5" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="700">STORAGE TIER</text>
+    <text x="215" y="8" fill="#94a3b8" font-size="12">Persistence Repositories (Primary Operational Database &amp; Cloud Asset Storage)</text>
+
+    <!-- DB Box -->
+    <g transform="translate(40, 22)">
+      <rect width="500" height="68" rx="6" fill="#0f172a" stroke="#06b6d4" stroke-width="1.2" />
+      <text x="250" y="26" text-anchor="middle" fill="#22d3ee" font-size="14" font-weight="700">MongoDB 7 Database (Replica / Atlas)</text>
+      <text x="250" y="44" text-anchor="middle" fill="#cbd5e1" font-size="11">ACID Document Collections • Compound Unique Indexes</text>
+      <text x="250" y="58" text-anchor="middle" fill="#64748b" font-size="10">Aggregation Pipeline Server-Side Execution Engine</text>
+    </g>
+
+    <!-- Blob Storage Box -->
+    <g transform="translate(580, 22)">
+      <rect width="500" height="68" rx="6" fill="#0f172a" stroke="#06b6d4" stroke-width="1.2" />
+      <text x="250" y="26" text-anchor="middle" fill="#22d3ee" font-size="14" font-weight="700">Cloud Blob Storage (Vercel Blob / Cloudinary)</text>
+      <text x="250" y="44" text-anchor="middle" fill="#cbd5e1" font-size="11">Homework Files • Project Attachments • Profile Avatars</text>
+      <text x="250" y="58" text-anchor="middle" fill="#64748b" font-size="10">Secure CDN Signed URLs with Fast Streaming Delivery</text>
+    </g>
+  </g>
+</svg>

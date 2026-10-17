@@ -18,12 +18,27 @@ const studentRecipientAccess = (item, studentId) => {
   return item.recipientStudents.some((id) => String(id._id || id) === String(studentId));
 };
 function summary(subject, studentId) {
-  const upcoming = (subject.materials || [])
-    .filter((m) => visible(m) && (!studentId || studentRecipientAccess(m, studentId)) && m.dueAt && new Date(m.dueAt) >= new Date())
-    .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt))[0];
+  let upcomingTopic = subject.upcomingTopic?.trim() || '';
+  if (!upcomingTopic) {
+    const accessible = (subject.materials || [])
+      .filter((m) => visible(m) && (!studentId || studentRecipientAccess(m, studentId)));
+    const withFutureDue = accessible
+      .filter((m) => m.dueAt && new Date(m.dueAt) >= new Date())
+      .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
+    if (withFutureDue.length > 0) {
+      upcomingTopic = withFutureDue[0].title || '';
+    } else if (accessible.length > 0) {
+      const sortedByRecent = [...accessible].sort((a, b) => {
+        const dateA = new Date(a.postedAt || a.createdAt || 0);
+        const dateB = new Date(b.postedAt || b.createdAt || 0);
+        return dateB - dateA;
+      });
+      upcomingTopic = sortedByRecent[0]?.title || '';
+    }
+  }
   return { _id: subject._id, code: subject.code, title: subject.title, description: subject.description,
     instructorName: subject.teacherId?.name || 'Teacher', instructorAvatar: subject.teacherId?.profilePicture || '',
-    upcomingTopic: upcoming?.title || '', enrolledCount: subject.enrolledStudents.length, rating: subject.rating || 0 };
+    upcomingTopic, enrolledCount: subject.enrolledStudents?.length || 0, rating: subject.rating || 0 };
 }
 const list = handler(async (req, res) => {
   const subjects = await Subject.find({ enrolledStudents: req.user._id }).populate('teacherId', 'name profilePicture').sort({ createdAt: -1 }).lean();

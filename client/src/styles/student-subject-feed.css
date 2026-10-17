@@ -498,6 +498,42 @@
   min-width: 250px;
 }
 
+.student-classroom-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.student-classroom-meta-row .subject-feed-muted {
+  margin: 0;
+}
+
+.student-classroom-topic-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--layout-hover);
+  border: 1px solid var(--layout-border);
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.student-classroom-topic-label {
+  color: var(--primary);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.student-classroom-topic-val {
+  color: var(--layout-text);
+  font-weight: 600;
+}
+
 .student-leave-subject-btn {
   display: inline-flex;
   align-items: center;

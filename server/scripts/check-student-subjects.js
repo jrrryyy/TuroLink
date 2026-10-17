@@ -112,7 +112,11 @@ async function main() {
     assert.equal((await call(teacher, `/subjects/${subject.id}/announcements/${subject.announcements[0].id}/attachment`)).status, 200);
     for (const folder of ['announcements', '%61nnouncements']) assert.equal((await fetch(origin + '/uploads/' + folder + '/' + announcementKey)).status, 404);
     assert.equal((await call(student, '/subjects/' + subject.id, 'PUT', { code: 'HACK', title: 'Changed' })).status, 403);
-    console.log('PASS: explicit subject selection, teacher acceptance/enrollment, enrollment privacy, published-only content/downloads, scheduled visibility, duplicate likes, comments validation/identity/persistence, teacher downloads.');
+    const fallbackSub = await Subject.create({ teacherId: teacher._id, code: 'FALLBACK', title: 'Fallback Subject', enrolledStudents: [student._id], materials: [{ title: 'Older Topic', status: 'posted', postedAt: new Date(Date.now() - 5000) }, { title: 'Latest Active Topic', status: 'posted', postedAt: new Date() }] });
+    assert.equal((await call(student, '/student-subjects/' + fallbackSub.id)).body.upcomingTopic, 'Latest Active Topic');
+    const explicitSub = await Subject.create({ teacherId: teacher._id, code: 'EXPLICIT', title: 'Explicit Subject', upcomingTopic: 'Custom Topic Title', enrolledStudents: [student._id], materials: [{ title: 'Material One', status: 'posted', dueAt: new Date(Date.now() + 86400000) }] });
+    assert.equal((await call(student, '/student-subjects/' + explicitSub.id)).body.upcomingTopic, 'Custom Topic Title');
+    console.log('PASS: explicit subject selection, teacher acceptance/enrollment, enrollment privacy, published-only content/downloads, scheduled visibility, duplicate likes, comments validation/identity/persistence, teacher downloads, upcomingTopic resolution.');
     if (process.argv.includes('--browser')) {
       const { chromium } = require(path.join(process.env.TEMP, 'turolink-browser-check/node_modules/playwright'));
       browser = await chromium.launch({ channel: 'msedge', headless: true });

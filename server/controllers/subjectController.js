@@ -99,6 +99,7 @@ const createSubject =
         code,
         title,
         description,
+        upcomingTopic,
       } = req.body;
 
       if (
@@ -124,6 +125,10 @@ const createSubject =
 
           description:
             description?.trim() ||
+            "",
+
+          upcomingTopic:
+            upcomingTopic?.trim() ||
             "",
         });
 
@@ -173,6 +178,7 @@ const updateSubject =
         code,
         title,
         description,
+        upcomingTopic,
       } = req.body;
 
       if (
@@ -195,6 +201,14 @@ const updateSubject =
       ) {
         subject.description =
           description.trim();
+      }
+
+      if (
+        upcomingTopic !==
+        undefined
+      ) {
+        subject.upcomingTopic =
+          upcomingTopic.trim();
       }
 
       const updatedSubject =

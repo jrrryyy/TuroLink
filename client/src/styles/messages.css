@@ -170,17 +170,6 @@
   font-size: 16px;
 }
 
-.messages-online-dot {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 10px;
-  height: 10px;
-  background: #3eb555;
-  border: 2px solid var(--layout-card, #f4f0e6);
-  border-radius: 50%;
-}
-
 .messages-conv-info {
   flex: 1;
   min-width: 0;

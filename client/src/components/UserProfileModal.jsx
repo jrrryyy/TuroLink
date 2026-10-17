@@ -119,7 +119,6 @@ export default function UserProfileModal({
                 firstLetter
               )}
             </div>
-            <span className="view-profile-status-indicator" title="Active on TuroLink" />
           </div>
 
           {!isOwnProfile && (

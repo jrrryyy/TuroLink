@@ -135,6 +135,12 @@ const subjectSchema =
         trim: true,
       },
 
+      upcomingTopic: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
       enrolledStudents: [
         {
           type:

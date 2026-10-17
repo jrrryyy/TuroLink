@@ -199,18 +199,6 @@
   object-fit: cover;
 }
 
-.view-profile-status-indicator {
-  position: absolute;
-  bottom: 6px;
-  right: 6px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #2e9b4d;
-  border: 2.5px solid var(--layout-card, #f4efe6);
-  box-shadow: 0 0 6px rgba(46, 155, 77, 0.5);
-}
-
 /* Identity & Rate Card */
 .view-profile-identity {
   margin-bottom: 24px;

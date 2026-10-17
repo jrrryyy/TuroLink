@@ -62,7 +62,7 @@ const formatDateDivider = (dateStr) => {
   return `${d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}, ${time}`;
 };
 
-function MessageAvatar({ src, name, size, className = '', fallbackClassName = '', wrapClassName = 'messages-avatar-wrap', showDot = false }) {
+function MessageAvatar({ src, name, size, className = '', fallbackClassName = '', wrapClassName = 'messages-avatar-wrap' }) {
   const [hasError, setHasError] = useState(false);
   const initial = (name || 'U').charAt(0).toUpperCase();
 
@@ -88,7 +88,6 @@ function MessageAvatar({ src, name, size, className = '', fallbackClassName = ''
           {initial}
         </div>
       )}
-      {showDot && <span className="messages-online-dot" />}
     </div>
   );
 }
@@ -627,7 +626,6 @@ export default function Messages() {
                       <MessageAvatar
                         src={other?.profilePicture}
                         name={other?.name}
-                        showDot={true}
                       />
 
                       <div className="messages-conv-info">

@@ -497,7 +497,13 @@ export default function StudentMySubjects() {
               <div className="student-classroom-header-info">
                 <span className="student-section-label">SUBJECT CLASSROOM</span>
                 <h1>{data.title}</h1>
-                <p className="subject-feed-muted">Enrolled Students: {data.enrolledCount} · Subject Rating: {data.rating ? `${data.rating}/5` : 'Not rated yet'}</p>
+                <div className="student-classroom-meta-row">
+                  <p className="subject-feed-muted">Enrolled Students: {data.enrolledCount} · Subject Rating: {data.rating ? `${data.rating}/5` : 'Not rated yet'}</p>
+                  <div className="student-classroom-topic-pill" title="Upcoming Topic">
+                    <span className="student-classroom-topic-label">Upcoming topic:</span>
+                    <strong className="student-classroom-topic-val">{data.upcomingTopic || 'No upcoming topic yet'}</strong>
+                  </div>
+                </div>
               </div>
               <button
                 type="button"

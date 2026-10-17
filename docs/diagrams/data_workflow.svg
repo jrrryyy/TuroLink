@@ -1,0 +1,231 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 620" width="100%" height="100%" style="background:#0b1120; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <linearGradient id="headerGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#ec4899" />
+    </linearGradient>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity="0.45" />
+    </filter>
+    <marker id="flowArrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="640" y="48" text-anchor="middle" fill="url(#headerGrad2)" font-size="28" font-weight="800" letter-spacing="0.5">TuroLink — End-to-End Data Workflow</text>
+  <text x="640" y="78" text-anchor="middle" fill="#94a3b8" font-size="14">Ingestion  ➔  Processing  ➔  Storage  ➔  Analytics  ➔  Visualization</text>
+
+  <!-- ================= STAGE 1: INGESTION ================= -->
+  <g transform="translate(30, 110)" filter="url(#cardShadow)">
+    <rect width="215" height="450" rx="14" fill="#0f172a" stroke="#0ea5e9" stroke-width="1.8" />
+    <rect width="180" height="32" rx="8" x="17" y="16" fill="#0284c7" />
+    <text x="107" y="37" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="800">1. INGESTION</text>
+
+    <!-- Step 1 -->
+    <g transform="translate(14, 68)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">User Interactions</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Lesson Bookings</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Student &amp; Tutor Portals</text>
+    </g>
+
+    <!-- Step 2 -->
+    <g transform="translate(14, 155)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">Student Coursework</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Assignments &amp; Quizzes</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">File Attachments &amp; Notes</text>
+    </g>
+
+    <!-- Step 3 -->
+    <g transform="translate(14, 242)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">Community Grievances</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Moderation Reports</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Fraud, Scam, Harassment</text>
+    </g>
+
+    <!-- Step 4 -->
+    <g transform="translate(14, 329)">
+      <rect width="187" height="95" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#38bdf8" font-size="12" font-weight="700">Automated Triggers</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Scheduled Cron Checks</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Deadline Expirations</text>
+      <text x="93" y="74" text-anchor="middle" fill="#64748b" font-size="9">Session Timeouts</text>
+    </g>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <line x1="250" y1="335" x2="280" y2="335" stroke="#38bdf8" stroke-width="3" marker-end="url(#flowArrow)" />
+
+  <!-- ================= STAGE 2: PROCESSING ================= -->
+  <g transform="translate(285, 110)" filter="url(#cardShadow)">
+    <rect width="215" height="450" rx="14" fill="#0f172a" stroke="#06b6d4" stroke-width="1.8" />
+    <rect width="180" height="32" rx="8" x="17" y="16" fill="#0891b2" />
+    <text x="107" y="37" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="800">2. PROCESSING</text>
+
+    <!-- Step 1 -->
+    <g transform="translate(14, 68)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="700">Sanitization &amp; Validation</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Whitespace Trimming</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Length &amp; Enum Whitelisting</text>
+    </g>
+
+    <!-- Step 2 -->
+    <g transform="translate(14, 155)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="700">Timezone Normalization</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">UTC ➔ Asia/Manila (UTC+8)</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Monthly Date Bucketing</text>
+    </g>
+
+    <!-- Step 3 -->
+    <g transform="translate(14, 242)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="700">Conflict Detection</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Double-Booking Guard</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Prevent Duplicate Turn-In</text>
+    </g>
+
+    <!-- Step 4 -->
+    <g transform="translate(14, 329)">
+      <rect width="187" height="95" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#22d3ee" font-size="12" font-weight="700">Auto-Grade Penalty Engine</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">autoGradeMissedMaterials</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Auto 0 Grade on Late Lock</text>
+      <text x="93" y="74" text-anchor="middle" fill="#64748b" font-size="9">Objective Data Compliance</text>
+    </g>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <line x1="505" y1="335" x2="535" y2="335" stroke="#06b6d4" stroke-width="3" marker-end="url(#flowArrow)" />
+
+  <!-- ================= STAGE 3: STORAGE ================= -->
+  <g transform="translate(540, 110)" filter="url(#cardShadow)">
+    <rect width="215" height="450" rx="14" fill="#0f172a" stroke="#10b981" stroke-width="1.8" />
+    <rect width="180" height="32" rx="8" x="17" y="16" fill="#059669" />
+    <text x="107" y="37" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="800">3. STORAGE</text>
+
+    <!-- Step 1 -->
+    <g transform="translate(14, 68)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">User &amp; Auth Collection</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">users &amp; authsessions</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">teacherprofiles schema</text>
+    </g>
+
+    <!-- Step 2 -->
+    <g transform="translate(14, 155)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">Bookings Collection</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Time slots &amp; durations</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Unique Compound Indexes</text>
+    </g>
+
+    <!-- Step 3 -->
+    <g transform="translate(14, 242)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">Coursework &amp; Grades</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">subjects &amp; submissions</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">{ materialId, studentId } index</text>
+    </g>
+
+    <!-- Step 4 -->
+    <g transform="translate(14, 329)">
+      <rect width="187" height="95" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#34d399" font-size="12" font-weight="700">Cloud Blob Storage</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Vercel Blob / Cloudinary</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Student Submitted Files</text>
+      <text x="93" y="74" text-anchor="middle" fill="#64748b" font-size="9">Fast CDN Media Delivery</text>
+    </g>
+  </g>
+
+  <!-- Arrow 3 -> 4 -->
+  <line x1="760" y1="335" x2="790" y2="335" stroke="#10b981" stroke-width="3" marker-end="url(#flowArrow)" />
+
+  <!-- ================= STAGE 4: ANALYTICS ================= -->
+  <g transform="translate(795, 110)" filter="url(#cardShadow)">
+    <rect width="215" height="450" rx="14" fill="#0f172a" stroke="#818cf8" stroke-width="1.8" />
+    <rect width="180" height="32" rx="8" x="17" y="16" fill="#4f46e5" />
+    <text x="107" y="37" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="800">4. ANALYTICS</text>
+
+    <!-- Step 1 -->
+    <g transform="translate(14, 68)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#a5b4fc" font-size="12" font-weight="700">MongoDB Aggregations</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">$match &amp; $group by month</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">$subtract &amp; $divide hours</text>
+    </g>
+
+    <!-- Step 2 -->
+    <g transform="translate(14, 155)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#a5b4fc" font-size="12" font-weight="700">Session Volume Trends</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">6-Mo Rolling Window</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Peak Study Month &amp; Hours</text>
+    </g>
+
+    <!-- Step 3 -->
+    <g transform="translate(14, 242)">
+      <rect width="187" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#a5b4fc" font-size="12" font-weight="700">Academic Mastery Mean</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Normalized Percentages</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Subject-level Competency</text>
+    </g>
+
+    <!-- Step 4 -->
+    <g transform="translate(14, 329)">
+      <rect width="187" height="95" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="93" y="24" text-anchor="middle" fill="#a5b4fc" font-size="12" font-weight="700">Governance &amp; Risk Stats</text>
+      <text x="93" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10.5">Dispute Turnaround Time</text>
+      <text x="93" y="58" text-anchor="middle" fill="#94a3b8" font-size="9.5">Pending vs Resolved Ratios</text>
+      <text x="93" y="74" text-anchor="middle" fill="#64748b" font-size="9">Ban &amp; Suspension Counts</text>
+    </g>
+  </g>
+
+  <!-- Arrow 4 -> 5 -->
+  <line x1="1015" y1="335" x2="1045" y2="335" stroke="#818cf8" stroke-width="3" marker-end="url(#flowArrow)" />
+
+  <!-- ================= STAGE 5: VISUALIZATION ================= -->
+  <g transform="translate(1050, 110)" filter="url(#cardShadow)">
+    <rect width="200" height="450" rx="14" fill="#0f172a" stroke="#f43f5e" stroke-width="1.8" />
+    <rect width="170" height="32" rx="8" x="15" y="16" fill="#e11d48" />
+    <text x="100" y="37" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="800">5. VISUALIZATION</text>
+
+    <!-- Step 1 -->
+    <g transform="translate(12, 68)">
+      <rect width="176" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="88" y="24" text-anchor="middle" fill="#fb7185" font-size="12" font-weight="700">Interactive SVG Charts</text>
+      <text x="88" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10">Proportional Bar Charts</text>
+      <text x="88" y="58" text-anchor="middle" fill="#94a3b8" font-size="9">Custom Coordinate Engine</text>
+    </g>
+
+    <!-- Step 2 -->
+    <g transform="translate(12, 155)">
+      <rect width="176" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="88" y="24" text-anchor="middle" fill="#fb7185" font-size="12" font-weight="700">Bézier Trend Curves</text>
+      <text x="88" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10">Smooth Cubic Splines</text>
+      <text x="88" y="58" text-anchor="middle" fill="#94a3b8" font-size="9">Longitudinal Trajectory</text>
+    </g>
+
+    <!-- Step 3 -->
+    <g transform="translate(12, 242)">
+      <rect width="176" height="75" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="88" y="24" text-anchor="middle" fill="#fb7185" font-size="12" font-weight="700">Interactive Tooltips</text>
+      <text x="88" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10">Hover Coordinate Hotspots</text>
+      <text x="88" y="58" text-anchor="middle" fill="#94a3b8" font-size="9">Exact Hours &amp; Sessions</text>
+    </g>
+
+    <!-- Step 4 -->
+    <g transform="translate(12, 329)">
+      <rect width="176" height="95" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1" />
+      <text x="88" y="24" text-anchor="middle" fill="#fb7185" font-size="12" font-weight="700">KPI Dashboards &amp; Badges</text>
+      <text x="88" y="42" text-anchor="middle" fill="#cbd5e1" font-size="10">Summary Stat Tiles</text>
+      <text x="88" y="58" text-anchor="middle" fill="#94a3b8" font-size="9">Admin Moderation Panels</text>
+      <text x="88" y="74" text-anchor="middle" fill="#64748b" font-size="8.5">Real-Time Operational Center</text>
+    </g>
+  </g>
+</svg>
